@@ -268,6 +268,19 @@ const AdminDashboard = ({ navigation }: any) => {
             color="#28A745"
             onPress={() => navigation.navigate('AdminSettings')}
           />
+          <MenuCard
+            iconName="stats-chart-outline"
+            title="Raporlar"
+            subtitle="İstatistikler"
+            color="#17A2B8"
+            onPress={() => {
+              Toast.show({
+                type: 'info',
+                text1: '📊 Raporlar',
+                text2: 'Yakında eklenecek!',
+              });
+            }}
+          />
         </View>
       </View>
     </ScrollView>
@@ -363,7 +376,7 @@ const styles = StyleSheet.create({
   menuGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
+    justifyContent: 'space-between',
   },
   menuCard: {
     width: '48%',
@@ -371,6 +384,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     alignItems: 'center',
+    marginBottom: Spacing.md,
     ...Shadows.small,
   },
   menuIconContainer: {

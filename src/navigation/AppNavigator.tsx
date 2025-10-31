@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -102,7 +103,43 @@ const MainTabs = () => {
         component={HomeScreen}
         options={{
           title: 'Ana Sayfa',
-          tabBarIcon: ({ focused }) => <TabIcon iconName="home" focused={focused} />,
+          headerTitle: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="restaurant" size={28} color={Colors.primary} />
+              <View>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: Colors.text }}>
+                  Riverside Burgers
+                </Text>
+                <Text style={{ fontSize: 12, color: Colors.textSecondary }}>
+                  Toronto, Canada 🇨🇦
+                </Text>
+              </View>
+            </View>
+          ),
+          headerRight: () => (
+            <View style={{ flexDirection: 'row', gap: 12, marginRight: 16 }}>
+              <TouchableOpacity
+                onPress={() => {}}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: Colors.surface,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Ionicons name="notifications-outline" size={22} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+          ),
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'home' : 'home-outline'}
+              size={24}
+              color={focused ? Colors.primary : Colors.textSecondary}
+            />
+          ),
         }}
       />
       <Tab.Screen
@@ -110,7 +147,21 @@ const MainTabs = () => {
         component={MenuScreen}
         options={{
           title: 'Menü',
-          tabBarIcon: ({ focused }) => <TabIcon iconName="restaurant" focused={focused} />,
+          headerTitle: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="fast-food" size={26} color={Colors.primary} />
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: Colors.text }}>
+                Menü
+              </Text>
+            </View>
+          ),
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'fast-food' : 'fast-food-outline'}
+              size={24}
+              color={focused ? Colors.primary : Colors.textSecondary}
+            />
+          ),
         }}
       />
       <Tab.Screen
@@ -118,7 +169,21 @@ const MainTabs = () => {
         component={CartScreen}
         options={{
           title: 'Sepet',
-          tabBarIcon: ({ focused }) => <TabIcon iconName="cart" focused={focused} />,
+          headerTitle: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="cart" size={26} color={Colors.primary} />
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: Colors.text }}>
+                Sepetim
+              </Text>
+            </View>
+          ),
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'cart' : 'cart-outline'}
+              size={24}
+              color={focused ? Colors.primary : Colors.textSecondary}
+            />
+          ),
           // Badge göster (Show badge) - sadece ürün varsa (only if items exist)
           tabBarBadge: totalItems > 0 ? totalItems : undefined,
         }}
@@ -128,7 +193,21 @@ const MainTabs = () => {
         component={ProfileScreen}
         options={{
           title: 'Profil',
-          tabBarIcon: ({ focused }) => <TabIcon iconName="person" focused={focused} />,
+          headerTitle: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="person" size={26} color={Colors.primary} />
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: Colors.text }}>
+                Profilim
+              </Text>
+            </View>
+          ),
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'person' : 'person-outline'}
+              size={24}
+              color={focused ? Colors.primary : Colors.textSecondary}
+            />
+          ),
         }}
       />
     </Tab.Navigator>
@@ -154,6 +233,7 @@ const AppNavigator = () => {
           options={{
             presentation: 'modal',
             animation: 'slide_from_bottom',
+            headerShown: false,
           }}
         />
 
@@ -188,14 +268,20 @@ const AppNavigator = () => {
           name="OrderHistory"
           component={OrderHistoryScreen}
           options={{
-            title: 'Sipariş Geçmişi',
+            title: '📦 Sipariş Geçmişi',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
             },
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
+              fontSize: 18,
             },
           }}
         />
@@ -203,14 +289,20 @@ const AppNavigator = () => {
           name="PointsHistory"
           component={PointsHistoryScreen}
           options={{
-            title: 'Puan Geçmişi',
+            title: '⭐ Puan Geçmişi',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
             },
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
+              fontSize: 18,
             },
           }}
         />
@@ -218,14 +310,20 @@ const AppNavigator = () => {
           name="ProfileEdit"
           component={ProfileEditScreen}
           options={{
-            title: 'Profil Düzenle',
+            title: '✏️ Profil Düzenle',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
             },
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
+              fontSize: 18,
             },
           }}
         />
@@ -233,14 +331,20 @@ const AppNavigator = () => {
           name="AddressList"
           component={AddressListScreen}
           options={{
-            title: 'Adreslerim',
+            title: '📍 Adreslerim',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
             },
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
+              fontSize: 18,
             },
           }}
         />
@@ -248,14 +352,20 @@ const AppNavigator = () => {
           name="AddressEdit"
           component={AddressEditScreen}
           options={{
-            title: 'Adres Düzenle',
+            title: '📝 Adres Düzenle',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
             },
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
+              fontSize: 18,
             },
           }}
         />
@@ -265,14 +375,20 @@ const AppNavigator = () => {
           name="AdminDashboard"
           component={AdminDashboard}
           options={{
-            title: 'Admin Dashboard',
+            title: '👨‍💼 Admin Dashboard',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
             },
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
+              fontSize: 18,
             },
           }}
         />
@@ -280,14 +396,20 @@ const AppNavigator = () => {
           name="AdminOrders"
           component={AdminOrders}
           options={{
-            title: 'Sipariş Yönetimi',
+            title: '📋 Sipariş Yönetimi',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
             },
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
+              fontSize: 18,
             },
           }}
         />
@@ -295,14 +417,20 @@ const AppNavigator = () => {
           name="AdminProducts"
           component={AdminProducts}
           options={{
-            title: 'Ürün Yönetimi',
+            title: '🍔 Ürün Yönetimi',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
             },
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
+              fontSize: 18,
             },
           }}
         />
@@ -310,14 +438,20 @@ const AppNavigator = () => {
           name="AdminUsers"
           component={AdminUsers}
           options={{
-            title: 'Kullanıcı Yönetimi',
+            title: '👥 Kullanıcı Yönetimi',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
             },
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
+              fontSize: 18,
             },
           }}
         />
@@ -325,14 +459,20 @@ const AppNavigator = () => {
           name="AdminSettings"
           component={AdminSettings}
           options={{
-            title: 'Sistem Ayarları',
+            title: '⚙️ Sistem Ayarları',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
             },
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
+              fontSize: 18,
             },
           }}
         />
@@ -340,14 +480,20 @@ const AppNavigator = () => {
           name="AdminBanners"
           component={AdminBanners}
           options={{
-            title: 'Banner Yönetimi',
+            title: '🖼️ Banner Yönetimi',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
             },
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
+              fontSize: 18,
             },
           }}
         />

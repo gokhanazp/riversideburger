@@ -196,13 +196,14 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
           <Text style={styles.totalPrice}>₺{(item.price * quantity).toFixed(2)}</Text>
         </View>
 
-        <Animated.View style={animatedButtonStyle}>
-            <TouchableOpacity
+        <Animated.View style={[animatedButtonStyle, { flex: 2 }]}>
+          <TouchableOpacity
             style={styles.addToCartButton}
             onPress={handleAddToCart}
             activeOpacity={0.8}
           >
-            <Text style={styles.addToCartButtonText}>Sepete Ekle 🛒</Text>
+            <Ionicons name="cart" size={24} color={Colors.white} style={styles.cartIcon} />
+            <Text style={styles.addToCartButtonText}>Sepete Ekle</Text>
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>
@@ -362,18 +363,24 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   addToCartButton: {
-    flex: 2,
+    flexDirection: 'row',
     backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.xl,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.medium,
+    ...Shadows.large,
+    elevation: 8,
+  },
+  cartIcon: {
+    marginRight: Spacing.sm,
   },
   addToCartButtonText: {
     fontSize: FontSizes.lg,
     fontWeight: 'bold',
     color: Colors.white,
+    letterSpacing: 0.5,
   },
 });
 

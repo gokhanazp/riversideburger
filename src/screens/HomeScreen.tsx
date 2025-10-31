@@ -73,7 +73,18 @@ const HomeScreen = ({ navigation }: any) => {
 
   // Ürüne tıklandığında detay sayfasına git (Navigate to product detail)
   const handleProductPress = (product: Product) => {
-    navigation.navigate('ProductDetail', { product });
+    // Product'ı MenuItem formatına çevir (Convert Product to MenuItem format)
+    const menuItem = {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category: product.category,
+      image: product.image_url,
+      rating: 4.5, // Varsayılan rating (Default rating)
+      reviews: 0, // Varsayılan review sayısı (Default review count)
+    };
+    navigation.navigate('ProductDetail', { item: menuItem });
   };
 
   // Sepete ekle (Add to cart)

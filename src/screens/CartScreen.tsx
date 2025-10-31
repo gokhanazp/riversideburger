@@ -299,9 +299,19 @@ const CartScreen = ({ navigation }: any) => {
   // Boş sepet görünümü (Empty cart view)
   const EmptyCart = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyIcon}>🛒</Text>
+      <View style={styles.emptyIconContainer}>
+        <Ionicons name="cart-outline" size={100} color="#E0E0E0" />
+      </View>
       <Text style={styles.emptyTitle}>Sepetiniz Boş</Text>
       <Text style={styles.emptySubtitle}>Menüden ürün ekleyerek başlayın</Text>
+      <TouchableOpacity
+        style={styles.emptyButton}
+        onPress={() => navigation.navigate('MenuTab')}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="fast-food" size={20} color={Colors.white} />
+        <Text style={styles.emptyButtonText}>Menüye Git</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -652,12 +662,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.xl,
   },
-  emptyIcon: {
-    fontSize: 80,
-    marginBottom: Spacing.lg,
+  emptyIconContainer: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
   },
   emptyTitle: {
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes.xxl,
     fontWeight: 'bold',
     color: Colors.text,
     marginBottom: Spacing.sm,
@@ -666,6 +681,22 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.textSecondary,
     textAlign: 'center',
+    marginBottom: Spacing.xl,
+  },
+  emptyButton: {
+    flexDirection: 'row',
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.xl,
+    alignItems: 'center',
+    gap: Spacing.sm,
+    ...Shadows.medium,
+  },
+  emptyButtonText: {
+    fontSize: FontSizes.md,
+    fontWeight: 'bold',
+    color: Colors.white,
   },
   footer: {
     backgroundColor: Colors.white,
