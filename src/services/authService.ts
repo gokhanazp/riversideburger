@@ -58,14 +58,38 @@ export const signIn = async (email: string, password: string) => {
     if (error) throw error;
     if (!data.user) throw new Error('Giriş başarısız');
 
-    // Kullanıcı bilgilerini metadata'dan al (Get user info from metadata)
+    // Kullanıcı bilgilerini users tablosundan al (Get user info from users table)
+    const { data: dbUser, error: dbError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+
+    if (dbError) {
+      console.error('Database user fetch error:', dbError);
+      // Fallback to metadata if database fetch fails
+      const userData: User = {
+        id: data.user.id,
+        email: data.user.email || email,
+        role: (data.user.user_metadata?.role as UserRole) || 'customer',
+        full_name: data.user.user_metadata?.full_name || '',
+        phone: data.user.user_metadata?.phone || '',
+        points: 0,
+        created_at: data.user.created_at,
+      };
+      return { user: userData, session: data.session };
+    }
+
+    // Database'den gelen kullanıcı bilgilerini kullan (Use user info from database)
     const userData: User = {
-      id: data.user.id,
-      email: data.user.email || email,
-      role: (data.user.user_metadata?.role as UserRole) || 'customer',
-      full_name: data.user.user_metadata?.full_name || '',
-      phone: data.user.user_metadata?.phone || '',
-      created_at: data.user.created_at,
+      id: dbUser.id,
+      email: dbUser.email,
+      role: dbUser.role as UserRole,
+      full_name: dbUser.full_name || '',
+      phone: dbUser.phone || '',
+      points: dbUser.points || 0,
+      created_at: dbUser.created_at,
+      updated_at: dbUser.updated_at,
     };
 
     return { user: userData, session: data.session };
@@ -93,14 +117,38 @@ export const getCurrentUser = async (): Promise<User | null> => {
 
     if (!authUser) return null;
 
-    // Kullanıcı bilgilerini metadata'dan al (Get user info from metadata)
+    // Kullanıcı bilgilerini users tablosundan al (Get user info from users table)
+    const { data: dbUser, error: dbError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', authUser.id)
+      .single();
+
+    if (dbError) {
+      console.error('Database user fetch error:', dbError);
+      // Fallback to metadata if database fetch fails
+      const userData: User = {
+        id: authUser.id,
+        email: authUser.email || '',
+        role: (authUser.user_metadata?.role as UserRole) || 'customer',
+        full_name: authUser.user_metadata?.full_name || '',
+        phone: authUser.user_metadata?.phone || '',
+        points: 0,
+        created_at: authUser.created_at,
+      };
+      return userData;
+    }
+
+    // Database'den gelen kullanıcı bilgilerini kullan (Use user info from database)
     const userData: User = {
-      id: authUser.id,
-      email: authUser.email || '',
-      role: (authUser.user_metadata?.role as UserRole) || 'customer',
-      full_name: authUser.user_metadata?.full_name || '',
-      phone: authUser.user_metadata?.phone || '',
-      created_at: authUser.created_at,
+      id: dbUser.id,
+      email: dbUser.email,
+      role: dbUser.role as UserRole,
+      full_name: dbUser.full_name || '',
+      phone: dbUser.phone || '',
+      points: dbUser.points || 0,
+      created_at: dbUser.created_at,
+      updated_at: dbUser.updated_at,
     };
 
     return userData;
@@ -114,13 +162,39 @@ export const getCurrentUser = async (): Promise<User | null> => {
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return supabase.auth.onAuthStateChange(async (event, session) => {
     if (session?.user) {
+      // Kullanıcı bilgilerini users tablosundan al (Get user info from users table)
+      const { data: dbUser, error: dbError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (dbError) {
+        console.error('Database user fetch error:', dbError);
+        // Fallback to metadata if database fetch fails
+        const userData: User = {
+          id: session.user.id,
+          email: session.user.email || '',
+          role: (session.user.user_metadata?.role as UserRole) || 'customer',
+          full_name: session.user.user_metadata?.full_name || '',
+          phone: session.user.user_metadata?.phone || '',
+          points: 0,
+          created_at: session.user.created_at,
+        };
+        callback(userData);
+        return;
+      }
+
+      // Database'den gelen kullanıcı bilgilerini kullan (Use user info from database)
       const userData: User = {
-        id: session.user.id,
-        email: session.user.email || '',
-        role: (session.user.user_metadata?.role as UserRole) || 'customer',
-        full_name: session.user.user_metadata?.full_name || '',
-        phone: session.user.user_metadata?.phone || '',
-        created_at: session.user.created_at,
+        id: dbUser.id,
+        email: dbUser.email,
+        role: dbUser.role as UserRole,
+        full_name: dbUser.full_name || '',
+        phone: dbUser.phone || '',
+        points: dbUser.points || 0,
+        created_at: dbUser.created_at,
+        updated_at: dbUser.updated_at,
       };
 
       callback(userData);

@@ -15,5 +15,20 @@ export type RootStackParamList = {
   ProductDetail: { item: MenuItem };
   MenuDetail: { itemId: string };
   OrderConfirmation: { orderId: string };
+  Login: undefined;
+  Register: undefined;
+  ForgotPassword: undefined;
+  OrderHistory: undefined;
+  PointsHistory: undefined;
+  ProfileEdit: undefined;
+  AddressList: undefined;
+  AddressEdit: { addressId: string | null };
+  // Admin ekranları (Admin screens)
+  AdminDashboard: undefined;
+  AdminOrders: { filter?: string } | undefined;
+  AdminProducts: undefined;
+  AdminUsers: undefined;
+  AdminSettings: undefined;
+  AdminBanners: undefined;
 };
 

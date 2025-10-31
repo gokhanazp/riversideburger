@@ -16,6 +16,21 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 
+// Sipariş ve Puan ekranları (Order and Points screens)
+import OrderHistoryScreen from '../screens/OrderHistoryScreen';
+import PointsHistoryScreen from '../screens/PointsHistoryScreen';
+import ProfileEditScreen from '../screens/ProfileEditScreen';
+import AddressListScreen from '../screens/AddressListScreen';
+import AddressEditScreen from '../screens/AddressEditScreen';
+
+// Admin ekranları (Admin screens)
+import AdminDashboard from '../screens/admin/AdminDashboard';
+import AdminOrders from '../screens/admin/AdminOrders';
+import AdminProducts from '../screens/admin/AdminProducts';
+import AdminUsers from '../screens/admin/AdminUsers';
+import AdminSettings from '../screens/admin/AdminSettings';
+import AdminBanners from '../screens/admin/AdminBanners';
+
 // Type'ları import et (Import types)
 import { MainTabParamList, RootStackParamList } from './types';
 
@@ -165,6 +180,175 @@ const AppNavigator = () => {
           options={{
             presentation: 'modal',
             animation: 'slide_from_bottom',
+          }}
+        />
+
+        {/* Sipariş ve Puan ekranları (Order and Points screens) */}
+        <Stack.Screen
+          name="OrderHistory"
+          component={OrderHistoryScreen}
+          options={{
+            title: 'Sipariş Geçmişi',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="PointsHistory"
+          component={PointsHistoryScreen}
+          options={{
+            title: 'Puan Geçmişi',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="ProfileEdit"
+          component={ProfileEditScreen}
+          options={{
+            title: 'Profil Düzenle',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="AddressList"
+          component={AddressListScreen}
+          options={{
+            title: 'Adreslerim',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="AddressEdit"
+          component={AddressEditScreen}
+          options={{
+            title: 'Adres Düzenle',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        />
+
+        {/* Admin Ekranları (Admin Screens) */}
+        <Stack.Screen
+          name="AdminDashboard"
+          component={AdminDashboard}
+          options={{
+            title: 'Admin Dashboard',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="AdminOrders"
+          component={AdminOrders}
+          options={{
+            title: 'Sipariş Yönetimi',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="AdminProducts"
+          component={AdminProducts}
+          options={{
+            title: 'Ürün Yönetimi',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="AdminUsers"
+          component={AdminUsers}
+          options={{
+            title: 'Kullanıcı Yönetimi',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="AdminSettings"
+          component={AdminSettings}
+          options={{
+            title: 'Sistem Ayarları',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="AdminBanners"
+          component={AdminBanners}
+          options={{
+            title: 'Banner Yönetimi',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
           }}
         />
       </Stack.Navigator>

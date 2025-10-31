@@ -1,17 +1,112 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { CATEGORY_NAMES } from '../constants/mockData';
 import { CategoryType } from '../types';
 import BannerSlider from '../components/BannerSlider';
+import { supabase } from '../lib/supabase';
+import { useCartStore } from '../store/cartStore';
+import { useFavoritesStore } from '../store/favoritesStore';
+import Toast from 'react-native-toast-message';
+
+// Ürün tipi (Product type)
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  image_url: string;
+  stock_status: 'in_stock' | 'out_of_stock';
+  is_featured: boolean;
+}
 
 // Ana sayfa ekranı (Home screen)
 const HomeScreen = ({ navigation }: any) => {
+  // State'ler (States)
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  // Store'lar (Stores)
+  const { addItem } = useCartStore();
+  const { favorites, toggleFavorite } = useFavoritesStore();
+
+  // Sayfa yüklendiğinde öne çıkan ürünleri getir (Fetch featured products on page load)
+  useEffect(() => {
+    fetchFeaturedProducts();
+  }, []);
+
+  // Öne çıkan ürünleri getir (Fetch featured products)
+  const fetchFeaturedProducts = async () => {
+    try {
+      setLoadingProducts(true);
+      console.log('🔍 Fetching featured products...');
+
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_featured', true)
+        .eq('stock_status', 'in_stock')
+        .order('created_at', { ascending: false })
+        .limit(6);
+
+      if (error) {
+        console.error('❌ Fetch error:', error);
+        throw error;
+      }
+
+      console.log('✅ Featured products fetched:', data?.length || 0);
+      setFeaturedProducts(data || []);
+    } catch (error: any) {
+      console.error('❌ Error fetching featured products:', error);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
   // Kategorilere tıklandığında menü ekranına yönlendir (Navigate to menu screen on category click)
   const handleCategoryPress = (category: CategoryType) => {
     navigation.navigate('MenuTab', { category });
+  };
+
+  // Ürüne tıklandığında detay sayfasına git (Navigate to product detail)
+  const handleProductPress = (product: Product) => {
+    navigation.navigate('ProductDetail', { product });
+  };
+
+  // Sepete ekle (Add to cart)
+  const handleAddToCart = (product: Product) => {
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image_url,
+      quantity: 1,
+    });
+
+    Toast.show({
+      type: 'success',
+      text1: '✅ Sepete Eklendi',
+      text2: product.name,
+      position: 'bottom',
+      visibilityTime: 2000,
+    });
+  };
+
+  // Favorilere ekle/çıkar (Toggle favorite)
+  const handleToggleFavorite = (product: Product) => {
+    toggleFavorite(product);
+    const isFavorite = favorites.some((fav) => fav.id === product.id);
+
+    Toast.show({
+      type: isFavorite ? 'info' : 'success',
+      text1: isFavorite ? '💔 Favorilerden Çıkarıldı' : '❤️ Favorilere Eklendi',
+      text2: product.name,
+      position: 'bottom',
+      visibilityTime: 2000,
+    });
   };
 
   // Kategori kartı componenti (Category card component)
@@ -76,6 +171,111 @@ const HomeScreen = ({ navigation }: any) => {
           <CategoryCard category="dessert" iconName="ice-cream" index={4} />
           <CategoryCard category="drink" iconName="cafe" index={5} />
         </View>
+      </View>
+
+      {/* Önerilen Ürünler bölümü (Recommended Products section) */}
+      <View style={styles.section}>
+        <Animated.View
+          entering={FadeInDown.delay(300).duration(600)}
+          style={styles.sectionHeader}
+        >
+          <View>
+            <Text style={styles.sectionTitle}>Önerilen Ürünler</Text>
+            <Text style={styles.sectionSubtitle}>Sizin için seçtiklerimiz</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MenuTab')}
+            style={styles.viewAllButton}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.viewAllText}>Tümünü Gör</Text>
+            <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
+          </TouchableOpacity>
+        </Animated.View>
+
+        {loadingProducts ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>Ürünler yükleniyor...</Text>
+          </View>
+        ) : featuredProducts.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.productsScrollContent}
+          >
+            {featuredProducts.map((product, index) => {
+              const isFavorite = favorites.some((fav) => fav.id === product.id);
+              return (
+                <Animated.View
+                  key={product.id}
+                  entering={FadeInDown.delay(400 + index * 100).duration(600)}
+                >
+                  <TouchableOpacity
+                    style={styles.productCard}
+                    onPress={() => handleProductPress(product)}
+                    activeOpacity={0.9}
+                  >
+                    {/* Ürün Resmi (Product Image) */}
+                    <Image
+                      source={{ uri: product.image_url }}
+                      style={styles.productImage}
+                    />
+
+                    {/* Favori Butonu (Favorite Button) */}
+                    <TouchableOpacity
+                      style={styles.favoriteButton}
+                      onPress={() => handleToggleFavorite(product)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name={isFavorite ? 'heart' : 'heart-outline'}
+                        size={20}
+                        color={isFavorite ? Colors.primary : '#666'}
+                      />
+                    </TouchableOpacity>
+
+                    {/* Önerilen Badge (Recommended Badge) */}
+                    <View style={styles.recommendedBadge}>
+                      <Ionicons name="star" size={12} color={Colors.white} />
+                      <Text style={styles.recommendedText}>ÖNERİLEN</Text>
+                    </View>
+
+                    {/* Ürün Bilgileri (Product Info) */}
+                    <View style={styles.productInfo}>
+                      <Text style={styles.productName} numberOfLines={1}>
+                        {product.name}
+                      </Text>
+                      <Text style={styles.productDescription} numberOfLines={2}>
+                        {product.description}
+                      </Text>
+
+                      {/* Fiyat ve Sepete Ekle (Price and Add to Cart) */}
+                      <View style={styles.productFooter}>
+                        <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
+                        <TouchableOpacity
+                          style={styles.addToCartButton}
+                          onPress={() => handleAddToCart(product)}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="add" size={20} color={Colors.white} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              );
+            })}
+          </ScrollView>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="star-outline" size={48} color="#CCC" />
+            <Text style={styles.emptyText}>Henüz önerilen ürün yok</Text>
+            <Text style={styles.emptySubtext}>
+              Admin panelinden ürünleri "Öne Çıkan" olarak işaretleyebilirsiniz
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* About Us bölümü (About Us section) */}
@@ -438,6 +638,139 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
     lineHeight: 20,
+  },
+  // Öne Çıkan Ürünler stilleri (Featured Products styles)
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  sectionSubtitle: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+  },
+  viewAllText: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xxl * 2,
+  },
+  loadingText: {
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
+  productsScrollContent: {
+    paddingRight: Spacing.md,
+  },
+  productCard: {
+    width: 200,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    marginRight: Spacing.md,
+    overflow: 'hidden',
+    ...Shadows.medium,
+  },
+  productImage: {
+    width: '100%',
+    height: 150,
+    backgroundColor: '#F0F0F0',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.round,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.small,
+  },
+  recommendedBadge: {
+    position: 'absolute',
+    top: Spacing.sm,
+    left: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.accent,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.sm,
+    ...Shadows.small,
+  },
+  recommendedText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: Colors.white,
+    letterSpacing: 0.5,
+  },
+  productInfo: {
+    padding: Spacing.md,
+  },
+  productName: {
+    fontSize: FontSizes.md,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  productDescription: {
+    fontSize: FontSizes.xs,
+    color: Colors.textSecondary,
+    lineHeight: 16,
+    marginBottom: Spacing.sm,
+    height: 32,
+  },
+  productFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  productPrice: {
+    fontSize: FontSizes.lg,
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  addToCartButton: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.round,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.small,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xxl * 2,
+  },
+  emptyText: {
+    fontSize: FontSizes.md,
+    color: '#999',
+    marginTop: Spacing.md,
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    fontSize: FontSizes.sm,
+    color: '#BBB',
+    marginTop: Spacing.xs,
+    textAlign: 'center',
   },
   // Footer stilleri (Footer styles)
   footer: {

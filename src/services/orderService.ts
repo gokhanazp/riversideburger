@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { Order, OrderItem, OrderStatus } from '../types/database.types';
+import { usePoints } from './pointsService';
 
 // Sipariş numarası oluştur (Generate order number)
 const generateOrderNumber = (): string => {
@@ -9,28 +10,35 @@ const generateOrderNumber = (): string => {
 };
 
 // Sipariş oluştur (Create order)
-export const createOrder = async (
-  userId: string,
-  items: { product_id: string; quantity: number; price: number }[],
-  deliveryAddress: string,
-  phone: string,
-  notes?: string
-): Promise<Order> => {
+interface CreateOrderParams {
+  user_id: string;
+  total_amount: number;
+  delivery_address: string;
+  phone: string;
+  notes?: string;
+  items: { product_id: string; quantity: number; price: number; subtotal: number }[];
+  points_used?: number;
+  address_id?: string;
+}
+
+export const createOrder = async (params: CreateOrderParams): Promise<Order> => {
   try {
-    // Toplam tutarı hesapla (Calculate total amount)
-    const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const { user_id, total_amount, delivery_address, phone, notes, items, points_used = 0, address_id } = params;
 
     // Sipariş oluştur (Create order)
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
       .insert({
-        user_id: userId,
+        user_id,
         order_number: generateOrderNumber(),
         status: 'pending',
-        total_amount: totalAmount,
-        delivery_address: deliveryAddress,
+        total_amount,
+        delivery_address,
         phone,
         notes,
+        points_earned: 0, // Trigger otomatik hesaplayacak (Trigger will calculate automatically)
+        points_used: points_used || 0,
+        address_id: address_id || null,
       })
       .select()
       .single();
@@ -43,7 +51,7 @@ export const createOrder = async (
       product_id: item.product_id,
       quantity: item.quantity,
       price: item.price,
-      subtotal: item.price * item.quantity,
+      subtotal: item.subtotal,
     }));
 
     const { error: itemsError } = await supabase
@@ -51,6 +59,11 @@ export const createOrder = async (
       .insert(orderItems);
 
     if (itemsError) throw itemsError;
+
+    // Eğer puan kullanıldıysa, kullanıcının puanını azalt (If points used, decrease user's points)
+    if (points_used > 0) {
+      await usePoints(user_id, orderData.id, points_used);
+    }
 
     return orderData;
   } catch (error: any) {

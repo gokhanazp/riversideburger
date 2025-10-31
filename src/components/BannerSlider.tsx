@@ -8,41 +8,27 @@ import {
   Dimensions,
   TouchableOpacity,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
+import { supabase } from '../lib/supabase';
 
 const { width } = Dimensions.get('window');
 const BANNER_HEIGHT = 400;
 
-// Banner verileri (Banner data)
-const BANNERS = [
-  {
-    id: '1',
-    title: 'Riverside Classic',
-    subtitle: 'En sevilen burgerimiz',
-    description: '200gr dana eti, cheddar, özel sos',
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800',
-    discount: '%20 İndirim',
-  },
-  {
-    id: '2',
-    title: 'Double Riverside',
-    subtitle: 'Çift lezzet',
-    description: '2x200gr dana eti, çift cheddar',
-    image: 'https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?w=800',
-    discount: 'Yeni',
-  },
-  {
-    id: '3',
-    title: 'BBQ Bacon Burger',
-    subtitle: 'Barbekü tutkunları için',
-    description: 'Çıtır bacon, barbekü sosu',
-    image: 'https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=800',
-    discount: 'Özel',
-  },
-];
+// Banner tipi (Banner type)
+interface Banner {
+  id: string;
+  title: string;
+  subtitle?: string;
+  image_url: string;
+  button_text?: string;
+  button_link?: string;
+  order_index: number;
+  is_active: boolean;
+}
 
 interface BannerSliderProps {
   onBannerPress?: (bannerId: string) => void;
@@ -50,13 +36,49 @@ interface BannerSliderProps {
 
 const BannerSlider: React.FC<BannerSliderProps> = ({ onBannerPress }) => {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [loading, setLoading] = useState(true);
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
 
+  // Banner'ları database'den getir (Fetch banners from database)
+  useEffect(() => {
+    fetchBanners();
+  }, []);
+
+  const fetchBanners = async () => {
+    try {
+      setLoading(true);
+      console.log('🔍 Fetching banners...');
+
+      const { data, error } = await supabase
+        .from('banners')
+        .select('*')
+        .eq('is_active', true)
+        .order('order_index', { ascending: true });
+
+      if (error) {
+        console.error('❌ Fetch error:', error);
+        throw error;
+      }
+
+      console.log('✅ Banners fetched:', data?.length || 0);
+      setBanners(data || []);
+    } catch (error: any) {
+      console.error('❌ Error fetching banners:', error);
+      // Hata durumunda boş array
+      setBanners([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Otomatik kaydırma (Auto scroll)
   useEffect(() => {
+    if (banners.length === 0) return;
+
     const interval = setInterval(() => {
-      const nextIndex = (activeIndex + 1) % BANNERS.length;
+      const nextIndex = (activeIndex + 1) % banners.length;
       flatListRef.current?.scrollToIndex({
         index: nextIndex,
         animated: true,
@@ -65,42 +87,38 @@ const BannerSlider: React.FC<BannerSliderProps> = ({ onBannerPress }) => {
     }, 5000); // 5 saniyede bir değiş (Change every 5 seconds)
 
     return () => clearInterval(interval);
-  }, [activeIndex]);
+  }, [activeIndex, banners.length]);
 
   // Banner item render (Banner item render)
-  const renderBanner = ({ item }: { item: typeof BANNERS[0] }) => (
+  const renderBanner = ({ item }: { item: Banner }) => (
     <TouchableOpacity
       style={styles.bannerContainer}
       onPress={() => onBannerPress?.(item.id)}
       activeOpacity={0.9}
     >
       {/* Arka plan görseli (Background image) */}
-      <Image source={{ uri: item.image }} style={styles.bannerImage} />
-      
+      <Image source={{ uri: item.image_url }} style={styles.bannerImage} />
+
       {/* Gradient overlay */}
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.7)']}
         style={styles.gradient}
       />
-      
+
       {/* İçerik (Content) */}
       <View style={styles.bannerContent}>
-        {/* İndirim badge'i (Discount badge) */}
-        <View style={styles.discountBadge}>
-          <Text style={styles.discountText}>{item.discount}</Text>
-        </View>
-        
         {/* Başlık ve açıklama (Title and description) */}
         <View style={styles.textContainer}>
-          <Text style={styles.subtitle}>{item.subtitle}</Text>
+          {item.subtitle && <Text style={styles.subtitle}>{item.subtitle}</Text>}
           <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.description}>{item.description}</Text>
-          
+
           {/* Sipariş butonu (Order button) */}
-          <TouchableOpacity style={styles.orderButton} activeOpacity={0.8}>
-            <Text style={styles.orderButtonText}>Sipariş Ver</Text>
-            <Ionicons name="arrow-forward" size={20} color={Colors.white} />
-          </TouchableOpacity>
+          {item.button_text && (
+            <TouchableOpacity style={styles.orderButton} activeOpacity={0.8}>
+              <Text style={styles.orderButtonText}>{item.button_text}</Text>
+              <Ionicons name="arrow-forward" size={20} color={Colors.white} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -109,7 +127,7 @@ const BannerSlider: React.FC<BannerSliderProps> = ({ onBannerPress }) => {
   // Pagination dots render (Pagination dots render)
   const renderPagination = () => (
     <View style={styles.paginationContainer}>
-      {BANNERS.map((_, index) => {
+      {banners.map((_, index) => {
         const inputRange = [
           (index - 1) * width,
           index * width,
@@ -144,11 +162,25 @@ const BannerSlider: React.FC<BannerSliderProps> = ({ onBannerPress }) => {
     </View>
   );
 
+  // Yükleniyor durumu (Loading state)
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  // Banner yoksa gösterme (Don't show if no banners)
+  if (banners.length === 0) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <Animated.FlatList
         ref={flatListRef}
-        data={BANNERS}
+        data={banners}
         renderItem={renderBanner}
         keyExtractor={(item) => item.id}
         horizontal
@@ -175,6 +207,10 @@ const styles = StyleSheet.create({
   container: {
     height: BANNER_HEIGHT,
     marginBottom: Spacing.lg,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bannerContainer: {
     width: width,

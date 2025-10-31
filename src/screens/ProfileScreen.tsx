@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, FlatList, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
@@ -7,6 +7,7 @@ import { useCartStore } from '../store/cartStore';
 import { useAuthStore } from '../store/authStore';
 import { MenuItem as MenuItemType } from '../types';
 import Toast from 'react-native-toast-message';
+import { getUserPoints } from '../services/pointsService';
 
 // Profil ekranı (Profile screen)
 const ProfileScreen = ({ navigation }: any) => {
@@ -14,6 +15,24 @@ const ProfileScreen = ({ navigation }: any) => {
   const { favorites, toggleFavorite } = useFavoritesStore();
   const addItem = useCartStore((state) => state.addItem);
   const { user, isAuthenticated, logout } = useAuthStore();
+  const [userPoints, setUserPoints] = useState<number>(0);
+
+  // Kullanıcı puanlarını yükle (Load user points)
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      loadUserPoints();
+    }
+  }, [isAuthenticated, user]);
+
+  const loadUserPoints = async () => {
+    if (!user) return;
+    try {
+      const points = await getUserPoints(user.id);
+      setUserPoints(points);
+    } catch (error) {
+      console.error('Error loading points:', error);
+    }
+  };
 
   // Çıkış yap (Logout)
   const handleLogout = async () => {
@@ -162,6 +181,18 @@ const ProfileScreen = ({ navigation }: any) => {
               <>
                 <Text style={styles.userName}>{user.full_name || 'Kullanıcı'}</Text>
                 <Text style={styles.userEmail}>{user.email}</Text>
+
+                {/* Puan Kartı (Points Card) */}
+                <View style={styles.pointsCard}>
+                  <View style={styles.pointsIconContainer}>
+                    <Ionicons name="star" size={24} color="#FFD700" />
+                  </View>
+                  <View style={styles.pointsInfo}>
+                    <Text style={styles.pointsLabel}>Toplam Puanınız</Text>
+                    <Text style={styles.pointsValue}>{userPoints.toFixed(2)} Puan</Text>
+                    <Text style={styles.pointsSubtext}>1 Puan = 1 TL indirim</Text>
+                  </View>
+                </View>
               </>
             ) : (
               <>
@@ -178,23 +209,63 @@ const ProfileScreen = ({ navigation }: any) => {
             )}
           </View>
 
-          {/* Hesap bölümü (Account section) */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Hesap</Text>
-            <View style={styles.card}>
-              <MenuItem iconName="person-outline" title="Profil Bilgileri" subtitle="Kişisel bilgilerinizi düzenleyin" />
-              <MenuItem iconName="location-outline" title="Adreslerim" subtitle="Teslimat adreslerinizi yönetin" />
-              <MenuItem iconName="card-outline" title="Ödeme Yöntemleri" subtitle="Kayıtlı kartlarınız" />
+          {/* Admin Panel (Admin Panel) - Sadece admin kullanıcılar için */}
+          {isAuthenticated && user?.role === 'admin' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Admin Panel</Text>
+              <View style={styles.card}>
+                <MenuItem
+                  iconName="shield-checkmark"
+                  title="Admin Dashboard"
+                  subtitle="Yönetim paneline git"
+                  onPress={() => navigation.navigate('AdminDashboard')}
+                />
+              </View>
             </View>
-          </View>
+          )}
+
+          {/* Hesap bölümü (Account section) */}
+          {isAuthenticated && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Hesap</Text>
+              <View style={styles.card}>
+                <MenuItem
+                  iconName="person-outline"
+                  title="Profil Bilgileri"
+                  subtitle="Kişisel bilgilerinizi düzenleyin"
+                  onPress={() => navigation.navigate('ProfileEdit')}
+                />
+                <MenuItem
+                  iconName="location-outline"
+                  title="Adreslerim"
+                  subtitle="Teslimat adreslerinizi yönetin"
+                  onPress={() => navigation.navigate('AddressList')}
+                />
+                <MenuItem iconName="card-outline" title="Ödeme Yöntemleri" subtitle="Kayıtlı kartlarınız" />
+              </View>
+            </View>
+          )}
 
           {/* Siparişler bölümü (Orders section) */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Siparişler</Text>
-            <View style={styles.card}>
-              <MenuItem iconName="receipt-outline" title="Sipariş Geçmişi" subtitle="Geçmiş siparişlerinizi görün" />
+          {isAuthenticated && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Siparişler</Text>
+              <View style={styles.card}>
+                <MenuItem
+                  iconName="receipt-outline"
+                  title="Sipariş Geçmişi"
+                  subtitle="Geçmiş siparişlerinizi görün"
+                  onPress={() => navigation.navigate('OrderHistory')}
+                />
+                <MenuItem
+                  iconName="star-outline"
+                  title="Puan Geçmişi"
+                  subtitle="Kazandığınız ve kullandığınız puanlar"
+                  onPress={() => navigation.navigate('PointsHistory')}
+                />
+              </View>
             </View>
-          </View>
+          )}
 
           {/* Ayarlar bölümü (Settings section) */}
           <View style={styles.section}>
@@ -443,6 +514,44 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: FontSizes.md,
     color: Colors.textSecondary,
+  },
+  pointsCard: {
+    marginTop: Spacing.lg,
+    backgroundColor: '#FFF9E6',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFD700',
+    ...Shadows.small,
+  },
+  pointsIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: BorderRadius.round,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  pointsInfo: {
+    flex: 1,
+  },
+  pointsLabel: {
+    fontSize: FontSizes.sm,
+    color: '#666',
+    marginBottom: 4,
+  },
+  pointsValue: {
+    fontSize: FontSizes.xl,
+    fontWeight: 'bold',
+    color: '#FF8C00',
+    marginBottom: 2,
+  },
+  pointsSubtext: {
+    fontSize: FontSizes.xs,
+    color: '#999',
   },
   loginButton: {
     marginTop: Spacing.lg,
