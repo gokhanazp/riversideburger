@@ -312,96 +312,168 @@ const HomeScreen = ({ navigation }: any) => {
         </Animated.View>
       </View>
 
-      {/* Müşteri Yorumları bölümü (Customer Reviews section) */}
+      {/* Delivery Partners bölümü (Delivery Partners section) */}
       <View style={styles.section}>
         <Animated.Text
           entering={FadeInDown.delay(500).duration(600)}
           style={styles.sectionTitle}
         >
-          Müşteri Yorumları
+          Teslimat Ortaklarımız
+        </Animated.Text>
+        <Animated.View entering={FadeInDown.delay(600).duration(600)} style={styles.deliveryPartnersContainer}>
+          <View style={styles.deliveryPartnerCard}>
+            <Image
+              source={{ uri: 'https://riversideburgers.ca/wp-content/uploads/elementor/thumbs/Food-delivery-icon-doordash-ozl8cebv125k1p7ay7gbam8zbts7ubzyb2nrjyb3l4.png' }}
+              style={styles.deliveryPartnerImage}
+              resizeMode="contain"
+            />
+          </View>
+          <View style={styles.deliveryPartnerCard}>
+            <Image
+              source={{ uri: 'https://riversideburgers.ca/wp-content/uploads/elementor/thumbs/Food-delivery-icon-ubereats-ozl8dodybxwlulceh9d16smkfph7bi2stemk2iet48.png' }}
+              style={styles.deliveryPartnerImage}
+              resizeMode="contain"
+            />
+          </View>
+          <View style={styles.deliveryPartnerCard}>
+            <Image
+              source={{ uri: 'https://riversideburgers.ca/wp-content/uploads/elementor/thumbs/skipthedishes@162px-ozl8vrs3w4obcd27tkxhoq903qakhqwsayq1n9kzc8.png' }}
+              style={styles.deliveryPartnerImage}
+              resizeMode="contain"
+            />
+          </View>
+        </Animated.View>
+      </View>
+
+      {/* Müşteri Yorumları bölümü (Customer Reviews section) - Yeniden tasarlandı */}
+      <View style={styles.section}>
+        <Animated.Text
+          entering={FadeInDown.delay(700).duration(600)}
+          style={styles.sectionTitle}
+        >
+          ⭐ Müşteri Yorumları
+        </Animated.Text>
+        <Animated.Text
+          entering={FadeInDown.delay(750).duration(600)}
+          style={styles.sectionSubtitle}
+        >
+          Müşterilerimizin bizim hakkımızda söyledikleri
         </Animated.Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.reviewsScrollContent}
         >
-          <Animated.View entering={FadeInDown.delay(600).duration(600)} style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-              <View style={styles.reviewAvatar}>
-                <Ionicons name="person" size={24} color={Colors.white} />
-              </View>
-              <View style={styles.reviewInfo}>
-                <Text style={styles.reviewName}>Ahmet Y.</Text>
-                <View style={styles.starsContainer}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Ionicons key={star} name="star" size={14} color={Colors.accent} />
-                  ))}
-                </View>
-              </View>
+          <Animated.View entering={FadeInDown.delay(800).duration(600)} style={styles.reviewCard}>
+            <View style={styles.reviewQuoteIcon}>
+              <Ionicons name="chatbox-ellipses" size={32} color={Colors.primary} />
+            </View>
+            <View style={styles.starsContainer}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Ionicons key={star} name="star" size={18} color={Colors.accent} />
+              ))}
             </View>
             <Text style={styles.reviewText}>
               "Harika burgerler! Özellikle Riverside Classic'i denemenizi tavsiye ederim. Taze malzemeler ve lezzetli soslar."
             </Text>
+            <View style={styles.reviewFooter}>
+              <View style={styles.reviewAvatar}>
+                <Ionicons name="person" size={20} color={Colors.white} />
+              </View>
+              <View>
+                <Text style={styles.reviewName}>Ahmet Y.</Text>
+                <Text style={styles.reviewDate}>2 gün önce</Text>
+              </View>
+            </View>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(700).duration(600)} style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-              <View style={styles.reviewAvatar}>
-                <Ionicons name="person" size={24} color={Colors.white} />
-              </View>
-              <View style={styles.reviewInfo}>
-                <Text style={styles.reviewName}>Zeynep K.</Text>
-                <View style={styles.starsContainer}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Ionicons key={star} name="star" size={14} color={Colors.accent} />
-                  ))}
-                </View>
-              </View>
+          <Animated.View entering={FadeInDown.delay(850).duration(600)} style={styles.reviewCard}>
+            <View style={styles.reviewQuoteIcon}>
+              <Ionicons name="chatbox-ellipses" size={32} color={Colors.primary} />
+            </View>
+            <View style={styles.starsContainer}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Ionicons key={star} name="star" size={18} color={Colors.accent} />
+              ))}
             </View>
             <Text style={styles.reviewText}>
               "Teslimat çok hızlı geldi ve burgerler sıcacıktı. Kesinlikle tekrar sipariş vereceğim!"
             </Text>
+            <View style={styles.reviewFooter}>
+              <View style={styles.reviewAvatar}>
+                <Ionicons name="person" size={20} color={Colors.white} />
+              </View>
+              <View>
+                <Text style={styles.reviewName}>Zeynep K.</Text>
+                <Text style={styles.reviewDate}>5 gün önce</Text>
+              </View>
+            </View>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(800).duration(600)} style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-              <View style={styles.reviewAvatar}>
-                <Ionicons name="person" size={24} color={Colors.white} />
-              </View>
-              <View style={styles.reviewInfo}>
-                <Text style={styles.reviewName}>Mehmet S.</Text>
-                <View style={styles.starsContainer}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Ionicons key={star} name="star" size={14} color={Colors.accent} />
-                  ))}
-                </View>
-              </View>
+          <Animated.View entering={FadeInDown.delay(900).duration(600)} style={styles.reviewCard}>
+            <View style={styles.reviewQuoteIcon}>
+              <Ionicons name="chatbox-ellipses" size={32} color={Colors.primary} />
+            </View>
+            <View style={styles.starsContainer}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Ionicons key={star} name="star" size={18} color={Colors.accent} />
+              ))}
             </View>
             <Text style={styles.reviewText}>
               "Toronto'daki en iyi burger! Double Riverside'ı mutlaka deneyin. Fiyat performans açısından da çok iyi."
             </Text>
+            <View style={styles.reviewFooter}>
+              <View style={styles.reviewAvatar}>
+                <Ionicons name="person" size={20} color={Colors.white} />
+              </View>
+              <View>
+                <Text style={styles.reviewName}>Mehmet S.</Text>
+                <Text style={styles.reviewDate}>1 hafta önce</Text>
+              </View>
+            </View>
           </Animated.View>
         </ScrollView>
       </View>
 
-      {/* Özellikler bölümü (Features section) */}
+      {/* Özellikler bölümü (Features section) - Yeniden tasarlandı */}
       <View style={styles.section}>
+        <Animated.Text
+          entering={FadeInDown.delay(950).duration(600)}
+          style={styles.sectionTitle}
+        >
+          🎯 Neden Riverside Burgers?
+        </Animated.Text>
         <View style={styles.featuresContainer}>
-          <View style={styles.featureCard}>
-            <Ionicons name="time-outline" size={32} color={Colors.primary} />
+          <Animated.View entering={FadeInDown.delay(1000).duration(600)} style={styles.featureCard}>
+            <View style={styles.featureIconContainer}>
+              <Ionicons name="time" size={40} color={Colors.white} />
+            </View>
             <Text style={styles.featureTitle}>Hızlı Teslimat</Text>
             <Text style={styles.featureText}>30 dakikada kapınızda</Text>
-          </View>
-          <View style={styles.featureCard}>
-            <Ionicons name="shield-checkmark-outline" size={32} color={Colors.primary} />
+            <View style={styles.featureBadge}>
+              <Text style={styles.featureBadgeText}>⚡ Express</Text>
+            </View>
+          </Animated.View>
+          <Animated.View entering={FadeInDown.delay(1050).duration(600)} style={styles.featureCard}>
+            <View style={styles.featureIconContainer}>
+              <Ionicons name="shield-checkmark" size={40} color={Colors.white} />
+            </View>
             <Text style={styles.featureTitle}>Kalite Garantisi</Text>
             <Text style={styles.featureText}>Taze malzemeler</Text>
-          </View>
-          <View style={styles.featureCard}>
-            <Ionicons name="star-outline" size={32} color={Colors.primary} />
+            <View style={styles.featureBadge}>
+              <Text style={styles.featureBadgeText}>✓ %100</Text>
+            </View>
+          </Animated.View>
+          <Animated.View entering={FadeInDown.delay(1100).duration(600)} style={styles.featureCard}>
+            <View style={styles.featureIconContainer}>
+              <Ionicons name="star" size={40} color={Colors.white} />
+            </View>
             <Text style={styles.featureTitle}>5 Yıldız</Text>
             <Text style={styles.featureText}>Müşteri memnuniyeti</Text>
-          </View>
+            <View style={styles.featureBadge}>
+              <Text style={styles.featureBadgeText}>⭐ 4.9/5</Text>
+            </View>
+          </Animated.View>
         </View>
       </View>
 
@@ -569,23 +641,47 @@ const styles = StyleSheet.create({
   featureCard: {
     flex: 1,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
     alignItems: 'center',
-    ...Shadows.small,
+    ...Shadows.large,
+    borderWidth: 2,
+    borderColor: '#F0F0F0',
+  },
+  featureIconContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: BorderRadius.round,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    ...Shadows.medium,
   },
   featureTitle: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
     fontWeight: 'bold',
     color: Colors.text,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
     textAlign: 'center',
   },
   featureText: {
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
     textAlign: 'center',
+  },
+  featureBadge: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.sm,
+  },
+  featureBadgeText: {
+    fontSize: FontSizes.xs,
+    fontWeight: 'bold',
+    color: Colors.white,
   },
   // About Us stilleri (About Us styles)
   aboutCard: {
@@ -608,49 +704,82 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: 'justify',
   },
-  // Müşteri Yorumları stilleri (Customer Reviews styles)
+  // Delivery Partners stilleri (Delivery Partners styles)
+  deliveryPartnersContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingVertical: Spacing.lg,
+  },
+  deliveryPartnerCard: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 100,
+    ...Shadows.medium,
+  },
+  deliveryPartnerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  // Müşteri Yorumları stilleri (Customer Reviews styles) - Yeniden tasarlandı
   reviewsScrollContent: {
     paddingRight: Spacing.lg,
   },
   reviewCard: {
-    width: 280,
+    width: 300,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
     marginRight: Spacing.md,
-    ...Shadows.small,
+    ...Shadows.large,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
-  reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  reviewQuoteIcon: {
     marginBottom: Spacing.md,
   },
+  reviewFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
   reviewAvatar: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: BorderRadius.round,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  reviewInfo: {
-    flex: 1,
+    marginRight: Spacing.sm,
   },
   reviewName: {
     fontSize: FontSizes.md,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: Colors.text,
-    marginBottom: Spacing.xs,
+  },
+  reviewDate: {
+    fontSize: FontSizes.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   starsContainer: {
     flexDirection: 'row',
-    gap: 2,
+    gap: 4,
+    marginBottom: Spacing.md,
   },
   reviewText: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    lineHeight: 20,
+    fontSize: FontSizes.md,
+    color: Colors.text,
+    lineHeight: 22,
+    fontStyle: 'italic',
   },
   // Öne Çıkan Ürünler stilleri (Featured Products styles)
   sectionHeader: {
@@ -660,9 +789,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   sectionSubtitle: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
+    marginBottom: Spacing.md,
+    textAlign: 'center',
   },
   viewAllButton: {
     flexDirection: 'row',
