@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 import { getAddress, createAddress, updateAddress } from '../services/addressService';
@@ -43,6 +44,8 @@ const AddressEditScreen = ({ route, navigation }: any) => {
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(isEditMode);
+  const [showCityModal, setShowCityModal] = useState(false);
+  const [showProvinceModal, setShowProvinceModal] = useState(false);
 
   // Adres başlıkları (Address titles)
   const addressTitles = ['Home', 'Work', 'Other'];
@@ -289,32 +292,30 @@ const AddressEditScreen = ({ route, navigation }: any) => {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>City *</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={city}
-                onValueChange={(value) => setCity(value)}
-                style={styles.picker}
-              >
-                {ONTARIO_CITIES.map((c) => (
-                  <Picker.Item key={c} label={c} value={c} />
-                ))}
-              </Picker>
-            </View>
+            <TouchableOpacity
+              style={styles.selectButton}
+              onPress={() => setShowCityModal(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="location-outline" size={20} color={Colors.primary} />
+              <Text style={styles.selectButtonText}>{city}</Text>
+              <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Province *</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={province}
-                onValueChange={(value) => setProvince(value)}
-                style={styles.picker}
-              >
-                {CANADIAN_PROVINCES.map((p) => (
-                  <Picker.Item key={p.code} label={`${p.name} (${p.code})`} value={p.code} />
-                ))}
-              </Picker>
-            </View>
+            <TouchableOpacity
+              style={styles.selectButton}
+              onPress={() => setShowProvinceModal(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="map-outline" size={20} color={Colors.primary} />
+              <Text style={styles.selectButtonText}>
+                {CANADIAN_PROVINCES.find(p => p.code === province)?.name || province}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
@@ -368,6 +369,105 @@ const AddressEditScreen = ({ route, navigation }: any) => {
           )}
         </TouchableOpacity>
       </ScrollView>
+
+      {/* City Seçim Modal (City Selection Modal) */}
+      <Modal
+        visible={showCityModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCityModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select City</Text>
+              <TouchableOpacity onPress={() => setShowCityModal(false)}>
+                <Ionicons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={ONTARIO_CITIES}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.modalItem,
+                    city === item && styles.modalItemActive,
+                  ]}
+                  onPress={() => {
+                    setCity(item);
+                    setShowCityModal(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      city === item && styles.modalItemTextActive,
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                  {city === item && (
+                    <Ionicons name="checkmark" size={24} color={Colors.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Province Seçim Modal (Province Selection Modal) */}
+      <Modal
+        visible={showProvinceModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowProvinceModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Province</Text>
+              <TouchableOpacity onPress={() => setShowProvinceModal(false)}>
+                <Ionicons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={CANADIAN_PROVINCES}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.modalItem,
+                    province === item.code && styles.modalItemActive,
+                  ]}
+                  onPress={() => {
+                    setProvince(item.code);
+                    setShowProvinceModal(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.modalItemText,
+                        province === item.code && styles.modalItemTextActive,
+                      ]}
+                    >
+                      {item.name}
+                    </Text>
+                    <Text style={styles.modalItemSubtext}>{item.code}</Text>
+                  </View>
+                  {province === item.code && (
+                    <Ionicons name="checkmark" size={24} color={Colors.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -451,19 +551,77 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.text,
   },
-  pickerContainer: {
+  selectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    gap: Spacing.sm,
     borderWidth: 1,
     borderColor: '#E0E0E0',
     ...Shadows.small,
   },
-  picker: {
-    height: 50,
+  selectButtonText: {
+    flex: 1,
+    fontSize: FontSizes.md,
+    color: Colors.text,
+    fontWeight: '500',
   },
   row: {
     flexDirection: 'row',
     gap: Spacing.sm,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    maxHeight: '70%',
+    paddingBottom: Spacing.xl,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalTitle: {
+    fontSize: FontSizes.xl,
+    fontWeight: 'bold',
+    color: Colors.text,
+  },
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  modalItemActive: {
+    backgroundColor: '#FFF5F5',
+  },
+  modalItemText: {
+    fontSize: FontSizes.md,
+    color: Colors.text,
+    fontWeight: '500',
+  },
+  modalItemTextActive: {
+    color: Colors.primary,
+    fontWeight: 'bold',
+  },
+  modalItemSubtext: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   saveButton: {
     flexDirection: 'row',
