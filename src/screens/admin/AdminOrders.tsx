@@ -594,10 +594,6 @@ const AdminOrders = ({ navigation, route }: any) => {
                       (c: any) => c.product_id === orderItem.product_id
                     );
 
-                    console.log('🔍 Order item:', orderItem.product?.name, 'Product ID:', orderItem.product_id);
-                    console.log('🔍 All customizations:', allCustomizations.length);
-                    console.log('🔍 Filtered customizations:', customizations.length, customizations);
-
                     return (
                       <View key={index} style={styles.detailProductItem}>
                         <View style={styles.detailProductLeft}>
