@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Modal,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
@@ -298,6 +299,129 @@ const AdminOrders = ({ navigation, route }: any) => {
           </View>
         </Modal>
       )}
+
+      {/* Sipariş detay modal (Order details modal) */}
+      {showDetailsModal && selectedOrder && (
+        <Modal visible={showDetailsModal} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.detailsModal}>
+              {/* Modal başlık (Modal header) */}
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Sipariş Detayları</Text>
+                <TouchableOpacity onPress={() => setShowDetailsModal(false)}>
+                  <Ionicons name="close" size={24} color="#333" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.detailsContent} showsVerticalScrollIndicator={false}>
+                {/* Sipariş numarası ve durum (Order number and status) */}
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Sipariş No:</Text>
+                  <Text style={styles.detailValue}>#{selectedOrder.order_number}</Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Durum:</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[selectedOrder.status] + '20' }]}>
+                    <Text style={[styles.statusText, { color: STATUS_COLORS[selectedOrder.status] }]}>
+                      {STATUS_NAMES[selectedOrder.status]}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Müşteri bilgileri (Customer info) */}
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Müşteri Bilgileri</Text>
+                  <Text style={styles.detailText}>👤 {selectedOrder.user?.full_name || 'Misafir'}</Text>
+                  <Text style={styles.detailText}>📧 {selectedOrder.user?.email || '-'}</Text>
+                  <Text style={styles.detailText}>📞 {selectedOrder.phone}</Text>
+                </View>
+
+                {/* Teslimat adresi (Delivery address) */}
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Teslimat Adresi</Text>
+                  <Text style={styles.detailText}>{selectedOrder.delivery_address}</Text>
+                </View>
+
+                {/* Ürünler (Products) */}
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Ürünler</Text>
+                  {selectedOrder.order_items?.map((orderItem, index) => {
+                    // Bu ürüne ait özelleştirmeleri bul (Find customizations for this product)
+                    const customizations = (selectedOrder as any).order_item_customizations?.filter(
+                      (c: any) => c.product_id === orderItem.product_id
+                    ) || [];
+
+                    return (
+                      <View key={index} style={styles.detailProductItem}>
+                        <View style={styles.detailProductLeft}>
+                          <Text style={styles.detailProductQuantity}>{orderItem.quantity}x</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.detailProductName}>{orderItem.product?.name || 'Ürün'}</Text>
+                            {/* Özelleştirmeler (Customizations) */}
+                            {customizations.length > 0 && (
+                              <View style={styles.customizationsContainer}>
+                                {customizations.map((custom: any, idx: number) => (
+                                  <Text key={idx} style={styles.customizationText}>
+                                    • {custom.option_name}
+                                    {custom.option_price > 0 && ` (+₺${custom.option_price.toFixed(2)})`}
+                                  </Text>
+                                ))}
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                        <Text style={styles.detailProductPrice}>₺{orderItem.subtotal.toFixed(2)}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+
+                {/* Notlar (Notes) */}
+                {selectedOrder.notes && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailSectionTitle}>Notlar</Text>
+                    <Text style={styles.detailText}>{selectedOrder.notes}</Text>
+                  </View>
+                )}
+
+                {/* Toplam (Total) */}
+                <View style={styles.detailTotalSection}>
+                  <Text style={styles.detailTotalLabel}>Toplam Tutar:</Text>
+                  <Text style={styles.detailTotalValue}>₺{selectedOrder.total_amount.toFixed(2)}</Text>
+                </View>
+
+                {/* Tarih (Date) */}
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Sipariş Tarihi:</Text>
+                  <Text style={styles.detailValue}>
+                    {new Date(selectedOrder.created_at).toLocaleDateString('tr-TR', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                </View>
+              </ScrollView>
+
+              {/* Durum değiştir butonu (Change status button) */}
+              <TouchableOpacity
+                style={styles.modalActionButton}
+                onPress={() => {
+                  setShowDetailsModal(false);
+                  setTimeout(() => setShowStatusModal(true), 300);
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create" size={20} color={Colors.white} />
+                <Text style={styles.modalActionButtonText}>Durum Değiştir</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -499,6 +623,129 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSizes.md,
     color: '#333',
+  },
+  detailsModal: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    maxHeight: '90%',
+    width: '100%',
+    marginTop: 'auto',
+  },
+  detailsContent: {
+    padding: Spacing.lg,
+    maxHeight: '70%',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  detailLabel: {
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  detailValue: {
+    fontSize: FontSizes.md,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  detailSection: {
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  detailSectionTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+  },
+  detailText: {
+    fontSize: FontSizes.md,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+    lineHeight: 22,
+  },
+  detailProductItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  detailProductLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
+    gap: Spacing.sm,
+  },
+  detailProductQuantity: {
+    fontSize: FontSizes.md,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    minWidth: 30,
+  },
+  detailProductName: {
+    fontSize: FontSizes.md,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  detailProductPrice: {
+    fontSize: FontSizes.md,
+    fontWeight: 'bold',
+    color: Colors.text,
+  },
+  customizationsContainer: {
+    marginTop: 4,
+    paddingLeft: 4,
+  },
+  customizationText: {
+    fontSize: 11,
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  detailTotalSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.lg,
+    borderTopWidth: 2,
+    borderTopColor: Colors.primary,
+  },
+  detailTotalLabel: {
+    fontSize: FontSizes.lg,
+    fontWeight: 'bold',
+    color: Colors.text,
+  },
+  detailTotalValue: {
+    fontSize: FontSizes.xl,
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  modalActionButton: {
+    flexDirection: 'row',
+    backgroundColor: Colors.primary,
+    margin: Spacing.lg,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    ...Shadows.medium,
+  },
+  modalActionButtonText: {
+    fontSize: FontSizes.md,
+    fontWeight: 'bold',
+    color: Colors.white,
   },
 });
 
