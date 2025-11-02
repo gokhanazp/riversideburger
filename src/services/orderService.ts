@@ -75,25 +75,63 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
     // Özelleştirmeleri kaydet (Save customizations)
     for (const item of items) {
       if (item.customizations && item.customizations.length > 0) {
-        const customizationsData = item.customizations.map(custom => ({
-          order_id: orderData.id,
-          product_id: item.product_id,
-          product_name: item.product_name,
-          option_id: custom.option_id,
-          option_name: custom.option_name,
-          option_price: custom.option_price,
-          quantity: item.quantity,
-          special_instructions: item.specialInstructions || null,
-        }));
+        // Sadece gerçek UUID'leri kaydet (dinamik "ingredient-X" ID'lerini filtrele)
+        // Only save real UUIDs (filter out dynamic "ingredient-X" IDs)
+        const validCustomizations = item.customizations.filter(custom => {
+          // UUID formatını kontrol et (36 karakter, tire içerir)
+          // Check UUID format (36 characters, contains dashes)
+          const isValidUUID = custom.option_id.length === 36 && custom.option_id.includes('-') && !custom.option_id.startsWith('ingredient-');
+          return isValidUUID;
+        });
 
-        const { error: customError } = await supabase
-          .from('order_item_customizations')
-          .insert(customizationsData);
+        if (validCustomizations.length > 0) {
+          const customizationsData = validCustomizations.map(custom => ({
+            order_id: orderData.id,
+            product_id: item.product_id,
+            product_name: item.product_name,
+            option_id: custom.option_id,
+            option_name: custom.option_name,
+            option_price: custom.option_price,
+            quantity: item.quantity,
+            special_instructions: item.specialInstructions || null,
+          }));
 
-        if (customError) {
-          console.error('Error saving customizations:', customError);
-          // Özelleştirme hatası siparişi iptal etmez, sadece log'lanır
-          // (Customization error doesn't cancel order, just logged)
+          const { error: customError } = await supabase
+            .from('order_item_customizations')
+            .insert(customizationsData);
+
+          if (customError) {
+            console.error('Error saving customizations:', customError);
+            // Özelleştirme hatası siparişi iptal etmez, sadece log'lanır
+            // (Customization error doesn't cancel order, just logged)
+          }
+        }
+
+        // Dinamik özelleştirmeleri (çıkarılan malzemeler) ayrı kaydet
+        // Save dynamic customizations (removed ingredients) separately
+        const dynamicCustomizations = item.customizations.filter(custom =>
+          custom.option_id.startsWith('ingredient-')
+        );
+
+        if (dynamicCustomizations.length > 0) {
+          const dynamicData = dynamicCustomizations.map(custom => ({
+            order_id: orderData.id,
+            product_id: item.product_id,
+            product_name: item.product_name,
+            option_id: null, // Dinamik seçenekler için option_id null
+            option_name: custom.option_name,
+            option_price: custom.option_price,
+            quantity: item.quantity,
+            special_instructions: item.specialInstructions || null,
+          }));
+
+          const { error: dynamicError } = await supabase
+            .from('order_item_customizations')
+            .insert(dynamicData);
+
+          if (dynamicError) {
+            console.error('Error saving dynamic customizations:', dynamicError);
+          }
         }
       }
     }
