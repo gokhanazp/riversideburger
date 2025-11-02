@@ -308,7 +308,10 @@ const AdminOrders = ({ navigation, route }: any) => {
               {/* Modal başlık (Modal header) */}
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Sipariş Detayları</Text>
-                <TouchableOpacity onPress={() => setShowDetailsModal(false)}>
+                <TouchableOpacity
+                  onPress={() => setShowDetailsModal(false)}
+                  style={styles.closeButton}
+                >
                   <Ionicons name="close" size={24} color="#333" />
                 </TouchableOpacity>
               </View>
@@ -348,9 +351,14 @@ const AdminOrders = ({ navigation, route }: any) => {
                   <Text style={styles.detailSectionTitle}>Ürünler</Text>
                   {selectedOrder.order_items?.map((orderItem, index) => {
                     // Bu ürüne ait özelleştirmeleri bul (Find customizations for this product)
-                    const customizations = (selectedOrder as any).order_item_customizations?.filter(
+                    const allCustomizations = (selectedOrder as any).order_item_customizations || [];
+                    const customizations = allCustomizations.filter(
                       (c: any) => c.product_id === orderItem.product_id
-                    ) || [];
+                    );
+
+                    console.log('🔍 Order item:', orderItem.product?.name, 'Product ID:', orderItem.product_id);
+                    console.log('🔍 All customizations:', allCustomizations.length);
+                    console.log('🔍 Filtered customizations:', customizations.length, customizations);
 
                     return (
                       <View key={index} style={styles.detailProductItem}>
@@ -572,9 +580,8 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    padding: Spacing.lg,
   },
   statusModal: {
     backgroundColor: Colors.white,
@@ -587,12 +594,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    paddingTop: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  closeButton: {
+    padding: Spacing.xs,
   },
   modalTitle: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.xl,
     fontWeight: 'bold',
-    color: '#333',
+    color: Colors.text,
   },
   modalOrderNumber: {
     fontSize: FontSizes.md,

@@ -175,9 +175,14 @@ const OrderHistoryScreen = () => {
             <Text style={styles.productsTitle}>Ürünler ({itemCount} adet):</Text>
             {item.order_items.map((orderItem, index) => {
               // Bu ürüne ait özelleştirmeleri bul (Find customizations for this product)
-              const customizations = (item as any).order_item_customizations?.filter(
+              const allCustomizations = (item as any).order_item_customizations || [];
+              const customizations = allCustomizations.filter(
                 (c: any) => c.product_id === orderItem.product_id
-              ) || [];
+              );
+
+              console.log('🔍 [OrderHistory] Order item:', orderItem.product?.name, 'Product ID:', orderItem.product_id);
+              console.log('🔍 [OrderHistory] All customizations:', allCustomizations.length);
+              console.log('🔍 [OrderHistory] Filtered customizations:', customizations.length, customizations);
 
               return (
                 <View key={index} style={styles.productItem}>
