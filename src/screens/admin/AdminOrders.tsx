@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Modal,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
@@ -16,6 +17,8 @@ import { supabase } from '../../lib/supabase';
 import { Order, OrderStatus } from '../../types/database.types';
 import Toast from 'react-native-toast-message';
 import ConfirmModal from '../../components/ConfirmModal';
+import * as Print from 'expo-print';
+import { shareAsync } from 'expo-sharing';
 
 // Sipariş durumu renkleri (Order status colors)
 const STATUS_COLORS: Record<OrderStatus, string> = {
@@ -103,6 +106,241 @@ const AdminOrders = ({ navigation, route }: any) => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchOrders();
+  };
+
+  // Sipariş yazdır (Print order)
+  const handlePrintOrder = async (order: Order) => {
+    try {
+      // Özelleştirmeleri al (Get customizations)
+      const allCustomizations = (order as any).order_item_customizations || [];
+
+      // HTML içeriği oluştur (Create HTML content)
+      const html = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Sipariş Fişi - ${order.order_number}</title>
+            <style>
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              body {
+                font-family: 'Courier New', monospace;
+                padding: 20px;
+                max-width: 80mm;
+                margin: 0 auto;
+                font-size: 12px;
+                line-height: 1.4;
+              }
+              .header {
+                text-align: center;
+                margin-bottom: 20px;
+                border-bottom: 2px dashed #000;
+                padding-bottom: 15px;
+              }
+              .restaurant-name {
+                font-size: 20px;
+                font-weight: bold;
+                margin-bottom: 5px;
+              }
+              .order-number {
+                font-size: 16px;
+                font-weight: bold;
+                margin: 10px 0;
+              }
+              .section {
+                margin: 15px 0;
+                padding: 10px 0;
+                border-bottom: 1px dashed #000;
+              }
+              .section-title {
+                font-weight: bold;
+                font-size: 14px;
+                margin-bottom: 8px;
+                text-transform: uppercase;
+              }
+              .info-row {
+                display: flex;
+                justify-content: space-between;
+                margin: 5px 0;
+              }
+              .label {
+                font-weight: bold;
+              }
+              .product-item {
+                margin: 10px 0;
+                padding: 8px 0;
+                border-bottom: 1px dotted #ccc;
+              }
+              .product-header {
+                display: flex;
+                justify-content: space-between;
+                font-weight: bold;
+                margin-bottom: 5px;
+              }
+              .customization {
+                margin-left: 15px;
+                font-size: 11px;
+                color: #333;
+                margin-top: 3px;
+              }
+              .total {
+                margin-top: 15px;
+                padding-top: 10px;
+                border-top: 2px solid #000;
+              }
+              .total-row {
+                display: flex;
+                justify-content: space-between;
+                font-size: 16px;
+                font-weight: bold;
+                margin: 5px 0;
+              }
+              .status-badge {
+                display: inline-block;
+                padding: 5px 10px;
+                border-radius: 5px;
+                font-weight: bold;
+                margin: 5px 0;
+              }
+              .footer {
+                text-align: center;
+                margin-top: 20px;
+                padding-top: 15px;
+                border-top: 2px dashed #000;
+                font-size: 11px;
+              }
+              @media print {
+                body {
+                  padding: 10px;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <!-- Başlık (Header) -->
+            <div class="header">
+              <div class="restaurant-name">🍔 RIVERSIDE BURGERS</div>
+              <div style="font-size: 11px; margin-top: 5px;">Toronto, Canada</div>
+              <div class="order-number">SİPARİŞ #${order.order_number}</div>
+              <div style="font-size: 11px; margin-top: 5px;">
+                ${new Date(order.created_at).toLocaleDateString('tr-TR', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+            </div>
+
+            <!-- Müşteri Bilgileri (Customer Info) -->
+            <div class="section">
+              <div class="section-title">👤 Müşteri Bilgileri</div>
+              <div class="info-row">
+                <span class="label">Ad:</span>
+                <span>${order.user?.full_name || 'Misafir'}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Telefon:</span>
+                <span>${order.phone || order.user?.phone || '-'}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Email:</span>
+                <span>${order.user?.email || '-'}</span>
+              </div>
+            </div>
+
+            <!-- Teslimat Adresi (Delivery Address) -->
+            <div class="section">
+              <div class="section-title">📍 Teslimat Adresi</div>
+              <div style="margin-top: 5px;">${order.delivery_address}</div>
+            </div>
+
+            <!-- Ürünler (Products) -->
+            <div class="section">
+              <div class="section-title">🍽️ Sipariş Detayları</div>
+              ${order.order_items?.map((item, index) => {
+                const customizations = allCustomizations.filter(
+                  (c: any) => c.product_id === item.product_id
+                );
+                return `
+                  <div class="product-item">
+                    <div class="product-header">
+                      <span>${item.quantity}x ${item.product?.name || 'Ürün'}</span>
+                      <span>₺${item.subtotal.toFixed(2)}</span>
+                    </div>
+                    ${customizations.length > 0 ? `
+                      ${customizations.map((custom: any) => `
+                        <div class="customization">
+                          • ${custom.option_name}
+                          ${custom.option_price > 0 ? ` (+₺${custom.option_price.toFixed(2)})` : ''}
+                        </div>
+                      `).join('')}
+                    ` : ''}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <!-- Özel Notlar (Special Notes) -->
+            ${order.notes ? `
+              <div class="section">
+                <div class="section-title">📝 Özel Notlar</div>
+                <div style="margin-top: 5px;">${order.notes}</div>
+              </div>
+            ` : ''}
+
+            <!-- Toplam (Total) -->
+            <div class="total">
+              <div class="total-row">
+                <span>TOPLAM:</span>
+                <span>₺${order.total_amount.toFixed(2)}</span>
+              </div>
+              ${order.points_used > 0 ? `
+                <div style="font-size: 12px; color: #28A745; margin-top: 5px;">
+                  ✓ ${order.points_used} puan kullanıldı
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- Durum (Status) -->
+            <div class="section">
+              <div class="section-title">📊 Sipariş Durumu</div>
+              <div class="status-badge" style="background-color: ${STATUS_COLORS[order.status]}; color: white;">
+                ${STATUS_LABELS[order.status]}
+              </div>
+            </div>
+
+            <!-- Alt Bilgi (Footer) -->
+            <div class="footer">
+              <div style="font-weight: bold; margin-bottom: 5px;">Afiyet Olsun! 🍔</div>
+              <div>Riverside Burgers</div>
+              <div>www.riversideburgers.com</div>
+            </div>
+          </body>
+        </html>
+      `;
+
+      // PDF oluştur (Create PDF)
+      const { uri } = await Print.printToFileAsync({ html });
+
+      // Paylaş veya yazdır (Share or print)
+      await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+
+      Toast.show({
+        type: 'success',
+        text1: 'Başarılı',
+        text2: 'Sipariş fişi hazırlandı',
+      });
+    } catch (error: any) {
+      console.error('Error printing order:', error);
+      Alert.alert('Hata', 'Sipariş yazdırılırken bir hata oluştu');
+    }
   };
 
   // Sipariş durumunu güncelle (Update order status)
@@ -414,18 +652,31 @@ const AdminOrders = ({ navigation, route }: any) => {
                 </View>
               </ScrollView>
 
-              {/* Durum değiştir butonu (Change status button) */}
-              <TouchableOpacity
-                style={styles.modalActionButton}
-                onPress={() => {
-                  setShowDetailsModal(false);
-                  setTimeout(() => setShowStatusModal(true), 300);
-                }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="create" size={20} color={Colors.white} />
-                <Text style={styles.modalActionButtonText}>Durum Değiştir</Text>
-              </TouchableOpacity>
+              {/* Alt butonlar (Bottom buttons) */}
+              <View style={styles.modalButtonsContainer}>
+                {/* Yazdır butonu (Print button) */}
+                <TouchableOpacity
+                  style={[styles.modalActionButton, styles.printButton]}
+                  onPress={() => handlePrintOrder(selectedOrder)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="print" size={20} color={Colors.white} />
+                  <Text style={styles.modalActionButtonText}>Yazdır</Text>
+                </TouchableOpacity>
+
+                {/* Durum değiştir butonu (Change status button) */}
+                <TouchableOpacity
+                  style={[styles.modalActionButton, styles.statusButton]}
+                  onPress={() => {
+                    setShowDetailsModal(false);
+                    setTimeout(() => setShowStatusModal(true), 300);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="create" size={20} color={Colors.white} />
+                  <Text style={styles.modalActionButtonText}>Durum Değiştir</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
@@ -745,16 +996,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.primary,
   },
+  modalButtonsContainer: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    padding: Spacing.lg,
+    paddingTop: Spacing.md,
+  },
   modalActionButton: {
+    flex: 1,
     flexDirection: 'row',
     backgroundColor: Colors.primary,
-    margin: Spacing.lg,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
     ...Shadows.medium,
+  },
+  printButton: {
+    backgroundColor: '#28A745', // Yeşil (Green)
+  },
+  statusButton: {
+    backgroundColor: Colors.primary, // Kırmızı (Red)
   },
   modalActionButtonText: {
     fontSize: FontSizes.md,
