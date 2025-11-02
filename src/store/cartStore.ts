@@ -4,7 +4,7 @@ import { CartItem, MenuItem } from '../types';
 // Sepet store'u için interface tanımı (Cart store interface definition)
 interface CartStore {
   items: CartItem[]; // Sepetteki ürünler (Items in cart)
-  addItem: (item: MenuItem) => void; // Sepete ürün ekle (Add item to cart)
+  addItem: (item: MenuItem, customizations?: Array<{option_id: string; option_name: string; option_price: number}>, specialInstructions?: string) => void; // Sepete ürün ekle (Add item to cart)
   removeItem: (itemId: string) => void; // Sepetten ürün çıkar (Remove item from cart)
   updateQuantity: (itemId: string, quantity: number) => void; // Ürün miktarını güncelle (Update item quantity)
   clearCart: () => void; // Sepeti temizle (Clear cart)
@@ -17,22 +17,41 @@ export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
 
   // Sepete ürün ekleme fonksiyonu (Add item to cart function)
-  addItem: (item: MenuItem) => {
+  addItem: (item: MenuItem, customizations?: Array<{option_id: string; option_name: string; option_price: number}>, specialInstructions?: string) => {
     const currentItems = get().items;
-    const existingItem = currentItems.find((i) => i.id === item.id);
 
-    if (existingItem) {
-      // Eğer ürün zaten sepette varsa, miktarını artır (If item exists, increase quantity)
+    // Özelleştirmeli ürünler her zaman yeni item olarak eklenir
+    // (Items with customizations are always added as new items)
+    if (customizations && customizations.length > 0) {
+      // Özelleştirme varsa, her zaman yeni item ekle
+      // (If there are customizations, always add as new item)
+      const customizationsTotal = customizations.reduce((sum, c) => sum + c.option_price, 0);
       set({
-        items: currentItems.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
-        ),
+        items: [...currentItems, {
+          ...item,
+          quantity: 1,
+          price: item.price + customizationsTotal, // Özelleştirme fiyatlarını ekle (Add customization prices)
+          customizations,
+          specialInstructions,
+        }],
       });
     } else {
-      // Yeni ürün ekle (Add new item)
-      set({
-        items: [...currentItems, { ...item, quantity: 1 }],
-      });
+      // Özelleştirme yoksa, eski mantık (No customizations, old logic)
+      const existingItem = currentItems.find((i) => i.id === item.id && !i.customizations);
+
+      if (existingItem) {
+        // Eğer ürün zaten sepette varsa, miktarını artır (If item exists, increase quantity)
+        set({
+          items: currentItems.map((i) =>
+            i.id === item.id && !i.customizations ? { ...i, quantity: i.quantity + 1 } : i
+          ),
+        });
+      } else {
+        // Yeni ürün ekle (Add new item)
+        set({
+          items: [...currentItems, { ...item, quantity: 1 }],
+        });
+      }
     }
   },
 

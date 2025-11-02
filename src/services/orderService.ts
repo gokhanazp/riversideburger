@@ -16,7 +16,19 @@ interface CreateOrderParams {
   delivery_address: string;
   phone: string;
   notes?: string;
-  items: { product_id: string; quantity: number; price: number; subtotal: number }[];
+  items: {
+    product_id: string;
+    product_name: string;
+    quantity: number;
+    price: number;
+    subtotal: number;
+    customizations?: Array<{
+      option_id: string;
+      option_name: string;
+      option_price: number;
+    }>;
+    specialInstructions?: string;
+  }[];
   points_used?: number;
   address_id?: string;
 }
@@ -59,6 +71,32 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
       .insert(orderItems);
 
     if (itemsError) throw itemsError;
+
+    // Özelleştirmeleri kaydet (Save customizations)
+    for (const item of items) {
+      if (item.customizations && item.customizations.length > 0) {
+        const customizationsData = item.customizations.map(custom => ({
+          order_id: orderData.id,
+          product_id: item.product_id,
+          product_name: item.product_name,
+          option_id: custom.option_id,
+          option_name: custom.option_name,
+          option_price: custom.option_price,
+          quantity: item.quantity,
+          special_instructions: item.specialInstructions || null,
+        }));
+
+        const { error: customError } = await supabase
+          .from('order_item_customizations')
+          .insert(customizationsData);
+
+        if (customError) {
+          console.error('Error saving customizations:', customError);
+          // Özelleştirme hatası siparişi iptal etmez, sadece log'lanır
+          // (Customization error doesn't cancel order, just logged)
+        }
+      }
+    }
 
     // Eğer puan kullanıldıysa, kullanıcının puanını azalt (If points used, decrease user's points)
     if (points_used > 0) {

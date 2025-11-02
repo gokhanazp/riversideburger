@@ -141,9 +141,20 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
       buttonScale.value = withSpring(1);
     });
 
+    // Özelleştirmeleri hazırla (Prepare customizations)
+    const customizationsData = selectedOptions.map(sel => ({
+      option_id: sel.option.id,
+      option_name: sel.option.name,
+      option_price: sel.option.price,
+    }));
+
     // Seçilen miktarda sepete ekle (Add selected quantity to cart)
     for (let i = 0; i < quantity; i++) {
-      addItem(item);
+      addItem(
+        item,
+        customizationsData.length > 0 ? customizationsData : undefined,
+        specialInstructions || undefined
+      );
     }
 
     // Toast bildirimi göster (Show toast notification)
@@ -487,10 +498,10 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   section: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.md,
     fontWeight: 'bold',
     color: Colors.text,
     marginBottom: Spacing.sm,
@@ -603,8 +614,8 @@ const styles = StyleSheet.create({
   optionCard: {
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    borderWidth: 2,
+    padding: Spacing.sm,
+    borderWidth: 1.5,
     borderColor: Colors.border,
   },
   optionCardSelected: {
@@ -622,9 +633,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   optionCheckbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: Colors.border,
     justifyContent: 'center',
@@ -636,7 +647,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   optionName: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     color: Colors.text,
     flex: 1,
   },
@@ -645,7 +656,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   optionPrice: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     color: Colors.textSecondary,
     fontWeight: '600',
   },

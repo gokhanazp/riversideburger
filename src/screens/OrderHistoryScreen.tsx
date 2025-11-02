@@ -38,6 +38,9 @@ const OrderHistoryScreen = () => {
           order_items(
             *,
             product:products(name, image_url)
+          ),
+          order_item_customizations(
+            *
           )
         `)
         .eq('user_id', user.id)
@@ -170,21 +173,41 @@ const OrderHistoryScreen = () => {
         {item.order_items && item.order_items.length > 0 && (
           <View style={styles.productsContainer}>
             <Text style={styles.productsTitle}>Ürünler ({itemCount} adet):</Text>
-            {item.order_items.map((orderItem, index) => (
-              <View key={index} style={styles.productItem}>
-                <View style={styles.productLeft}>
-                  <View style={styles.quantityBadge}>
-                    <Text style={styles.quantityBadgeText}>{orderItem.quantity}x</Text>
+            {item.order_items.map((orderItem, index) => {
+              // Bu ürüne ait özelleştirmeleri bul (Find customizations for this product)
+              const customizations = (item as any).order_item_customizations?.filter(
+                (c: any) => c.product_id === orderItem.product_id
+              ) || [];
+
+              return (
+                <View key={index} style={styles.productItem}>
+                  <View style={styles.productLeft}>
+                    <View style={styles.quantityBadge}>
+                      <Text style={styles.quantityBadgeText}>{orderItem.quantity}x</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.productName} numberOfLines={1}>
+                        {orderItem.product?.name || 'Ürün'}
+                      </Text>
+                      {/* Özelleştirmeler (Customizations) */}
+                      {customizations.length > 0 && (
+                        <View style={styles.customizationsContainer}>
+                          {customizations.map((custom: any, idx: number) => (
+                            <Text key={idx} style={styles.customizationText}>
+                              • {custom.option_name}
+                              {custom.option_price > 0 && ` (+₺${custom.option_price.toFixed(2)})`}
+                            </Text>
+                          ))}
+                        </View>
+                      )}
+                    </View>
                   </View>
-                  <Text style={styles.productName} numberOfLines={1}>
-                    {orderItem.product?.name || 'Ürün'}
+                  <Text style={styles.productPrice}>
+                    ₺{orderItem.subtotal.toFixed(2)}
                   </Text>
                 </View>
-                <Text style={styles.productPrice}>
-                  ₺{orderItem.subtotal.toFixed(2)}
-                </Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
 
@@ -349,9 +372,19 @@ const styles = StyleSheet.create({
   },
   productLeft: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flex: 1,
     gap: 8,
+  },
+  customizationsContainer: {
+    marginTop: 4,
+    paddingLeft: 4,
+  },
+  customizationText: {
+    fontSize: 11,
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 2,
   },
   quantityBadge: {
     backgroundColor: Colors.primary,

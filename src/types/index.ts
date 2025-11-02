@@ -17,6 +17,12 @@ export interface MenuItem {
 // Sepet öğesi için tip tanımı (Cart item type definition)
 export interface CartItem extends MenuItem {
   quantity: number;
+  customizations?: Array<{
+    option_id: string;
+    option_name: string;
+    option_price: number;
+  }>;
+  specialInstructions?: string;
 }
 
 // Sipariş durumu için tip tanımı (Order status type definition)

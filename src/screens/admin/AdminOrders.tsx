@@ -69,6 +69,9 @@ const AdminOrders = ({ navigation, route }: any) => {
           order_items(
             *,
             product:products(name, image_url)
+          ),
+          order_item_customizations(
+            *
           )
         `)
         .order('created_at', { ascending: false });

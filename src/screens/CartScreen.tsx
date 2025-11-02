@@ -183,9 +183,12 @@ const CartScreen = ({ navigation }: any) => {
       // Sipariş verilerini hazırla (Prepare order data)
       const orderItems = items.map(item => ({
         product_id: item.id,
+        product_name: item.name,
         quantity: item.quantity,
         price: item.price,
         subtotal: item.price * item.quantity,
+        customizations: item.customizations,
+        specialInstructions: item.specialInstructions,
       }));
 
       // Adres bilgisini hazırla (Prepare address info)
@@ -264,6 +267,26 @@ const CartScreen = ({ navigation }: any) => {
       <Image source={{ uri: item.image }} style={styles.cartImage} />
       <View style={styles.cartInfo}>
         <Text style={styles.cartName}>{item.name}</Text>
+
+        {/* Özelleştirmeler (Customizations) */}
+        {item.customizations && item.customizations.length > 0 && (
+          <View style={styles.customizationsContainer}>
+            {item.customizations.map((custom, idx) => (
+              <Text key={idx} style={styles.customizationText}>
+                • {custom.option_name}
+                {custom.option_price > 0 && ` (+₺${custom.option_price.toFixed(2)})`}
+              </Text>
+            ))}
+          </View>
+        )}
+
+        {/* Özel notlar (Special instructions) */}
+        {item.specialInstructions && (
+          <Text style={styles.specialInstructionsText}>
+            📝 {item.specialInstructions}
+          </Text>
+        )}
+
         <Text style={styles.cartPrice}>₺{item.price.toFixed(2)}</Text>
         <View style={styles.quantityContainer}>
           {/* Azalt butonu (Decrease button) */}
@@ -617,6 +640,23 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: '600',
     color: Colors.text,
+  },
+  customizationsContainer: {
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  customizationText: {
+    fontSize: 11,
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  specialInstructionsText: {
+    fontSize: 11,
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 4,
+    marginBottom: 4,
   },
   cartPrice: {
     fontSize: FontSizes.lg,
