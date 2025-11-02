@@ -446,32 +446,40 @@ const HomeScreen = ({ navigation }: any) => {
         <View style={styles.featuresContainer}>
           <Animated.View entering={FadeInDown.delay(1000).duration(600)} style={styles.featureCard}>
             <View style={styles.featureIconContainer}>
-              <Ionicons name="time" size={40} color={Colors.white} />
+              <Ionicons name="time" size={48} color={Colors.white} />
             </View>
-            <Text style={styles.featureTitle}>Hızlı Teslimat</Text>
-            <Text style={styles.featureText}>30 dakikada kapınızda</Text>
-            <View style={styles.featureBadge}>
-              <Text style={styles.featureBadgeText}>⚡ Express</Text>
+            <View style={styles.featureContent}>
+              <Text style={styles.featureTitle}>Hızlı Teslimat</Text>
+              <Text style={styles.featureText}>30 dakikada kapınızda, sıcacık teslim</Text>
+              <View style={styles.featureBadge}>
+                <Text style={styles.featureBadgeText}>⚡ Express Teslimat</Text>
+              </View>
             </View>
           </Animated.View>
+
           <Animated.View entering={FadeInDown.delay(1050).duration(600)} style={styles.featureCard}>
             <View style={styles.featureIconContainer}>
-              <Ionicons name="shield-checkmark" size={40} color={Colors.white} />
+              <Ionicons name="shield-checkmark" size={48} color={Colors.white} />
             </View>
-            <Text style={styles.featureTitle}>Kalite Garantisi</Text>
-            <Text style={styles.featureText}>Taze malzemeler</Text>
-            <View style={styles.featureBadge}>
-              <Text style={styles.featureBadgeText}>✓ %100</Text>
+            <View style={styles.featureContent}>
+              <Text style={styles.featureTitle}>Kalite Garantisi</Text>
+              <Text style={styles.featureText}>Her zaman taze malzemeler ve hijyen</Text>
+              <View style={styles.featureBadge}>
+                <Text style={styles.featureBadgeText}>✓ %100 Kalite</Text>
+              </View>
             </View>
           </Animated.View>
+
           <Animated.View entering={FadeInDown.delay(1100).duration(600)} style={styles.featureCard}>
             <View style={styles.featureIconContainer}>
-              <Ionicons name="star" size={40} color={Colors.white} />
+              <Ionicons name="star" size={48} color={Colors.white} />
             </View>
-            <Text style={styles.featureTitle}>5 Yıldız</Text>
-            <Text style={styles.featureText}>Müşteri memnuniyeti</Text>
-            <View style={styles.featureBadge}>
-              <Text style={styles.featureBadgeText}>⭐ 4.9/5</Text>
+            <View style={styles.featureContent}>
+              <Text style={styles.featureTitle}>5 Yıldız Memnuniyet</Text>
+              <Text style={styles.featureText}>Binlerce mutlu müşteri yorumu</Text>
+              <View style={styles.featureBadge}>
+                <Text style={styles.featureBadgeText}>⭐ 4.9/5 Puan</Text>
+              </View>
             </View>
           </Animated.View>
         </View>
@@ -634,52 +642,52 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   featuresContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.md,
+    gap: Spacing.lg,
   },
   featureCard: {
-    flex: 1,
+    flexDirection: 'row',
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
+    padding: Spacing.xl,
     alignItems: 'center',
     ...Shadows.large,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#F0F0F0',
   },
   featureIconContainer: {
-    width: 70,
-    height: 70,
+    width: 80,
+    height: 80,
     borderRadius: BorderRadius.round,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginRight: Spacing.lg,
     ...Shadows.medium,
   },
+  featureContent: {
+    flex: 1,
+  },
   featureTitle: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.lg,
     fontWeight: 'bold',
     color: Colors.text,
-    marginTop: Spacing.xs,
-    textAlign: 'center',
+    marginBottom: Spacing.xs,
   },
   featureText: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
     color: Colors.textSecondary,
-    marginTop: Spacing.xs,
-    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: Spacing.sm,
   },
   featureBadge: {
     backgroundColor: Colors.accent,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
     borderRadius: BorderRadius.md,
-    marginTop: Spacing.sm,
+    alignSelf: 'flex-start',
   },
   featureBadgeText: {
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
     fontWeight: 'bold',
     color: Colors.white,
   },
@@ -709,18 +717,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.lg,
+    gap: Spacing.lg,
+    paddingVertical: Spacing.xl,
   },
   deliveryPartnerCard: {
     flex: 1,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 100,
-    ...Shadows.medium,
+    height: 140,
+    ...Shadows.large,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   deliveryPartnerImage: {
     width: '100%',
@@ -729,6 +739,7 @@ const styles = StyleSheet.create({
   // Müşteri Yorumları stilleri (Customer Reviews styles) - Yeniden tasarlandı
   reviewsScrollContent: {
     paddingRight: Spacing.lg,
+    backgroundColor: 'transparent',
   },
   reviewCard: {
     width: 300,
