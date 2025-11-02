@@ -11,6 +11,7 @@ export interface MenuItem {
   image: string;
   available: boolean;
   preparationTime?: number; // dakika cinsinden (in minutes)
+  ingredients?: string[]; // malzemeler (ingredients)
 }
 
 // Sepet öğesi için tip tanımı (Cart item type definition)

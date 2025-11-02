@@ -21,6 +21,7 @@ interface Product {
   image_url: string;
   stock_status: 'in_stock' | 'out_of_stock';
   is_featured: boolean;
+  ingredients?: string[];
 }
 
 // Ana sayfa ekranı (Home screen)
@@ -83,6 +84,7 @@ const HomeScreen = ({ navigation }: any) => {
       image: product.image_url,
       rating: 4.5, // Varsayılan rating (Default rating)
       reviews: 0, // Varsayılan review sayısı (Default review count)
+      ingredients: product.ingredients || [], // Malzemeler (Ingredients)
     };
     navigation.navigate('ProductDetail', { item: menuItem });
   };

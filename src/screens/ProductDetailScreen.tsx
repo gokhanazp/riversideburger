@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -22,6 +24,8 @@ import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/
 import { MenuItem } from '../types';
 import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
+import { customizationService } from '../services/customizationService';
+import { CategoryWithOptions, SelectedCustomization } from '../types/customization';
 
 const { width } = Dimensions.get('window');
 
@@ -29,12 +33,34 @@ const { width } = Dimensions.get('window');
 const ProductDetailScreen = ({ route, navigation }: any) => {
   const { item } = route.params as { item: MenuItem };
   const [quantity, setQuantity] = useState(1);
+  const [customizations, setCustomizations] = useState<CategoryWithOptions[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<SelectedCustomization[]>([]);
+  const [specialInstructions, setSpecialInstructions] = useState('');
+  const [loadingCustomizations, setLoadingCustomizations] = useState(true);
   const addItem = useCartStore((state) => state.addItem);
   const { toggleFavorite, isFavorite } = useFavoritesStore();
   const favorite = isFavorite(item.id);
 
   // Animasyon değerleri (Animation values)
   const buttonScale = useSharedValue(1);
+
+  // Özelleştirmeleri yükle (Load customizations)
+  useEffect(() => {
+    loadCustomizations();
+  }, [item.id]);
+
+  // Özelleştirmeleri getir (Fetch customizations)
+  const loadCustomizations = async () => {
+    try {
+      setLoadingCustomizations(true);
+      const data = await customizationService.getProductCustomizations(item.id);
+      setCustomizations(data);
+    } catch (error) {
+      console.error('Error loading customizations:', error);
+    } finally {
+      setLoadingCustomizations(false);
+    }
+  };
 
   // Buton animasyon stili (Button animation style)
   const animatedButtonStyle = useAnimatedStyle(() => ({
@@ -51,6 +77,61 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
     if (quantity > 1) {
       setQuantity((prev) => prev - 1);
     }
+  };
+
+  // Seçenek toggle (Toggle option)
+  const toggleOption = (categoryWithOptions: CategoryWithOptions, optionId: string, dynamicOption?: any) => {
+    // Dinamik seçenek (malzeme çıkarma) veya normal seçenek
+    // (Dynamic option - ingredient removal - or normal option)
+    const option = dynamicOption || categoryWithOptions.options.find((opt) => opt.id === optionId);
+    if (!option) return;
+
+    const isSelected = selectedOptions.some((sel) => sel.option.id === optionId);
+
+    if (isSelected) {
+      // Seçimi kaldır (Remove selection)
+      setSelectedOptions((prev) => prev.filter((sel) => sel.option.id !== optionId));
+    } else {
+      // Maksimum seçim kontrolü (Check max selections)
+      const categorySelections = selectedOptions.filter(
+        (sel) => sel.category.id === categoryWithOptions.category.id
+      );
+
+      if (
+        categoryWithOptions.max_selections &&
+        categorySelections.length >= categoryWithOptions.max_selections
+      ) {
+        Toast.show({
+          type: 'error',
+          text1: '⚠️ Maksimum Seçim',
+          text2: `Bu kategoriden en fazla ${categoryWithOptions.max_selections} seçenek seçebilirsiniz`,
+          position: 'bottom',
+          visibilityTime: 2000,
+        });
+        return;
+      }
+
+      // Seçimi ekle (Add selection)
+      setSelectedOptions((prev) => [
+        ...prev,
+        {
+          option,
+          category: categoryWithOptions.category,
+        },
+      ]);
+    }
+  };
+
+  // Toplam ekstra fiyat hesapla (Calculate total extra price)
+  const calculateExtraPrice = () => {
+    return selectedOptions.reduce((sum, sel) => sum + sel.option.price, 0);
+  };
+
+  // Toplam fiyat hesapla (Calculate total price)
+  const calculateTotalPrice = () => {
+    const basePrice = item.price * quantity;
+    const extraPrice = calculateExtraPrice() * quantity;
+    return basePrice + extraPrice;
   };
 
   // Sepete ekle (Add to cart)
@@ -138,27 +219,151 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
             <Text style={styles.description}>{item.description}</Text>
           </Animated.View>
 
-          {/* İçindekiler (Ingredients) - Örnek (Example) */}
-          <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.section}>
-            <Text style={styles.sectionTitle}>İçindekiler</Text>
-            <View style={styles.ingredientsContainer}>
-              <View style={styles.ingredientTag}>
-                <Text style={styles.ingredientText}>🥬 Marul</Text>
+          {/* İçindekiler (Ingredients) */}
+          {item.ingredients && item.ingredients.length > 0 && (
+            <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.section}>
+              <Text style={styles.sectionTitle}>İçindekiler</Text>
+              <View style={styles.ingredientsContainer}>
+                {item.ingredients.map((ingredient, index) => (
+                  <View key={index} style={styles.ingredientTag}>
+                    <Text style={styles.ingredientText}>{ingredient}</Text>
+                  </View>
+                ))}
               </View>
-              <View style={styles.ingredientTag}>
-                <Text style={styles.ingredientText}>🍅 Domates</Text>
-              </View>
-              <View style={styles.ingredientTag}>
-                <Text style={styles.ingredientText}>🧀 Peynir</Text>
-              </View>
-              <View style={styles.ingredientTag}>
-                <Text style={styles.ingredientText}>🥒 Turşu</Text>
-              </View>
-            </View>
-          </Animated.View>
+            </Animated.View>
+          )}
+
+          {/* Özelleştirme seçenekleri (Customization options) */}
+          {loadingCustomizations ? (
+            <Animated.View entering={FadeInDown.delay(500).duration(600)} style={styles.section}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+              <Text style={styles.loadingText}>Seçenekler yükleniyor...</Text>
+            </Animated.View>
+          ) : customizations.length > 0 ? (
+            <>
+              {customizations.map((categoryWithOptions, catIndex) => {
+                // "Çıkarılacak Malzemeler" kategorisi için ürünün kendi malzemelerini kullan
+                // (Use product's own ingredients for "Remove Ingredients" category)
+                const isRemoveCategory = categoryWithOptions.category.name === 'Çıkarılacak Malzemeler';
+                const displayOptions = isRemoveCategory && item.ingredients && item.ingredients.length > 0
+                  ? item.ingredients.map((ingredient, idx) => ({
+                      id: `ingredient-${idx}`,
+                      category_id: categoryWithOptions.category.id,
+                      name: `${ingredient} Çıkar`,
+                      name_en: `Remove ${ingredient}`,
+                      description: null,
+                      price: 0,
+                      is_active: true,
+                      display_order: idx,
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString(),
+                    }))
+                  : categoryWithOptions.options;
+
+                // Eğer "Çıkarılacak Malzemeler" kategorisiyse ve ürünün malzemesi yoksa, gösterme
+                // (If it's "Remove Ingredients" category and product has no ingredients, don't show)
+                if (isRemoveCategory && (!item.ingredients || item.ingredients.length === 0)) {
+                  return null;
+                }
+
+                return (
+                  <Animated.View
+                    key={categoryWithOptions.category.id}
+                    entering={FadeInDown.delay(500 + catIndex * 100).duration(600)}
+                    style={styles.section}
+                  >
+                    <View style={styles.categoryHeader}>
+                      <Text style={styles.sectionTitle}>
+                        {categoryWithOptions.category.name}
+                        {categoryWithOptions.is_required && (
+                          <Text style={styles.requiredText}> *</Text>
+                        )}
+                      </Text>
+                      {categoryWithOptions.max_selections && (
+                        <Text style={styles.maxSelectionsText}>
+                          En fazla {categoryWithOptions.max_selections} seçim
+                        </Text>
+                      )}
+                    </View>
+
+                    <View style={styles.optionsContainer}>
+                      {displayOptions.map((option) => {
+                        const isSelected = selectedOptions.some(
+                          (sel) => sel.option.id === option.id
+                        );
+
+                        return (
+                          <TouchableOpacity
+                            key={option.id}
+                            style={[
+                              styles.optionCard,
+                              isSelected && styles.optionCardSelected,
+                            ]}
+                            onPress={() => toggleOption(categoryWithOptions, option.id, isRemoveCategory ? option : undefined)}
+                            activeOpacity={0.7}
+                          >
+                            <View style={styles.optionContent}>
+                              <View style={styles.optionLeft}>
+                                <View
+                                  style={[
+                                    styles.optionCheckbox,
+                                    isSelected && styles.optionCheckboxSelected,
+                                  ]}
+                                >
+                                  {isSelected && (
+                                    <Ionicons name="checkmark" size={16} color={Colors.white} />
+                                  )}
+                                </View>
+                                <Text
+                                  style={[
+                                    styles.optionName,
+                                    isSelected && styles.optionNameSelected,
+                                  ]}
+                                >
+                                  {option.name}
+                                </Text>
+                              </View>
+                              {option.price > 0 && (
+                                <Text
+                                  style={[
+                                    styles.optionPrice,
+                                    isSelected && styles.optionPriceSelected,
+                                  ]}
+                                >
+                                  +₺{option.price.toFixed(2)}
+                                </Text>
+                              )}
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </Animated.View>
+                );
+              })}
+
+              {/* Özel notlar (Special instructions) */}
+              <Animated.View
+                entering={FadeInDown.delay(500 + customizations.length * 100).duration(600)}
+                style={styles.section}
+              >
+                <Text style={styles.sectionTitle}>Özel Notlar</Text>
+                <TextInput
+                  style={styles.specialInstructionsInput}
+                  placeholder="Özel bir isteğiniz var mı? (Opsiyonel)"
+                  placeholderTextColor="#999"
+                  value={specialInstructions}
+                  onChangeText={setSpecialInstructions}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+              </Animated.View>
+            </>
+          ) : null}
 
           {/* Miktar seçici (Quantity selector) */}
-          <Animated.View entering={FadeInDown.delay(500).duration(600)} style={styles.section}>
+          <Animated.View entering={FadeInDown.delay(600).duration(600)} style={styles.section}>
             <Text style={styles.sectionTitle}>Miktar</Text>
             <View style={styles.quantityContainer}>
               <TouchableOpacity
@@ -193,7 +398,12 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
       <Animated.View entering={FadeInUp.delay(600).duration(600)} style={styles.bottomBar}>
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>Toplam</Text>
-          <Text style={styles.totalPrice}>₺{(item.price * quantity).toFixed(2)}</Text>
+          <Text style={styles.totalPrice}>₺{calculateTotalPrice().toFixed(2)}</Text>
+          {selectedOptions.length > 0 && (
+            <Text style={styles.extraPriceText}>
+              (Ekstra: ₺{(calculateExtraPrice() * quantity).toFixed(2)})
+            </Text>
+          )}
         </View>
 
         <Animated.View style={[animatedButtonStyle, { flex: 2 }]}>
@@ -361,6 +571,96 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xl,
     fontWeight: 'bold',
     color: Colors.text,
+  },
+  extraPriceText: {
+    fontSize: FontSizes.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  loadingText: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  requiredText: {
+    color: Colors.primary,
+    fontSize: FontSizes.lg,
+  },
+  maxSelectionsText: {
+    fontSize: FontSizes.xs,
+    color: Colors.textSecondary,
+  },
+  optionsContainer: {
+    gap: Spacing.sm,
+  },
+  optionCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 2,
+    borderColor: Colors.border,
+  },
+  optionCardSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: '#FFF5F5',
+  },
+  optionContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  optionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  optionCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.sm,
+  },
+  optionCheckboxSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  optionName: {
+    fontSize: FontSizes.md,
+    color: Colors.text,
+    flex: 1,
+  },
+  optionNameSelected: {
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  optionPrice: {
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+  optionPriceSelected: {
+    color: Colors.primary,
+  },
+  specialInstructionsInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    fontSize: FontSizes.md,
+    color: Colors.text,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    minHeight: 80,
   },
   addToCartButton: {
     flexDirection: 'row',

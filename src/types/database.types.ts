@@ -67,6 +67,7 @@ export interface Product {
   preparation_time: number;
   is_active: boolean;
   stock_status: StockStatus;
+  ingredients?: string[]; // Malzemeler (Ingredients)
   created_at: string;
   updated_at?: string;
   // Relations

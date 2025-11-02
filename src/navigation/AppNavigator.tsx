@@ -28,6 +28,7 @@ import AddressEditScreen from '../screens/AddressEditScreen';
 import AdminDashboard from '../screens/admin/AdminDashboard';
 import AdminOrders from '../screens/admin/AdminOrders';
 import AdminProducts from '../screens/admin/AdminProducts';
+import AdminProductCustomization from '../screens/admin/AdminProductCustomization';
 import AdminUsers from '../screens/admin/AdminUsers';
 import AdminSettings from '../screens/admin/AdminSettings';
 import AdminBanners from '../screens/admin/AdminBanners';
@@ -432,6 +433,13 @@ const AppNavigator = () => {
               fontWeight: 'bold',
               fontSize: 18,
             },
+          }}
+        />
+        <Stack.Screen
+          name="AdminProductCustomization"
+          component={AdminProductCustomization}
+          options={{
+            headerShown: false,
           }}
         />
         <Stack.Screen

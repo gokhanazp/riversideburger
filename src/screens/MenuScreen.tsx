@@ -167,6 +167,7 @@ const MenuScreen = ({ navigation }: any) => {
       preparationTime: item.preparation_time || 15,
       rating: 4.5,
       reviews: 0,
+      ingredients: item.ingredients || [], // Malzemeler (Ingredients)
     };
 
     const favorite = isFavorite(item.id);

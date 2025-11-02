@@ -27,6 +27,7 @@ export type RootStackParamList = {
   AdminDashboard: undefined;
   AdminOrders: { filter?: string } | undefined;
   AdminProducts: undefined;
+  AdminProductCustomization: { product: any };
   AdminUsers: undefined;
   AdminSettings: undefined;
   AdminBanners: undefined;

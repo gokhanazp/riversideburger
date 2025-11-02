@@ -31,6 +31,7 @@ interface Product {
   image_url: string;
   stock_status: 'in_stock' | 'out_of_stock';
   is_featured: boolean;
+  ingredients?: string[];
   created_at: string;
 }
 
@@ -45,7 +46,7 @@ const CATEGORIES = [
 ];
 
 // Admin Ürünler Ekranı (Admin Products Screen)
-const AdminProducts = () => {
+const AdminProducts = ({ navigation }: any) => {
   // State'ler (States)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,7 +65,11 @@ const AdminProducts = () => {
     image_url: '',
     stock_status: 'in_stock' as 'in_stock' | 'out_of_stock',
     is_featured: false,
+    ingredients: [] as string[],
   });
+
+  // Malzeme input state'i (Ingredient input state)
+  const [ingredientInput, setIngredientInput] = useState('');
 
   // Resim yükleme state'leri (Image upload states)
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -125,6 +130,7 @@ const AdminProducts = () => {
   const handleAddProduct = () => {
     setSelectedProduct(null);
     setSelectedFile(null);
+    setIngredientInput('');
     setFormData({
       name: '',
       description: '',
@@ -133,6 +139,7 @@ const AdminProducts = () => {
       image_url: '',
       stock_status: 'in_stock',
       is_featured: false,
+      ingredients: [],
     });
     setShowEditModal(true);
   };
@@ -141,6 +148,7 @@ const AdminProducts = () => {
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
     setSelectedFile(null);
+    setIngredientInput('');
     setFormData({
       name: product.name,
       description: product.description,
@@ -149,8 +157,29 @@ const AdminProducts = () => {
       image_url: product.image_url,
       stock_status: product.stock_status,
       is_featured: product.is_featured,
+      ingredients: product.ingredients || [],
     });
     setShowEditModal(true);
+  };
+
+  // Malzeme ekle (Add ingredient)
+  const handleAddIngredient = () => {
+    const ingredient = ingredientInput.trim();
+    if (ingredient && !formData.ingredients.includes(ingredient)) {
+      setFormData({
+        ...formData,
+        ingredients: [...formData.ingredients, ingredient],
+      });
+      setIngredientInput('');
+    }
+  };
+
+  // Malzeme çıkar (Remove ingredient)
+  const handleRemoveIngredient = (ingredient: string) => {
+    setFormData({
+      ...formData,
+      ingredients: formData.ingredients.filter((i) => i !== ingredient),
+    });
   };
 
   // Resim seç (Select image)
@@ -234,6 +263,7 @@ const AdminProducts = () => {
         image_url: formData.image_url.trim(),
         stock_status: formData.stock_status,
         is_featured: formData.is_featured,
+        ingredients: formData.ingredients,
       };
 
       console.log('💾 Saving product:', productData);
@@ -429,6 +459,16 @@ const AdminProducts = () => {
             <Text style={[styles.actionButtonText, { color: '#DC3545' }]}>Sil</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Özelleştirme butonu (Customization button) */}
+        <TouchableOpacity
+          style={styles.customizeButton}
+          onPress={() => navigation.navigate('AdminProductCustomization', { product })}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="options" size={18} color="#FF6B35" />
+          <Text style={styles.customizeButtonText}>Özelleştirme Ayarları</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -652,6 +692,48 @@ const AdminProducts = () => {
                   />
                 </View>
 
+                {/* Malzemeler (Ingredients) */}
+                <Text style={styles.label}>Malzemeler</Text>
+                <Text style={styles.helperText}>
+                  Müşteriler bu malzemeleri çıkarabilir
+                </Text>
+
+                {/* Malzeme ekleme input (Ingredient input) */}
+                <View style={styles.ingredientInputContainer}>
+                  <TextInput
+                    style={styles.ingredientInput}
+                    placeholder="Malzeme adı (örn: Marul, Domates)"
+                    placeholderTextColor="#999"
+                    value={ingredientInput}
+                    onChangeText={setIngredientInput}
+                    onSubmitEditing={handleAddIngredient}
+                  />
+                  <TouchableOpacity
+                    style={styles.addIngredientButton}
+                    onPress={handleAddIngredient}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="add-circle" size={32} color={Colors.primary} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Malzeme listesi (Ingredients list) */}
+                {formData.ingredients.length > 0 && (
+                  <View style={styles.ingredientsList}>
+                    {formData.ingredients.map((ingredient, index) => (
+                      <View key={index} style={styles.ingredientChip}>
+                        <Text style={styles.ingredientChipText}>{ingredient}</Text>
+                        <TouchableOpacity
+                          onPress={() => handleRemoveIngredient(ingredient)}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="close-circle" size={20} color="#DC3545" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
                 {/* Öne Çıkan (Featured) */}
                 <View style={styles.switchRow}>
                   <Text style={styles.label}>Öne Çıkan Ürün</Text>
@@ -844,6 +926,23 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     fontWeight: 'bold',
   },
+  customizeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    marginTop: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: '#FF6B3540',
+    backgroundColor: '#FF6B3510',
+  },
+  customizeButtonText: {
+    fontSize: FontSizes.xs,
+    fontWeight: 'bold',
+    color: '#FF6B35',
+  },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -966,6 +1065,56 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: 12,
     ...Shadows.medium,
+  },
+  helperText: {
+    fontSize: FontSizes.xs,
+    color: '#666',
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.sm,
+    fontStyle: 'italic',
+  },
+  ingredientInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  ingredientInput: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: FontSizes.md,
+    color: Colors.text,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  addIngredientButton: {
+    padding: 4,
+  },
+  ingredientsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  ingredientChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.primary + '10',
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.xs,
+    paddingLeft: Spacing.md,
+    paddingRight: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.primary + '40',
+  },
+  ingredientChipText: {
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    fontWeight: '600',
   },
   switchRow: {
     flexDirection: 'row',
