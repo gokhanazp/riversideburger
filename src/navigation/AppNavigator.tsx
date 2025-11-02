@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Ekranları import et (Import screens)
 import HomeScreen from '../screens/HomeScreen';
@@ -69,17 +70,20 @@ const MainTabs = () => {
     state.items.reduce((sum, item) => sum + item.quantity, 0)
   );
 
+  // Safe area insets (Güvenli alan kenar boşlukları)
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={{
         tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textSecondary,
+        tabBarInactiveTintColor: '#999', // Daha açık gri (Lighter gray)
         tabBarStyle: {
-          height: 60,
-          paddingBottom: 8,
+          backgroundColor: '#000', // Siyah arka plan (Black background)
+          height: 60 + insets.bottom, // Safe area için yükseklik (Height for safe area)
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 8, // Safe area padding
           paddingTop: 8,
-          borderTopWidth: 1,
-          borderTopColor: Colors.border,
+          borderTopWidth: 0, // Üst border kaldırıldı (Top border removed)
         },
         tabBarLabelStyle: {
           fontSize: FontSizes.xs,
