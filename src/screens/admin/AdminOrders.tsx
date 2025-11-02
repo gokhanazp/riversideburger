@@ -264,24 +264,21 @@ const AdminOrders = ({ navigation, route }: any) => {
             <!-- Ürünler (Products) -->
             <div class="section">
               <div class="section-title">🍽️ Sipariş Detayları</div>
-              ${order.order_items?.map((item, index) => {
+              ${order.order_items?.map((item) => {
                 const customizations = allCustomizations.filter(
                   (c: any) => c.product_id === item.product_id
                 );
+                const customizationsHtml = customizations.map((custom: any) =>
+                  `<div class="customization">• ${custom.option_name}${custom.option_price > 0 ? ` (+₺${custom.option_price.toFixed(2)})` : ''}</div>`
+                ).join('');
+
                 return `
                   <div class="product-item">
                     <div class="product-header">
                       <span>${item.quantity}x ${item.product?.name || 'Ürün'}</span>
                       <span>₺${item.subtotal.toFixed(2)}</span>
                     </div>
-                    ${customizations.length > 0 ? `
-                      ${customizations.map((custom: any) => `
-                        <div class="customization">
-                          • ${custom.option_name}
-                          ${custom.option_price > 0 ? ` (+₺${custom.option_price.toFixed(2)})` : ''}
-                        </div>
-                      `).join('')}
-                    ` : ''}
+                    ${customizationsHtml}
                   </div>
                 `;
               }).join('')}
@@ -312,7 +309,7 @@ const AdminOrders = ({ navigation, route }: any) => {
             <div class="section">
               <div class="section-title">📊 Sipariş Durumu</div>
               <div class="status-badge" style="background-color: ${STATUS_COLORS[order.status]}; color: white;">
-                ${STATUS_LABELS[order.status]}
+                ${STATUS_NAMES[order.status]}
               </div>
             </div>
 
