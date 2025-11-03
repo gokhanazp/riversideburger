@@ -24,7 +24,9 @@ export default function App() {
   // Notification listener'ları kur (Setup notification listeners)
   useEffect(() => {
     // Web'de notification çalışmaz (Notifications don't work on web)
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web') {
+      return undefined; // Web'de cleanup yok (No cleanup on web)
+    }
     if (!user) return;
 
     // Push notification izni iste ve token al (Request push notification permission and get token)
@@ -42,16 +44,13 @@ export default function App() {
       clearBadgeCount();
     });
 
-    // Cleanup
+    // Cleanup - sadece mobilde çalışır (Cleanup - only runs on mobile)
     return () => {
-      // Web'de removeNotificationSubscription yok (Not available on web)
-      if (Platform.OS !== 'web') {
-        if (notificationListener.current) {
-          Notifications.removeNotificationSubscription(notificationListener.current);
-        }
-        if (responseListener.current) {
-          Notifications.removeNotificationSubscription(responseListener.current);
-        }
+      if (notificationListener.current) {
+        Notifications.removeNotificationSubscription(notificationListener.current);
+      }
+      if (responseListener.current) {
+        Notifications.removeNotificationSubscription(responseListener.current);
       }
     };
   }, [user]);
