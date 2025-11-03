@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider } from 'react-native-paper';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -23,6 +23,8 @@ export default function App() {
 
   // Notification listener'ları kur (Setup notification listeners)
   useEffect(() => {
+    // Web'de notification çalışmaz (Notifications don't work on web)
+    if (Platform.OS === 'web') return;
     if (!user) return;
 
     // Push notification izni iste ve token al (Request push notification permission and get token)

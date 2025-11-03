@@ -4,20 +4,29 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-// Bildirim davranışını ayarla (Notification behavior configuration)
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true, // Bildirim göster (Show notification)
-    shouldPlaySound: true, // Ses çal (Play sound)
-    shouldSetBadge: true, // Badge göster (Show badge)
-  }),
-});
+// Web'de notification handler'ı ayarlama (Don't set notification handler on web)
+if (Platform.OS !== 'web') {
+  // Bildirim davranışını ayarla (Notification behavior configuration)
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true, // Bildirim göster (Show notification)
+      shouldPlaySound: true, // Ses çal (Play sound)
+      shouldSetBadge: true, // Badge göster (Show badge)
+    }),
+  });
+}
 
 /**
  * Push notification izni iste ve token al
  * Request push notification permission and get token
  */
 export async function registerForPushNotificationsAsync(): Promise<string | undefined> {
+  // Web'de çalışmaz (Not supported on web)
+  if (Platform.OS === 'web') {
+    console.log('Push notifications web\'de desteklenmiyor');
+    return undefined;
+  }
+
   let token;
 
   // Fiziksel cihaz kontrolü (Physical device check)
