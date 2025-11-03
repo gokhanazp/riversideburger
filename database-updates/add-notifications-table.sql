@@ -1,3 +1,91 @@
+-- User Profiles Tablosu (User Profiles Table) - Eğer yoksa oluştur
+-- Bu tablo kullanıcı profillerini ve rollerini saklar
+-- This table stores user profiles and roles
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+
+  -- Kullanıcı bilgileri (User information)
+  full_name TEXT,
+  phone TEXT,
+  role TEXT DEFAULT 'customer', -- 'customer', 'admin'
+
+  -- Puan sistemi (Points system)
+  total_points INTEGER DEFAULT 0,
+
+  -- Zaman damgaları (Timestamps)
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  -- Rol kontrolü (Role validation)
+  CONSTRAINT valid_role CHECK (role IN ('customer', 'admin'))
+);
+
+-- İndeksler (Indexes)
+CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_role ON user_profiles(role);
+
+-- RLS Politikaları (RLS Policies)
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Kullanıcılar kendi profillerini görebilir (Users can view their own profile)
+CREATE POLICY "Users can view own profile"
+  ON user_profiles
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Kullanıcılar kendi profillerini güncelleyebilir (Users can update their own profile)
+CREATE POLICY "Users can update own profile"
+  ON user_profiles
+  FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- Admin'ler tüm profilleri görebilir (Admins can view all profiles)
+CREATE POLICY "Admins can view all profiles"
+  ON user_profiles
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles up
+      WHERE up.user_id = auth.uid()
+      AND up.role = 'admin'
+    )
+  );
+
+-- Trigger: Yeni kullanıcı için varsayılan profil oluştur
+-- Trigger: Create default profile for new users
+CREATE OR REPLACE FUNCTION create_default_user_profile()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO user_profiles (user_id, full_name)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email))
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created_profile ON auth.users;
+CREATE TRIGGER on_auth_user_created_profile
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION create_default_user_profile();
+
+-- Trigger: updated_at otomatik güncelleme (Auto-update updated_at)
+CREATE OR REPLACE FUNCTION update_user_profiles_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS user_profiles_updated_at ON user_profiles;
+CREATE TRIGGER user_profiles_updated_at
+  BEFORE UPDATE ON user_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION update_user_profiles_updated_at();
+
 -- Notifications Table (Bildirimler Tablosu)
 -- Bu tablo kullanıcılara gönderilen bildirimleri saklar
 -- This table stores notifications sent to users
