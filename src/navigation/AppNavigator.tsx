@@ -34,6 +34,7 @@ import AdminProductCustomization from '../screens/admin/AdminProductCustomizatio
 import AdminUsers from '../screens/admin/AdminUsers';
 import AdminSettings from '../screens/admin/AdminSettings';
 import AdminBanners from '../screens/admin/AdminBanners';
+import AdminNotifications from '../screens/admin/AdminNotifications';
 
 // Type'ları import et (Import types)
 import { MainTabParamList, RootStackParamList } from './types';
@@ -515,6 +516,27 @@ const AppNavigator = () => {
           component={AdminBanners}
           options={{
             title: '🖼️ Banner Yönetimi',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+              fontSize: 18,
+            },
+          }}
+        />
+        <Stack.Screen
+          name="AdminNotifications"
+          component={AdminNotifications}
+          options={{
+            title: '🔔 Bildirim Gönder',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,

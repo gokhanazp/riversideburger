@@ -262,6 +262,13 @@ const AdminDashboard = ({ navigation }: any) => {
             onPress={() => navigation.navigate('AdminBanners')}
           />
           <MenuCard
+            iconName="notifications-outline"
+            title="Bildirimler"
+            subtitle="Bildirim gönder"
+            color="#FD7E14"
+            onPress={() => navigation.navigate('AdminNotifications')}
+          />
+          <MenuCard
             iconName="settings-outline"
             title="Ayarlar"
             subtitle="Sistem ayarları"
