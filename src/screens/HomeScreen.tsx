@@ -724,17 +724,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
+    padding: Spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 140,
-    ...Shadows.large,
+    height: 120,
+    ...Shadows.medium,
     borderWidth: 1,
     borderColor: '#F0F0F0',
   },
   deliveryPartnerImage: {
-    width: '100%',
-    height: '100%',
+    width: 100,
+    height: 100,
   },
   // Müşteri Yorumları stilleri (Customer Reviews styles) - Yeniden tasarlandı
   reviewsScrollContent: {
