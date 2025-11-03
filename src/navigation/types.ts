@@ -23,6 +23,7 @@ export type RootStackParamList = {
   ProfileEdit: undefined;
   AddressList: undefined;
   AddressEdit: { addressId: string | null };
+  Notifications: undefined;
   // Admin ekranları (Admin screens)
   AdminDashboard: undefined;
   AdminOrders: { filter?: string } | undefined;

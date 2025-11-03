@@ -271,7 +271,12 @@ const ProfileScreen = ({ navigation }: any) => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Ayarlar</Text>
             <View style={styles.card}>
-              <MenuItem iconName="notifications-outline" title="Bildirimler" subtitle="Bildirim tercihleriniz" />
+              <MenuItem
+                iconName="notifications-outline"
+                title="Bildirimler"
+                subtitle="Bildirim tercihleriniz"
+                onPress={() => navigation.navigate('Notifications')}
+              />
               <MenuItem iconName="language-outline" title="Dil" subtitle="Türkçe" />
               <MenuItem iconName="help-circle-outline" title="Yardım & Destek" subtitle="SSS ve iletişim" />
               <MenuItem iconName="shield-outline" title="Gizlilik Politikası" />

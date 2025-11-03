@@ -24,6 +24,7 @@ import PointsHistoryScreen from '../screens/PointsHistoryScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
 import AddressListScreen from '../screens/AddressListScreen';
 import AddressEditScreen from '../screens/AddressEditScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 // Admin ekranları (Admin screens)
 import AdminDashboard from '../screens/admin/AdminDashboard';
@@ -358,6 +359,27 @@ const AppNavigator = () => {
           component={AddressEditScreen}
           options={{
             title: '📝 Adres Düzenle',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+              fontSize: 18,
+            },
+          }}
+        />
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationsScreen}
+          options={{
+            title: '🔔 Bildirimler',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
