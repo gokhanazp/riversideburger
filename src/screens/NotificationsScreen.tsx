@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
-import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/styles';
+import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import Toast from 'react-native-toast-message';
 
 // Bildirim tipi (Notification type)
