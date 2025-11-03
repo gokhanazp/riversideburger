@@ -53,15 +53,26 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
     }
 
     // Push token al (Get push token)
+    // Expo Go'da projectId olmayabilir, bu durumda yerel bildirimler çalışır
+    // (In Expo Go, projectId might not exist, but local notifications still work)
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+
+    if (!projectId) {
+      console.log('⚠️ Push token alınamadı (Expo Go - projectId yok). Yerel bildirimler çalışacak.');
+      return undefined;
+    }
+
     token = (
       await Notifications.getExpoPushTokenAsync({
-        projectId: Constants.expoConfig?.extra?.eas?.projectId,
+        projectId,
       })
     ).data;
 
-    console.log('Push token:', token);
+    console.log('✅ Push token:', token);
   } catch (error) {
-    console.error('Push notification token alınamadı:', error);
+    // Expo Go'da projectId hatası bekleniyor, sessizce logla
+    // (projectId error is expected in Expo Go, log silently)
+    console.log('ℹ️ Push token alınamadı (Expo Go modunda normal). Yerel bildirimler çalışacak.');
   }
 
   // Android için bildirim kanalı oluştur (Create notification channel for Android)

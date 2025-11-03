@@ -13,6 +13,8 @@ export type OrderStatus =
 
 export type StockStatus = 'in_stock' | 'out_of_stock';
 
+export type ReviewStatus = 'pending' | 'approved' | 'rejected';
+
 // User (Kullanıcı)
 export interface User {
   id: string;
@@ -184,7 +186,48 @@ export interface Database {
         Insert: Omit<Address, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<Address, 'id' | 'created_at'>>;
       };
+      reviews: {
+        Row: Review;
+        Insert: Omit<Review, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<Review, 'id' | 'created_at'>>;
+      };
     };
   };
+}
+
+// Review (Değerlendirme/Yorum)
+export interface Review {
+  id: string;
+  order_id: string;
+  user_id: string;
+  product_id: string;
+  rating: number; // 1-5 arası (Between 1-5)
+  comment?: string; // Yorum metni (Comment text)
+  images?: string[]; // Fotoğraf URL'leri (Image URLs)
+  is_approved: boolean; // Admin onayı (Admin approval)
+  approved_by?: string; // Onaylayan admin ID (Approving admin ID)
+  approved_at?: string; // Onay tarihi (Approval date)
+  is_rejected: boolean; // Reddedildi mi? (Is rejected?)
+  rejection_reason?: string; // Red nedeni (Rejection reason)
+  rejected_by?: string; // Reddeden admin ID (Rejecting admin ID)
+  rejected_at?: string; // Red tarihi (Rejection date)
+  created_at: string;
+  updated_at?: string;
+  // Relations
+  user?: User;
+  product?: Product;
+  order?: Order;
+}
+
+// Product Rating Summary (Ürün Değerlendirme Özeti)
+export interface ProductRating {
+  product_id: string;
+  review_count: number; // Toplam yorum sayısı (Total review count)
+  average_rating: number; // Ortalama puan (Average rating)
+  five_star_count: number; // 5 yıldız sayısı (5-star count)
+  four_star_count: number; // 4 yıldız sayısı (4-star count)
+  three_star_count: number; // 3 yıldız sayısı (3-star count)
+  two_star_count: number; // 2 yıldız sayısı (2-star count)
+  one_star_count: number; // 1 yıldız sayısı (1-star count)
 }
 

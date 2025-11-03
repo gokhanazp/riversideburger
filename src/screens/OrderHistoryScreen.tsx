@@ -10,17 +10,21 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { Order } from '../types/database.types';
 import { supabase } from '../lib/supabase';
 import Toast from 'react-native-toast-message';
 import { Colors } from '../constants/theme';
+import { hasUserReviewedOrder } from '../services/reviewService';
 
 const OrderHistoryScreen = () => {
+  const navigation = useNavigation();
   const { user } = useAuthStore();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [reviewedOrders, setReviewedOrders] = useState<Set<string>>(new Set()); // Değerlendirilmiş siparişler (Reviewed orders)
 
   useEffect(() => {
     fetchOrders();
@@ -48,6 +52,20 @@ const OrderHistoryScreen = () => {
 
       if (error) throw error;
       setOrders(data || []);
+
+      // Teslim edilen siparişler için değerlendirme durumunu kontrol et
+      // (Check review status for delivered orders)
+      const deliveredOrders = (data || []).filter(o => o.status === 'delivered');
+      const reviewedSet = new Set<string>();
+
+      for (const order of deliveredOrders) {
+        const hasReviewed = await hasUserReviewedOrder(order.id);
+        if (hasReviewed) {
+          reviewedSet.add(order.id);
+        }
+      }
+
+      setReviewedOrders(reviewedSet);
     } catch (error: any) {
       console.error('Error fetching orders:', error);
       Toast.show({
@@ -231,6 +249,25 @@ const OrderHistoryScreen = () => {
             </View>
           )}
         </View>
+
+        {/* Değerlendirme Butonu (Review Button) - Sadece teslim edilen siparişler için */}
+        {item.status === 'delivered' && !reviewedOrders.has(item.id) && (
+          <TouchableOpacity
+            style={styles.reviewButton}
+            onPress={() => (navigation as any).navigate('ReviewOrder', { orderId: item.id })}
+          >
+            <Ionicons name="star-outline" size={20} color={Colors.primary} />
+            <Text style={styles.reviewButtonText}>Siparişi Değerlendir</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Değerlendirildi Badge (Reviewed Badge) */}
+        {item.status === 'delivered' && reviewedOrders.has(item.id) && (
+          <View style={styles.reviewedBadge}>
+            <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+            <Text style={styles.reviewedBadgeText}>Değerlendirildi</Text>
+          </View>
+        )}
       </View>
     );
   };
@@ -450,6 +487,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.primary,
     fontWeight: '600',
+  },
+  // Değerlendirme butonu stilleri (Review button styles)
+  reviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary + '10', // 10% opacity
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    gap: 8,
+  },
+  reviewButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  reviewedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4CAF50' + '10', // 10% opacity
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    gap: 6,
+  },
+  reviewedBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4CAF50',
   },
 });
 

@@ -25,6 +25,7 @@ import ProfileEditScreen from '../screens/ProfileEditScreen';
 import AddressListScreen from '../screens/AddressListScreen';
 import AddressEditScreen from '../screens/AddressEditScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import ReviewOrderScreen from '../screens/ReviewOrderScreen';
 
 // Admin ekranları (Admin screens)
 import AdminDashboard from '../screens/admin/AdminDashboard';
@@ -35,6 +36,7 @@ import AdminUsers from '../screens/admin/AdminUsers';
 import AdminSettings from '../screens/admin/AdminSettings';
 import AdminBanners from '../screens/admin/AdminBanners';
 import AdminNotifications from '../screens/admin/AdminNotifications';
+import AdminReviews from '../screens/admin/AdminReviews';
 
 // Type'ları import et (Import types)
 import { MainTabParamList, RootStackParamList } from './types';
@@ -397,6 +399,27 @@ const AppNavigator = () => {
             },
           }}
         />
+        <Stack.Screen
+          name="ReviewOrder"
+          component={ReviewOrderScreen}
+          options={{
+            title: '⭐ Siparişi Değerlendir',
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+              fontSize: 18,
+            },
+          }}
+        />
 
         {/* Admin Ekranları (Admin Screens) */}
         <Stack.Screen
@@ -551,6 +574,14 @@ const AppNavigator = () => {
               fontWeight: 'bold',
               fontSize: 18,
             },
+          }}
+        />
+        <Stack.Screen
+          name="AdminReviews"
+          component={AdminReviews}
+          options={{
+            title: '⭐ Yorum Yönetimi',
+            headerShown: false, // Kendi header'ını kullanıyor
           }}
         />
       </Stack.Navigator>

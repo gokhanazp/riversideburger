@@ -25,6 +25,7 @@ const AdminDashboard = ({ navigation }: any) => {
     totalUsers: 0,
     totalProducts: 0,
     todayOrders: 0,
+    pendingReviews: 0, // Bekleyen yorumlar (Pending reviews)
   });
 
   // Sayfa yüklendiğinde istatistikleri getir (Fetch stats on page load)
@@ -74,6 +75,13 @@ const AdminDashboard = ({ navigation }: any) => {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', today.toISOString());
 
+      // Bekleyen yorumlar (Pending reviews)
+      const { count: pendingReviews } = await supabase
+        .from('reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_approved', false)
+        .eq('is_rejected', false);
+
       setStats({
         totalOrders: totalOrders || 0,
         pendingOrders: pendingOrders || 0,
@@ -81,6 +89,7 @@ const AdminDashboard = ({ navigation }: any) => {
         totalUsers: totalUsers || 0,
         totalProducts: totalProducts || 0,
         todayOrders: todayOrders || 0,
+        pendingReviews: pendingReviews || 0,
       });
     } catch (error: any) {
       console.error('Error fetching stats:', error);
@@ -226,6 +235,13 @@ const AdminDashboard = ({ navigation }: any) => {
             color="#FD7E14"
             onPress={() => navigation.navigate('AdminProducts')}
           />
+          <StatCard
+            iconName="star"
+            title="Bekleyen Yorum"
+            value={stats.pendingReviews}
+            color="#FFD700"
+            onPress={() => navigation.navigate('AdminReviews')}
+          />
         </View>
       </View>
 
@@ -267,6 +283,13 @@ const AdminDashboard = ({ navigation }: any) => {
             subtitle="Bildirim gönder"
             color="#FD7E14"
             onPress={() => navigation.navigate('AdminNotifications')}
+          />
+          <MenuCard
+            iconName="star-outline"
+            title="Yorumlar"
+            subtitle="Yorum yönetimi"
+            color="#FFD700"
+            onPress={() => navigation.navigate('AdminReviews')}
           />
           <MenuCard
             iconName="settings-outline"

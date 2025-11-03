@@ -44,13 +44,22 @@ export default function App() {
       clearBadgeCount();
     });
 
-    // Cleanup - sadece mobilde çalışır (Cleanup - only runs on mobile)
+    // Cleanup - sadece mobilde ve removeNotificationSubscription varsa çalışır
+    // (Cleanup - only runs on mobile and if removeNotificationSubscription exists)
     return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+      // Expo Go'da removeNotificationSubscription olmayabilir
+      // (removeNotificationSubscription might not exist in Expo Go)
+      if (typeof Notifications.removeNotificationSubscription === 'function') {
+        if (notificationListener.current) {
+          Notifications.removeNotificationSubscription(notificationListener.current);
+        }
+        if (responseListener.current) {
+          Notifications.removeNotificationSubscription(responseListener.current);
+        }
+      } else {
+        // Expo Go'da subscription'lar otomatik temizlenir
+        // (In Expo Go, subscriptions are cleaned up automatically)
+        console.log('ℹ️ Notification subscriptions (Expo Go - otomatik temizleme)');
       }
     };
   }, [user]);

@@ -26,6 +26,8 @@ import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { customizationService } from '../services/customizationService';
 import { CategoryWithOptions, SelectedCustomization } from '../types/customization';
+import { getProductReviews, getProductRating } from '../services/reviewService';
+import { Review, ProductRating } from '../types/database.types';
 
 const { width } = Dimensions.get('window');
 
@@ -37,6 +39,9 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
   const [selectedOptions, setSelectedOptions] = useState<SelectedCustomization[]>([]);
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [loadingCustomizations, setLoadingCustomizations] = useState(true);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [rating, setRating] = useState<ProductRating | null>(null);
+  const [loadingReviews, setLoadingReviews] = useState(true);
   const addItem = useCartStore((state) => state.addItem);
   const { toggleFavorite, isFavorite } = useFavoritesStore();
   const favorite = isFavorite(item.id);
@@ -47,6 +52,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
   // Özelleştirmeleri yükle (Load customizations)
   useEffect(() => {
     loadCustomizations();
+    loadReviews();
   }, [item.id]);
 
   // Özelleştirmeleri getir (Fetch customizations)
@@ -59,6 +65,26 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
       console.error('Error loading customizations:', error);
     } finally {
       setLoadingCustomizations(false);
+    }
+  };
+
+  // Yorumları getir (Fetch reviews)
+  const loadReviews = async () => {
+    try {
+      setLoadingReviews(true);
+      console.log('🔍 Loading reviews for product:', item.id);
+      const [reviewsData, ratingData] = await Promise.all([
+        getProductReviews(item.id),
+        getProductRating(item.id),
+      ]);
+      console.log('✅ Reviews loaded:', reviewsData.length, 'reviews');
+      console.log('✅ Rating data:', ratingData);
+      setReviews(reviewsData);
+      setRating(ratingData);
+    } catch (error) {
+      console.error('❌ Error loading reviews:', error);
+    } finally {
+      setLoadingReviews(false);
     }
   };
 
@@ -373,57 +399,106 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
             </>
           ) : null}
 
-          {/* Miktar seçici (Quantity selector) */}
-          <Animated.View entering={FadeInDown.delay(600).duration(600)} style={styles.section}>
-            <Text style={styles.sectionTitle}>Miktar</Text>
-            <View style={styles.quantityContainer}>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={decreaseQuantity}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.quantityButtonText}>−</Text>
-              </TouchableOpacity>
+          {/* Yorumlar ve Değerlendirmeler (Reviews and Ratings) */}
+          {loadingReviews ? (
+            <Animated.View entering={FadeInDown.delay(700).duration(600)} style={styles.section}>
+              <Text style={styles.sectionTitle}>Değerlendirmeler</Text>
+              <ActivityIndicator size="small" color={Colors.primary} />
+              <Text style={styles.loadingText}>Yorumlar yükleniyor...</Text>
+            </Animated.View>
+          ) : reviews.length > 0 ? (
+            <Animated.View entering={FadeInDown.delay(700).duration(600)} style={styles.section}>
+              <View style={styles.reviewsHeader}>
+                <Text style={styles.sectionTitle}>Değerlendirmeler</Text>
+                <View style={styles.ratingBadge}>
+                  <Ionicons name="star" size={16} color="#FFD700" />
+                  <Text style={styles.ratingText}>
+                    {rating?.average_rating.toFixed(1) || '0.0'} ({reviews.length})
+                  </Text>
+                </View>
+              </View>
 
-              <Animated.View
-                key={quantity}
-                entering={ZoomIn.duration(200)}
-                style={styles.quantityDisplay}
-              >
-                <Text style={styles.quantityText}>{quantity}</Text>
-              </Animated.View>
+              {reviews.slice(0, 3).map((review, index) => (
+                <View key={review.id} style={styles.reviewCard}>
+                  <View style={styles.reviewHeader}>
+                    <Text style={styles.reviewUserName}>
+                      {review.user?.full_name || 'Kullanıcı'}
+                    </Text>
+                    <View style={styles.reviewStars}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Ionicons
+                          key={star}
+                          name={star <= review.rating ? 'star' : 'star-outline'}
+                          size={14}
+                          color={star <= review.rating ? '#FFD700' : '#CCC'}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                  {review.comment && (
+                    <Text style={styles.reviewComment} numberOfLines={3}>
+                      {review.comment}
+                    </Text>
+                  )}
+                  <Text style={styles.reviewDate}>
+                    {new Date(review.created_at).toLocaleDateString('tr-TR')}
+                  </Text>
+                </View>
+              ))}
 
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={increaseQuantity}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.quantityButtonText}>+</Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
+              {reviews.length > 3 && (
+                <Text style={styles.moreReviewsText}>
+                  +{reviews.length - 3} yorum daha
+                </Text>
+              )}
+            </Animated.View>
+          ) : null}
         </Animated.View>
       </ScrollView>
 
-      {/* Alt bar - Sepete ekle butonu (Bottom bar - Add to cart button) */}
+      {/* Alt bar - Miktar ve Sepete ekle butonu (Bottom bar - Quantity and Add to cart button) */}
       <Animated.View entering={FadeInUp.delay(600).duration(600)} style={styles.bottomBar}>
+        {/* Miktar seçici (Quantity selector) */}
+        <View style={styles.bottomQuantityContainer}>
+          <TouchableOpacity
+            style={styles.bottomQuantityButton}
+            onPress={decreaseQuantity}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="remove" size={18} color={Colors.primary} />
+          </TouchableOpacity>
+
+          <Animated.View
+            key={quantity}
+            entering={ZoomIn.duration(200)}
+            style={styles.bottomQuantityDisplay}
+          >
+            <Text style={styles.bottomQuantityText}>{quantity}</Text>
+          </Animated.View>
+
+          <TouchableOpacity
+            style={styles.bottomQuantityButton}
+            onPress={increaseQuantity}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="add" size={18} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Toplam (Total) */}
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>Toplam</Text>
           <Text style={styles.totalPrice}>₺{calculateTotalPrice().toFixed(2)}</Text>
-          {selectedOptions.length > 0 && (
-            <Text style={styles.extraPriceText}>
-              (Ekstra: ₺{(calculateExtraPrice() * quantity).toFixed(2)})
-            </Text>
-          )}
         </View>
 
-        <Animated.View style={[animatedButtonStyle, { flex: 2 }]}>
+        {/* Sepete Ekle Butonu (Add to Cart Button) */}
+        <Animated.View style={[animatedButtonStyle, styles.addToCartButtonContainer]}>
           <TouchableOpacity
             style={styles.addToCartButton}
             onPress={handleAddToCart}
             activeOpacity={0.8}
           >
-            <Ionicons name="cart" size={24} color={Colors.white} style={styles.cartIcon} />
+            <Ionicons name="cart" size={20} color={Colors.white} style={styles.cartIcon} />
             <Text style={styles.addToCartButtonText}>Sepete Ekle</Text>
           </TouchableOpacity>
         </Animated.View>
@@ -562,26 +637,62 @@ const styles = StyleSheet.create({
   },
   bottomBar: {
     flexDirection: 'row',
-    padding: Spacing.lg,
+    padding: Spacing.md,
+    paddingBottom: Spacing.lg,
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
+    alignItems: 'center',
+    gap: Spacing.sm,
     ...Shadows.large,
   },
-  totalContainer: {
-    flex: 1,
+  // Bottom bar miktar seçici (Bottom bar quantity selector)
+  bottomQuantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: 4,
+    gap: 4,
+  },
+  bottomQuantityButton: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.white,
     justifyContent: 'center',
-    marginRight: Spacing.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
-  totalLabel: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
+  bottomQuantityDisplay: {
+    minWidth: 32,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
   },
-  totalPrice: {
-    fontSize: FontSizes.xl,
+  bottomQuantityText: {
+    fontSize: FontSizes.md,
     fontWeight: 'bold',
     color: Colors.text,
+  },
+  // Toplam container (Total container)
+  totalContainer: {
+    justifyContent: 'center',
+    marginLeft: Spacing.xs,
+  },
+  totalLabel: {
+    fontSize: FontSizes.xs,
+    color: Colors.textSecondary,
+  },
+  totalPrice: {
+    fontSize: FontSizes.md,
+    fontWeight: 'bold',
+    color: Colors.text,
+  },
+  // Sepete ekle butonu container (Add to cart button container)
+  addToCartButtonContainer: {
+    flex: 1,
+    marginLeft: Spacing.xs,
   },
   extraPriceText: {
     fontSize: FontSizes.xs,
@@ -676,22 +787,83 @@ const styles = StyleSheet.create({
   addToCartButton: {
     flexDirection: 'row',
     backgroundColor: Colors.primary,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.xl,
+    paddingVertical: 12,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.large,
-    elevation: 8,
+    ...Shadows.medium,
   },
   cartIcon: {
-    marginRight: Spacing.sm,
+    marginRight: 6,
   },
   addToCartButtonText: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.sm,
     fontWeight: 'bold',
     color: Colors.white,
-    letterSpacing: 0.5,
+  },
+  // Yorum stilleri (Review styles)
+  reviewsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.lg,
+  },
+  ratingText: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    color: Colors.text,
+    marginLeft: Spacing.xs,
+  },
+  reviewCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  reviewUserName: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    color: Colors.text,
+    flex: 1,
+  },
+  reviewStars: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  reviewComment: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+    marginTop: Spacing.xs,
+  },
+  reviewDate: {
+    fontSize: FontSizes.xs,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+  },
+  moreReviewsText: {
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+    fontWeight: '600',
   },
 });
 

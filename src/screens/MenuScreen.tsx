@@ -369,9 +369,7 @@ const styles = StyleSheet.create({
   categoriesContainer: {
     backgroundColor: Colors.white,
     paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    ...Shadows.small,
+    marginBottom: Spacing.xs, // Alt boşluk ekle (Add bottom spacing)
   },
   categoriesContent: {
     paddingHorizontal: Spacing.md,
@@ -420,8 +418,9 @@ const styles = StyleSheet.create({
   },
   menuImage: {
     width: '100%',
-    height: 180,
+    height: 220, // Yükseklik artırıldı (Height increased from 180 to 220)
     backgroundColor: Colors.surface,
+    resizeMode: 'cover', // Görselin tam kapsaması için (For full image coverage)
   },
   menuInfo: {
     padding: Spacing.md,
