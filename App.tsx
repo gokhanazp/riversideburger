@@ -44,11 +44,14 @@ export default function App() {
 
     // Cleanup
     return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+      // Web'de removeNotificationSubscription yok (Not available on web)
+      if (Platform.OS !== 'web') {
+        if (notificationListener.current) {
+          Notifications.removeNotificationSubscription(notificationListener.current);
+        }
+        if (responseListener.current) {
+          Notifications.removeNotificationSubscription(responseListener.current);
+        }
       }
     };
   }, [user]);
