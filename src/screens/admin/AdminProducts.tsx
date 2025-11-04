@@ -654,20 +654,22 @@ const AdminProducts = ({ navigation }: any) => {
                         }}
                         activeOpacity={0.7}
                       >
-                        <Ionicons
-                          name={cat.icon as any}
-                          size={18}
-                          color={formData.category_id === cat.id ? Colors.primary : '#666'}
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text
-                          style={[
-                            styles.categoryButtonText,
-                            formData.category_id === cat.id && styles.categoryButtonTextActive,
-                          ]}
-                        >
-                          {getCategoryName(cat)}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Ionicons
+                            name={cat.icon as any}
+                            size={18}
+                            color={formData.category_id === cat.id ? Colors.primary : '#666'}
+                          />
+                          <Text
+                            style={[
+                              styles.categoryButtonText,
+                              formData.category_id === cat.id && styles.categoryButtonTextActive,
+                              { marginLeft: 6 }
+                            ]}
+                          >
+                            {getCategoryName(cat)}
+                          </Text>
+                        </View>
                       </TouchableOpacity>
                     ))}
                   </View>
