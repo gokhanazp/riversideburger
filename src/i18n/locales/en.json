@@ -354,6 +354,11 @@
   },
   "settings": {
     "title": "Settings",
+    "adminControlsLanguage": "Language and currency settings are managed by the admin. Please contact the admin panel to make changes.",
+    "currentSettings": "Current Settings",
+    "country": "Country",
+    "language": "Language",
+    "currency": "Currency",
     "languageAndCurrency": "Language and Currency",
     "selectLanguage": "Select Language",
     "selectCurrency": "Select Currency",

@@ -292,6 +292,13 @@ const AdminDashboard = ({ navigation }: any) => {
             onPress={() => navigation.navigate('AdminReviews')}
           />
           <MenuCard
+            iconName="language-outline"
+            title="Dil ve Para Birimi"
+            subtitle="Ülke ayarları"
+            color="#17A2B8"
+            onPress={() => navigation.navigate('AdminLanguageSettings')}
+          />
+          <MenuCard
             iconName="settings-outline"
             title="Ayarlar"
             subtitle="Sistem ayarları"

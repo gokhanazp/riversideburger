@@ -36,5 +36,6 @@ export type RootStackParamList = {
   AdminBanners: undefined;
   AdminNotifications: undefined;
   AdminReviews: undefined; // Yorum yönetimi (Review management)
+  AdminLanguageSettings: undefined; // Dil ve para birimi yönetimi (Language and currency management)
 };
 

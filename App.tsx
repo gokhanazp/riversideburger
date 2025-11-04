@@ -10,8 +10,8 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { toastConfig } from './src/components/ToastConfig';
 import { useAuthStore } from './src/store/authStore';
 import { registerForPushNotificationsAsync, clearBadgeCount } from './src/services/notificationService';
-import { loadSavedLanguage } from './src/i18n';
-import { initializeCurrencyService } from './src/services/currencyService';
+import { getAppSettings } from './src/services/appSettingsService';
+import i18n from './src/i18n';
 
 // Ana uygulama componenti (Main application component)
 export default function App() {
@@ -19,15 +19,20 @@ export default function App() {
   const notificationListener = useRef<any>();
   const responseListener = useRef<any>();
 
-  // Uygulama başladığında auth durumunu kontrol et ve dil/para birimi yükle
-  // (Check auth state on app start and load language/currency)
+  // Uygulama başladığında auth durumunu kontrol et ve admin ayarlarını yükle
+  // (Check auth state on app start and load admin settings)
   useEffect(() => {
     const initializeApp = async () => {
-      await Promise.all([
-        initialize(),
-        loadSavedLanguage(),
-        initializeCurrencyService(),
-      ]);
+      // Auth'u başlat (Initialize auth)
+      await initialize();
+
+      // Admin'in seçtiği ülke ayarlarını yükle (Load admin's country settings)
+      const settings = await getAppSettings();
+
+      // Dili ayarla (Set language)
+      await i18n.changeLanguage(settings.language);
+
+      console.log('🌍 Uygulama ayarları yüklendi:', settings);
     };
     initializeApp();
   }, []);

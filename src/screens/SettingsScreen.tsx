@@ -1,4 +1,5 @@
 // Settings Screen - Ayarlar Ekranı
+// Basitleştirilmiş: Sadece bilgilendirme (Simplified: Information only)
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -6,82 +7,34 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import Toast from 'react-native-toast-message';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
-import { changeLanguage } from '../i18n';
-import { changeCurrency, getCurrentCurrency, getCurrencyInfo, Currency } from '../services/currencyService';
+import { getCurrentCurrency, getCurrencyInfo } from '../services/currencyService';
+import { getAppSettings, COUNTRIES } from '../services/appSettingsService';
 
 const SettingsScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
-  const [loading, setLoading] = useState(false);
-  const [currentLang, setCurrentLang] = useState(i18n.language);
-  const [currentCurr, setCurrentCurr] = useState<Currency>(getCurrentCurrency());
+  const [countryName, setCountryName] = useState('');
 
-  // Dil değiştir (Change language)
-  const handleLanguageChange = async (language: 'tr' | 'en') => {
-    try {
-      setLoading(true);
-      await changeLanguage(language);
-      setCurrentLang(language);
-      Toast.show({
-        type: 'success',
-        text1: '✅ ' + t('settings.settingsSaved'),
-        position: 'bottom',
-        visibilityTime: 2000,
-        bottomOffset: 100,
-      });
-    } catch (error) {
-      console.error('Error changing language:', error);
-      Toast.show({
-        type: 'error',
-        text1: '❌ ' + t('settings.settingsError'),
-        position: 'bottom',
-        visibilityTime: 2000,
-        bottomOffset: 100,
-      });
-    } finally {
-      setLoading(false);
-    }
+  // Uygulama ayarlarını yükle (Load app settings)
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    const settings = await getAppSettings();
+    const country = COUNTRIES[settings.country];
+    setCountryName(country.name);
   };
 
-  // Para birimi değiştir (Change currency)
-  const handleCurrencyChange = async (currency: Currency) => {
-    try {
-      setLoading(true);
-      await changeCurrency(currency);
-      setCurrentCurr(currency);
-      Toast.show({
-        type: 'success',
-        text1: '✅ ' + t('settings.settingsSaved'),
-        position: 'bottom',
-        visibilityTime: 2000,
-        bottomOffset: 100,
-      });
-      // Sayfayı yenile (Refresh to update prices)
-      setTimeout(() => {
-        navigation.goBack();
-      }, 2000); // Toast'ın görünmesi için 2 saniye bekle
-    } catch (error) {
-      console.error('Error changing currency:', error);
-      Toast.show({
-        type: 'error',
-        text1: '❌ ' + t('settings.settingsError'),
-        position: 'bottom',
-        visibilityTime: 2000,
-        bottomOffset: 100,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const currentCurrency = getCurrentCurrency();
+  const currencyInfo = getCurrencyInfo();
 
   return (
     <View style={styles.container}>
@@ -95,98 +48,48 @@ const SettingsScreen = () => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Dil ve Para Birimi Bölümü (Language and Currency Section) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.languageAndCurrency')}</Text>
-
-          {/* Dil Seçimi (Language Selection) */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t('settings.selectLanguage')}</Text>
-            
-            <TouchableOpacity
-              style={[styles.option, currentLang === 'tr' && styles.optionSelected]}
-              onPress={() => handleLanguageChange('tr')}
-              disabled={loading}
-            >
-              <View style={styles.optionLeft}>
-                <Ionicons 
-                  name="language" 
-                  size={24} 
-                  color={currentLang === 'tr' ? Colors.primary : Colors.textSecondary} 
-                />
-                <Text style={[styles.optionText, currentLang === 'tr' && styles.optionTextSelected]}>
-                  {t('settings.turkish')}
-                </Text>
-              </View>
-              {currentLang === 'tr' && (
-                <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.option, currentLang === 'en' && styles.optionSelected]}
-              onPress={() => handleLanguageChange('en')}
-              disabled={loading}
-            >
-              <View style={styles.optionLeft}>
-                <Ionicons 
-                  name="language" 
-                  size={24} 
-                  color={currentLang === 'en' ? Colors.primary : Colors.textSecondary} 
-                />
-                <Text style={[styles.optionText, currentLang === 'en' && styles.optionTextSelected]}>
-                  {t('settings.english')}
-                </Text>
-              </View>
-              {currentLang === 'en' && (
-                <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Para Birimi Seçimi (Currency Selection) */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t('settings.selectCurrency')}</Text>
-            
-            <TouchableOpacity
-              style={[styles.option, currentCurr === 'TRY' && styles.optionSelected]}
-              onPress={() => handleCurrencyChange('TRY')}
-              disabled={loading}
-            >
-              <View style={styles.optionLeft}>
-                <Text style={styles.currencySymbol}>₺</Text>
-                <Text style={[styles.optionText, currentCurr === 'TRY' && styles.optionTextSelected]}>
-                  {t('settings.turkishLira')}
-                </Text>
-              </View>
-              {currentCurr === 'TRY' && (
-                <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.option, currentCurr === 'CAD' && styles.optionSelected]}
-              onPress={() => handleCurrencyChange('CAD')}
-              disabled={loading}
-            >
-              <View style={styles.optionLeft}>
-                <Text style={styles.currencySymbol}>$</Text>
-                <Text style={[styles.optionText, currentCurr === 'CAD' && styles.optionTextSelected]}>
-                  {t('settings.canadianDollar')}
-                </Text>
-              </View>
-              {currentCurr === 'CAD' && (
-                <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
-              )}
-            </TouchableOpacity>
-          </View>
+        {/* Bilgilendirme (Information) */}
+        <View style={styles.infoCard}>
+          <Ionicons name="information-circle" size={32} color={Colors.primary} />
+          <Text style={styles.infoText}>
+            {t('settings.adminControlsLanguage')}
+          </Text>
         </View>
 
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+        {/* Mevcut Ayarlar (Current Settings) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('settings.currentSettings')}</Text>
+
+          <View style={styles.card}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingLeft}>
+                <Ionicons name="globe-outline" size={24} color={Colors.primary} />
+                <Text style={styles.settingLabel}>{t('settings.country')}</Text>
+              </View>
+              <Text style={styles.settingValue}>{countryName}</Text>
+            </View>
+
+            <View style={styles.settingRow}>
+              <View style={styles.settingLeft}>
+                <Ionicons name="language-outline" size={24} color={Colors.primary} />
+                <Text style={styles.settingLabel}>{t('settings.language')}</Text>
+              </View>
+              <Text style={styles.settingValue}>
+                {i18n.language === 'tr' ? 'Türkçe' : 'English'}
+              </Text>
+            </View>
+
+            <View style={styles.settingRow}>
+              <View style={styles.settingLeft}>
+                <Ionicons name="cash-outline" size={24} color={Colors.primary} />
+                <Text style={styles.settingLabel}>{t('settings.currency')}</Text>
+              </View>
+              <Text style={styles.settingValue}>
+                {currencyInfo.symbol} {currencyInfo.code}
+              </Text>
+            </View>
           </View>
-        )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -217,6 +120,22 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Spacing.lg,
   },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: `${Colors.primary}10`,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.xl,
+    gap: Spacing.md,
+    ...Shadows.small,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: FontSizes.md,
+    color: Colors.text,
+    lineHeight: 22,
+  },
   section: {
     marginBottom: Spacing.xl,
   },
@@ -230,52 +149,30 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
-    marginBottom: Spacing.md,
     ...Shadows.medium,
   },
-  cardTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: Spacing.md,
-  },
-  option: {
+  settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    marginBottom: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  optionSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: `${Colors.primary}10`,
-  },
-  optionLeft: {
+  settingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
   },
-  optionText: {
+  settingLabel: {
     fontSize: FontSizes.md,
     color: Colors.text,
+    fontWeight: '500',
   },
-  optionTextSelected: {
-    fontWeight: '600',
+  settingValue: {
+    fontSize: FontSizes.md,
     color: Colors.primary,
-  },
-  currencySymbol: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold',
-    color: Colors.textSecondary,
-    width: 24,
-    textAlign: 'center',
-  },
-  loadingContainer: {
-    padding: Spacing.xl,
-    alignItems: 'center',
+    fontWeight: '600',
   },
 });
 

@@ -39,6 +39,7 @@ import AdminSettings from '../screens/admin/AdminSettings';
 import AdminBanners from '../screens/admin/AdminBanners';
 import AdminNotifications from '../screens/admin/AdminNotifications';
 import AdminReviews from '../screens/admin/AdminReviews';
+import AdminLanguageSettings from '../screens/admin/AdminLanguageSettings';
 
 // Type'ları import et (Import types)
 import { MainTabParamList, RootStackParamList } from './types';
@@ -594,6 +595,14 @@ const AppNavigator = () => {
           component={AdminReviews}
           options={{
             title: '⭐ Yorum Yönetimi',
+            headerShown: false, // Kendi header'ını kullanıyor
+          }}
+        />
+        <Stack.Screen
+          name="AdminLanguageSettings"
+          component={AdminLanguageSettings}
+          options={{
+            title: '🌍 Dil ve Para Birimi',
             headerShown: false, // Kendi header'ını kullanıyor
           }}
         />
