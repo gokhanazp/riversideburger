@@ -91,14 +91,15 @@ export const convertPrice = (price: number, fromCurrency: Currency = 'TRY', toCu
 };
 
 // Fiyatı formatla (Format price)
+// Eski fonksiyon - geriye dönük uyumluluk için (Old function - for backward compatibility)
 export const formatPrice = (price: number, currency?: Currency, showSymbol: boolean = true): string => {
   const curr = currency || currentCurrency;
   const currencyInfo = CURRENCIES[curr];
   const convertedPrice = convertPrice(price, 'TRY', curr);
-  
+
   // Fiyatı formatla (Format price with 2 decimals)
   const formattedPrice = convertedPrice.toFixed(2);
-  
+
   if (showSymbol) {
     // Para birimi sembolünü ekle (Add currency symbol)
     if (curr === 'TRY') {
@@ -107,7 +108,33 @@ export const formatPrice = (price: number, currency?: Currency, showSymbol: bool
       return `${currencyInfo.symbol}${formattedPrice}`;
     }
   }
-  
+
+  return formattedPrice;
+};
+
+// Ürün fiyatını formatla (Format product price with its own currency)
+// Ürünün kendi para biriminden mevcut gösterim para birimine dönüştürür
+// (Converts from product's own currency to current display currency)
+export const formatProductPrice = (
+  price: number,
+  productCurrency: Currency = 'TRY',
+  displayCurrency?: Currency,
+  showSymbol: boolean = true
+): string => {
+  const targetCurrency = displayCurrency || currentCurrency;
+  const currencyInfo = CURRENCIES[targetCurrency];
+
+  // Ürünün para biriminden hedef para birimine dönüştür
+  // (Convert from product currency to target currency)
+  const convertedPrice = convertPrice(price, productCurrency, targetCurrency);
+
+  // Fiyatı formatla (Format price with 2 decimals)
+  const formattedPrice = convertedPrice.toFixed(2);
+
+  if (showSymbol) {
+    return `${currencyInfo.symbol}${formattedPrice}`;
+  }
+
   return formattedPrice;
 };
 

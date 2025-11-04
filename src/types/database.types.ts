@@ -65,6 +65,7 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  currency: 'TRY' | 'CAD'; // Para birimi (Currency)
   image_url: string;
   preparation_time: number;
   is_active: boolean;

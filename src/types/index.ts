@@ -7,6 +7,7 @@ export interface MenuItem {
   name: string;
   description: string;
   price: number;
+  currency?: 'TRY' | 'CAD'; // Para birimi (Currency)
   category: CategoryType;
   image: string;
   available: boolean;
