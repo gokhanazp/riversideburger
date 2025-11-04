@@ -19,6 +19,7 @@ import Toast from 'react-native-toast-message';
 import ConfirmModal from '../../components/ConfirmModal';
 import * as Print from 'expo-print';
 import { shareAsync } from 'expo-sharing';
+import { useTranslation } from 'react-i18next';
 
 // Sipariş durumu renkleri (Order status colors)
 const STATUS_COLORS: Record<OrderStatus, string> = {
@@ -31,20 +32,21 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   cancelled: '#DC3545',
 };
 
-// Sipariş durumu isimleri (Order status names)
-const STATUS_NAMES: Record<OrderStatus, string> = {
-  pending: 'Bekliyor',
-  confirmed: 'Onaylandı',
-  preparing: 'Hazırlanıyor',
-  ready: 'Hazır',
-  delivering: 'Yolda',
-  delivered: 'Teslim Edildi',
-  cancelled: 'İptal Edildi',
-};
-
 // Admin Siparişler Ekranı (Admin Orders Screen)
 const AdminOrders = ({ navigation, route }: any) => {
+  const { t } = useTranslation();
   const filterParam = route?.params?.filter;
+
+  // Sipariş durumu isimleri (Order status names) - Çeviri ile
+  const STATUS_NAMES: Record<OrderStatus, string> = {
+    pending: t('admin.orders.statusPending'),
+    confirmed: t('admin.orders.statusConfirmed'),
+    preparing: t('admin.orders.statusPreparing'),
+    ready: t('admin.orders.statusReady'),
+    delivering: t('admin.orders.statusDelivering'),
+    delivered: t('admin.orders.statusDelivered'),
+    cancelled: t('admin.orders.statusCancelled'),
+  };
 
   // State'ler (States)
   const [loading, setLoading] = useState(true);
@@ -93,8 +95,8 @@ const AdminOrders = ({ navigation, route }: any) => {
       console.error('Error fetching orders:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Siparişler yüklenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: t('admin.orders.errorLoading'),
       });
     } finally {
       setLoading(false);
@@ -331,12 +333,12 @@ const AdminOrders = ({ navigation, route }: any) => {
 
       Toast.show({
         type: 'success',
-        text1: 'Başarılı',
-        text2: 'Sipariş fişi hazırlandı',
+        text1: t('admin.orders.success'),
+        text2: t('admin.orders.printSuccess'),
       });
     } catch (error: any) {
       console.error('Error printing order:', error);
-      Alert.alert('Hata', 'Sipariş yazdırılırken bir hata oluştu');
+      Alert.alert(t('admin.error'), t('admin.orders.printError'));
     }
   };
 
@@ -352,8 +354,8 @@ const AdminOrders = ({ navigation, route }: any) => {
 
       Toast.show({
         type: 'success',
-        text1: '✅ Durum Güncellendi',
-        text2: `Sipariş durumu: ${STATUS_NAMES[newStatus]}`,
+        text1: t('admin.orders.success'),
+        text2: t('admin.orders.statusUpdated'),
       });
 
       setShowStatusModal(false);
@@ -362,8 +364,8 @@ const AdminOrders = ({ navigation, route }: any) => {
       console.error('Error updating order status:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Durum güncellenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: t('admin.orders.errorUpdating'),
       });
     }
   };
@@ -396,7 +398,7 @@ const AdminOrders = ({ navigation, route }: any) => {
         {/* Müşteri bilgileri (Customer info) */}
         <View style={styles.customerInfo}>
           <Ionicons name="person" size={16} color="#666" />
-          <Text style={styles.customerText}>{order.user?.full_name || order.user?.email || 'Misafir'}</Text>
+          <Text style={styles.customerText}>{order.user?.full_name || order.user?.email || t('admin.orders.guest')}</Text>
         </View>
 
         {/* Adres (Address) */}
@@ -431,7 +433,7 @@ const AdminOrders = ({ navigation, route }: any) => {
           activeOpacity={0.7}
         >
           <Ionicons name="create" size={16} color={Colors.primary} />
-          <Text style={styles.changeStatusText}>Durum Değiştir</Text>
+          <Text style={styles.changeStatusText}>{t('admin.orders.changeStatus')}</Text>
         </TouchableOpacity>
       </TouchableOpacity>
     );
@@ -464,7 +466,7 @@ const AdminOrders = ({ navigation, route }: any) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('admin.orders.loading')}</Text>
       </View>
     );
   }
@@ -473,12 +475,12 @@ const AdminOrders = ({ navigation, route }: any) => {
     <View style={styles.container}>
       {/* Filtreler (Filters) */}
       <View style={styles.filtersContainer}>
-        <FilterButton status="all" label="Tümü" />
-        <FilterButton status="pending" label="Bekliyor" />
-        <FilterButton status="confirmed" label="Onaylandı" />
-        <FilterButton status="preparing" label="Hazırlanıyor" />
-        <FilterButton status="ready" label="Hazır" />
-        <FilterButton status="delivering" label="Yolda" />
+        <FilterButton status="all" label={t('admin.orders.filterAll')} />
+        <FilterButton status="pending" label={t('admin.orders.filterPending')} />
+        <FilterButton status="confirmed" label={t('admin.orders.filterConfirmed')} />
+        <FilterButton status="preparing" label={t('admin.orders.filterPreparing')} />
+        <FilterButton status="ready" label={t('admin.orders.filterReady')} />
+        <FilterButton status="delivering" label={t('admin.orders.filterDelivering')} />
       </View>
 
       {/* Sipariş listesi (Orders list) */}
@@ -491,7 +493,7 @@ const AdminOrders = ({ navigation, route }: any) => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="receipt-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>Sipariş bulunamadı</Text>
+            <Text style={styles.emptyText}>{t('admin.orders.noOrders')}</Text>
           </View>
         }
       />
@@ -502,7 +504,7 @@ const AdminOrders = ({ navigation, route }: any) => {
           <View style={styles.modalOverlay}>
             <View style={styles.statusModal}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Sipariş Durumu Değiştir</Text>
+                <Text style={styles.modalTitle}>{t('admin.orders.changeStatus')}</Text>
                 <TouchableOpacity onPress={() => setShowStatusModal(false)}>
                   <Ionicons name="close" size={24} color="#333" />
                 </TouchableOpacity>
@@ -542,7 +544,7 @@ const AdminOrders = ({ navigation, route }: any) => {
             <View style={styles.detailsModal}>
               {/* Modal başlık (Modal header) */}
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Sipariş Detayları</Text>
+                <Text style={styles.modalTitle}>{t('admin.orders.orderDetails')}</Text>
                 <TouchableOpacity
                   onPress={() => setShowDetailsModal(false)}
                   style={styles.closeButton}
@@ -554,12 +556,12 @@ const AdminOrders = ({ navigation, route }: any) => {
               <ScrollView style={styles.detailsContent} showsVerticalScrollIndicator={false}>
                 {/* Sipariş numarası ve durum (Order number and status) */}
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Sipariş No:</Text>
+                  <Text style={styles.detailLabel}>{t('admin.orders.orderNumber')}:</Text>
                   <Text style={styles.detailValue}>#{selectedOrder.order_number}</Text>
                 </View>
 
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Durum:</Text>
+                  <Text style={styles.detailLabel}>{t('admin.orders.status')}:</Text>
                   <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[selectedOrder.status] + '20' }]}>
                     <Text style={[styles.statusText, { color: STATUS_COLORS[selectedOrder.status] }]}>
                       {STATUS_NAMES[selectedOrder.status]}
@@ -569,21 +571,21 @@ const AdminOrders = ({ navigation, route }: any) => {
 
                 {/* Müşteri bilgileri (Customer info) */}
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>Müşteri Bilgileri</Text>
-                  <Text style={styles.detailText}>👤 {selectedOrder.user?.full_name || 'Misafir'}</Text>
+                  <Text style={styles.detailSectionTitle}>{t('admin.orders.customerInfo')}</Text>
+                  <Text style={styles.detailText}>👤 {selectedOrder.user?.full_name || t('admin.orders.guest')}</Text>
                   <Text style={styles.detailText}>📧 {selectedOrder.user?.email || '-'}</Text>
                   <Text style={styles.detailText}>📞 {selectedOrder.phone}</Text>
                 </View>
 
                 {/* Teslimat adresi (Delivery address) */}
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>Teslimat Adresi</Text>
+                  <Text style={styles.detailSectionTitle}>{t('admin.orders.deliveryAddress')}</Text>
                   <Text style={styles.detailText}>{selectedOrder.delivery_address}</Text>
                 </View>
 
                 {/* Ürünler (Products) */}
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>Ürünler</Text>
+                  <Text style={styles.detailSectionTitle}>{t('admin.orders.orderItems')}</Text>
                   {selectedOrder.order_items?.map((orderItem, index) => {
                     // Bu ürüne ait özelleştirmeleri bul (Find customizations for this product)
                     const allCustomizations = (selectedOrder as any).order_item_customizations || [];
@@ -596,7 +598,7 @@ const AdminOrders = ({ navigation, route }: any) => {
                         <View style={styles.detailProductLeft}>
                           <Text style={styles.detailProductQuantity}>{orderItem.quantity}x</Text>
                           <View style={{ flex: 1 }}>
-                            <Text style={styles.detailProductName}>{orderItem.product?.name || 'Ürün'}</Text>
+                            <Text style={styles.detailProductName}>{orderItem.product?.name || t('admin.orders.product')}</Text>
                             {/* Özelleştirmeler (Customizations) */}
                             {customizations.length > 0 && (
                               <View style={styles.customizationsContainer}>
@@ -619,20 +621,20 @@ const AdminOrders = ({ navigation, route }: any) => {
                 {/* Notlar (Notes) */}
                 {selectedOrder.notes && (
                   <View style={styles.detailSection}>
-                    <Text style={styles.detailSectionTitle}>Notlar</Text>
+                    <Text style={styles.detailSectionTitle}>{t('admin.orders.specialNotes')}</Text>
                     <Text style={styles.detailText}>{selectedOrder.notes}</Text>
                   </View>
                 )}
 
                 {/* Toplam (Total) */}
                 <View style={styles.detailTotalSection}>
-                  <Text style={styles.detailTotalLabel}>Toplam Tutar:</Text>
+                  <Text style={styles.detailTotalLabel}>{t('admin.orders.total')}:</Text>
                   <Text style={styles.detailTotalValue}>₺{selectedOrder.total_amount.toFixed(2)}</Text>
                 </View>
 
                 {/* Tarih (Date) */}
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Sipariş Tarihi:</Text>
+                  <Text style={styles.detailLabel}>{t('admin.orders.date')}:</Text>
                   <Text style={styles.detailValue}>
                     {new Date(selectedOrder.created_at).toLocaleDateString('tr-TR', {
                       day: '2-digit',
@@ -654,7 +656,7 @@ const AdminOrders = ({ navigation, route }: any) => {
                   activeOpacity={0.7}
                 >
                   <Ionicons name="print" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionButtonText}>Yazdır</Text>
+                  <Text style={styles.modalActionButtonText}>{t('admin.orders.print')}</Text>
                 </TouchableOpacity>
 
                 {/* Durum değiştir butonu (Change status button) */}
@@ -667,7 +669,7 @@ const AdminOrders = ({ navigation, route }: any) => {
                   activeOpacity={0.7}
                 >
                   <Ionicons name="create" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionButtonText}>Durum Değiştir</Text>
+                  <Text style={styles.modalActionButtonText}>{t('admin.orders.changeStatus')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
