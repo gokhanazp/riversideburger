@@ -663,10 +663,17 @@
       "noReviews": "Henüz yorum yok",
       "noReviewsDescription": "Yorumlar burada görünecek",
       "success": "Başarılı",
-      "reviewApproved": "Yorum onaylandı",
+      "reviewApproved": "Yorum onaylandı ve yayınlandı",
       "reviewRejected": "Yorum reddedildi",
       "errorUpdating": "Yorum güncellenirken hata oluştu",
-      "errorLoading": "Yorumlar yüklenirken hata oluştu"
+      "errorLoading": "Yorumlar yüklenirken bir hata oluştu",
+      "errorApproving": "Yorum onaylanamadı",
+      "errorRejecting": "Yorum reddedilemedi",
+      "approveConfirm": "Bu yorumu onaylamak istediğinize emin misiniz?",
+      "approveTitle": "Yorumu Onayla",
+      "rejectReasonRequired": "Lütfen red nedeni girin",
+      "rejectReasonTitle": "Red Nedeni",
+      "loading": "Yükleniyor..."
     }
   },
   "favorites": {

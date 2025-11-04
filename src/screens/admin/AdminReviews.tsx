@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import { Colors, Spacing } from '../../constants/theme';
 import {
@@ -31,6 +32,7 @@ type FilterType = 'all' | 'pending' | 'approved' | 'rejected';
 const AdminReviews = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -69,8 +71,8 @@ const AdminReviews = () => {
       console.error('Fetch reviews error:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Yorumlar yüklenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: t('admin.reviews.errorLoading'),
       });
     } finally {
       setLoading(false);
@@ -85,27 +87,27 @@ const AdminReviews = () => {
 
   const handleApprove = async (reviewId: string) => {
     Alert.alert(
-      'Yorumu Onayla',
-      'Bu yorumu onaylamak istediğinize emin misiniz?',
+      t('admin.reviews.approveTitle'),
+      t('admin.reviews.approveConfirm'),
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: t('admin.categories.cancel'), style: 'cancel' },
         {
-          text: 'Onayla',
+          text: t('admin.reviews.approve'),
           style: 'default',
           onPress: async () => {
             try {
               await approveReview(reviewId);
               Toast.show({
                 type: 'success',
-                text1: 'Başarılı!',
-                text2: 'Yorum onaylandı ve yayınlandı',
+                text1: t('admin.reviews.success'),
+                text2: t('admin.reviews.reviewApproved'),
               });
               fetchReviews();
             } catch (error: any) {
               Toast.show({
                 type: 'error',
-                text1: 'Hata',
-                text2: error.message || 'Yorum onaylanamadı',
+                text1: t('admin.error'),
+                text2: error.message || t('admin.reviews.errorApproving'),
               });
             }
           },
@@ -124,7 +126,7 @@ const AdminReviews = () => {
     if (!selectedReviewId) return;
 
     if (!rejectionReason.trim()) {
-      Alert.alert('Uyarı', 'Lütfen red nedeni girin');
+      Alert.alert(t('admin.error'), t('admin.reviews.rejectReasonRequired'));
       return;
     }
 
@@ -132,8 +134,8 @@ const AdminReviews = () => {
       await rejectReview(selectedReviewId, rejectionReason);
       Toast.show({
         type: 'success',
-        text1: 'Başarılı!',
-        text2: 'Yorum reddedildi',
+        text1: t('admin.reviews.success'),
+        text2: t('admin.reviews.reviewRejected'),
       });
       setRejectModalVisible(false);
       setSelectedReviewId(null);
@@ -142,8 +144,8 @@ const AdminReviews = () => {
     } catch (error: any) {
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Yorum reddedilemedi',
+        text1: t('admin.error'),
+        text2: error.message || t('admin.reviews.errorRejecting'),
       });
     }
   };
@@ -316,7 +318,7 @@ const AdminReviews = () => {
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Yükleniyor...</Text>
+          <Text style={styles.loadingText}>{t('admin.reviews.loading')}</Text>
         </View>
       ) : reviews.length === 0 ? (
         <View style={styles.centerContainer}>

@@ -663,10 +663,17 @@
       "noReviews": "No reviews yet",
       "noReviewsDescription": "Reviews will appear here",
       "success": "Success",
-      "reviewApproved": "Review approved",
+      "reviewApproved": "Review approved and published",
       "reviewRejected": "Review rejected",
       "errorUpdating": "Error updating review",
-      "errorLoading": "Error loading reviews"
+      "errorLoading": "Error loading reviews",
+      "errorApproving": "Failed to approve review",
+      "errorRejecting": "Failed to reject review",
+      "approveConfirm": "Are you sure you want to approve this review?",
+      "approveTitle": "Approve Review",
+      "rejectReasonRequired": "Please enter rejection reason",
+      "rejectReasonTitle": "Rejection Reason",
+      "loading": "Loading..."
     }
   },
   "favorites": {
