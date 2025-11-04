@@ -134,6 +134,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ selectedIcon, onSelectIcon, lab
               keyExtractor={(item) => item.name}
               numColumns={4}
               contentContainerStyle={styles.iconList}
+              columnWrapperStyle={styles.iconRow}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[
@@ -145,7 +146,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ selectedIcon, onSelectIcon, lab
                 >
                   <Ionicons
                     name={item.name as any}
-                    size={28}
+                    size={24}
                     color={selectedIcon === item.name ? Colors.white : Colors.primary}
                   />
                   <Text
@@ -261,15 +262,18 @@ const styles = StyleSheet.create({
   iconList: {
     padding: Spacing.md,
   },
+  iconRow: {
+    justifyContent: 'flex-start',
+  },
   iconItem: {
-    flex: 1,
-    aspectRatio: 1,
+    width: 70,
+    height: 80,
     margin: Spacing.xs,
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.sm,
+    padding: Spacing.xs,
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -278,9 +282,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   iconLabel: {
-    fontSize: FontSizes.xs,
+    fontSize: 9,
     color: Colors.text,
-    marginTop: Spacing.xs,
+    marginTop: 4,
     textAlign: 'center',
   },
   iconLabelSelected: {
