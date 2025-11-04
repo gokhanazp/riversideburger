@@ -143,16 +143,29 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
 };
 
 // Tüm kategorileri getir (Get all categories)
+// Yeni menu_categories tablosundan çeker (Fetches from new menu_categories table)
 export const getCategories = async (): Promise<Category[]> => {
   try {
     const { data, error } = await supabase
-      .from('categories')
+      .from('menu_categories')
       .select('*')
       .eq('is_active', true)
-      .order('order', { ascending: true });
+      .order('display_order', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+
+    // menu_categories formatını Category formatına çevir (Convert menu_categories format to Category format)
+    const categories: Category[] = (data || []).map((cat: any) => ({
+      id: cat.id,
+      name: cat.name_en, // Varsayılan olarak İngilizce (Default to English)
+      name_tr: cat.name_tr,
+      name_en: cat.name_en,
+      icon: cat.icon,
+      order: cat.display_order,
+      is_active: cat.is_active,
+    }));
+
+    return categories;
   } catch (error: any) {
     console.error('Get categories error:', error);
     throw error;

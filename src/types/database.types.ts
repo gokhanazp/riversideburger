@@ -47,14 +47,16 @@ export interface Address {
 }
 
 // Category (Kategori)
+// menu_categories tablosundan gelen veriler (Data from menu_categories table)
 export interface Category {
   id: string;
-  name: string;
-  name_en: string;
-  icon: string;
-  order: number;
-  is_active: boolean;
-  created_at: string;
+  name: string; // Varsayılan isim (Default name)
+  name_tr: string; // Türkçe isim (Turkish name)
+  name_en: string; // İngilizce isim (English name)
+  icon: string; // Ionicons icon adı (Ionicons icon name)
+  order: number; // Sıralama (Display order)
+  is_active: boolean; // Aktif mi? (Is active?)
+  created_at?: string;
   updated_at?: string;
 }
 

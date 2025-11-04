@@ -34,7 +34,7 @@ import { formatPrice } from '../services/currencyService';
 
 // Menü ekranı (Menu screen)
 const MenuScreen = ({ navigation }: any) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
@@ -43,6 +43,11 @@ const MenuScreen = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
   const { toggleFavorite, isFavorite } = useFavoritesStore();
+
+  // Kategori ismini mevcut dile göre al (Get category name based on current language)
+  const getCategoryName = (category: Category): string => {
+    return i18n.language === 'tr' ? category.name_tr : category.name_en;
+  };
 
   // Ürünleri ve kategorileri yükle (Load products and categories)
   const loadData = async () => {
@@ -120,7 +125,15 @@ const MenuScreen = ({ navigation }: any) => {
   };
 
   // Kategori butonu componenti (Category button component)
-  const CategoryButton = ({ category, label }: { category: string; label: string }) => {
+  const CategoryButton = ({
+    category,
+    label,
+    icon
+  }: {
+    category: string;
+    label: string;
+    icon?: string;
+  }) => {
     const isActive = selectedCategory === category;
 
     return (
@@ -135,12 +148,21 @@ const MenuScreen = ({ navigation }: any) => {
           borderColor: isActive ? '#E63946' : '#DEE2E6',
           minWidth: 90,
           height: 50,
+          flexDirection: 'row' as const,
           alignItems: 'center' as const,
           justifyContent: 'center' as const,
+          gap: 6,
         }}
         onPress={() => setSelectedCategory(category)}
         activeOpacity={0.7}
       >
+        {icon && (
+          <Ionicons
+            name={icon as any}
+            size={18}
+            color={isActive ? '#FFFFFF' : '#000000'}
+          />
+        )}
         <Text
           allowFontScaling={false}
           style={{
@@ -298,21 +320,20 @@ const MenuScreen = ({ navigation }: any) => {
         style={styles.categoriesContainer}
         contentContainerStyle={styles.categoriesContent}
       >
-        <CategoryButton category="all" label={t('menu.allCategories')} />
+        <CategoryButton
+          category="all"
+          label={t('menu.allCategories')}
+          icon="apps-outline"
+        />
         {categories.map((cat) => {
-          // Kategori adını küçük harfe çevir ve çeviri anahtarı oluştur (Convert category name to lowercase for translation key)
-          const categoryKey = cat.name.toLowerCase();
-          console.log('🔍 Category:', cat.name, '→ Key:', categoryKey);
-          // Çeviri anahtarını kontrol et, yoksa orijinal adı kullan (Check translation key, use original name if not found)
-          const translatedName = t(`categories.${categoryKey}`);
-          console.log('🌍 Translated:', translatedName);
-          const label = translatedName.startsWith('categories.') ? cat.name : translatedName;
-          console.log('✅ Final label:', label);
+          // Mevcut dile göre kategori ismini al (Get category name based on current language)
+          const label = getCategoryName(cat);
           return (
             <CategoryButton
               key={cat.id}
               category={cat.id}
               label={label}
+              icon={cat.icon}
             />
           );
         })}
