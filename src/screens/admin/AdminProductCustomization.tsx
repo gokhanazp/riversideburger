@@ -83,21 +83,25 @@ const AdminProductCustomization = ({ route, navigation }: any) => {
   // Ürün seçeneklerini yükle (Load product options)
   const loadProductOptions = async () => {
     try {
+      console.log('📥 Loading product options for:', product.id);
       const options = await customizationService.getProductSpecificOptions(product.id);
+      console.log('📦 Raw options received:', options);
 
       // Veriyi düzenle (Format data)
       const formatted: ProductSpecificOption[] = options.map((opt: any) => ({
         id: opt.id,
-        option_id: opt.option.id,
+        option_id: opt.option?.id || opt.option_id,
         is_required: opt.is_required,
         is_default: opt.is_default,
         option: opt.option,
-        category: opt.option.category,
+        category: opt.option?.category,
       }));
 
+      console.log('✅ Formatted options:', formatted);
       setProductOptions(formatted);
     } catch (error) {
-      console.error('Error loading product options:', error);
+      console.error('❌ Error loading product options:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
     }
   };
 

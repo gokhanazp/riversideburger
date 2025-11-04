@@ -153,16 +153,18 @@ export const customizationService = {
         .from('product_specific_options')
         .select(`
           id,
+          option_id,
           is_required,
           is_default,
-          option:product_options (
+          product_options!inner (
             id,
             name,
             name_en,
             description,
             price,
             display_order,
-            category:product_option_categories (
+            category_id,
+            product_option_categories!inner (
               id,
               name,
               name_en,
@@ -170,14 +172,42 @@ export const customizationService = {
             )
           )
         `)
-        .eq('product_id', productId)
-        .order('option.category.display_order', { ascending: true })
-        .order('option.display_order', { ascending: true });
+        .eq('product_id', productId);
 
-      if (error) throw error;
-      return data || [];
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      // Veriyi düzenle (Format data)
+      const formatted = (data || []).map((item: any) => ({
+        id: item.id,
+        option_id: item.option_id,
+        is_required: item.is_required,
+        is_default: item.is_default,
+        option: {
+          id: item.product_options.id,
+          name: item.product_options.name,
+          name_en: item.product_options.name_en,
+          description: item.product_options.description,
+          price: item.product_options.price,
+          display_order: item.product_options.display_order,
+          category: item.product_options.product_option_categories,
+        },
+      }));
+
+      // Manuel sıralama (Manual sorting)
+      formatted.sort((a, b) => {
+        const catOrderA = a.option.category.display_order || 0;
+        const catOrderB = b.option.category.display_order || 0;
+        if (catOrderA !== catOrderB) return catOrderA - catOrderB;
+        return (a.option.display_order || 0) - (b.option.display_order || 0);
+      });
+
+      console.log('✅ getProductSpecificOptions result:', formatted);
+      return formatted;
     } catch (error) {
-      console.error('Error fetching product specific options:', error);
+      console.error('❌ Error fetching product specific options:', error);
       throw error;
     }
   },
