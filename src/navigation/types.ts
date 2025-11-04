@@ -31,6 +31,7 @@ export type RootStackParamList = {
   AdminOrders: { filter?: string } | undefined;
   AdminProducts: undefined;
   AdminProductCustomization: { product: any };
+  AdminProductOptions: undefined; // Ekstra malzeme yönetimi (Extra ingredients management)
   AdminCategories: undefined; // Kategori yönetimi (Category management)
   AdminUsers: undefined;
   AdminSettings: undefined;

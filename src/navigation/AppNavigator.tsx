@@ -34,6 +34,7 @@ import AdminDashboard from '../screens/admin/AdminDashboard';
 import AdminOrders from '../screens/admin/AdminOrders';
 import AdminProducts from '../screens/admin/AdminProducts';
 import AdminProductCustomization from '../screens/admin/AdminProductCustomization';
+import AdminProductOptions from '../screens/admin/AdminProductOptions';
 import AdminCategories from '../screens/admin/AdminCategories';
 import AdminUsers from '../screens/admin/AdminUsers';
 import AdminSettings from '../screens/admin/AdminSettings';
@@ -503,6 +504,13 @@ const AppNavigator = () => {
         <Stack.Screen
           name="AdminProductCustomization"
           component={AdminProductCustomization}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="AdminProductOptions"
+          component={AdminProductOptions}
           options={{
             headerShown: false,
           }}
