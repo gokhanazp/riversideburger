@@ -14,8 +14,10 @@ import { PointsHistory } from '../types/database.types';
 import { getPointsHistory } from '../services/pointsService';
 import Toast from 'react-native-toast-message';
 import { Colors } from '../constants/theme';
+import { useTranslation } from 'react-i18next';
 
 const PointsHistoryScreen = () => {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const [history, setHistory] = useState<PointsHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,8 +38,8 @@ const PointsHistoryScreen = () => {
       console.error('Error fetching points history:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Puan geçmişi yüklenirken bir hata oluştu',
+        text1: t('pointsHistory.errorTitle'),
+        text2: t('pointsHistory.errorMessage'),
       });
     } finally {
       setLoading(false);
@@ -86,13 +88,13 @@ const PointsHistoryScreen = () => {
   const getTypeText = (type: string) => {
     switch (type) {
       case 'earned':
-        return 'Kazanıldı';
+        return t('pointsHistory.typeEarned');
       case 'used':
-        return 'Kullanıldı';
+        return t('pointsHistory.typeUsed');
       case 'expired':
-        return 'Süresi Doldu';
+        return t('pointsHistory.typeExpired');
       case 'admin_adjustment':
-        return 'Admin Düzeltmesi';
+        return t('pointsHistory.typeAdjustment');
       default:
         return type;
     }
@@ -128,7 +130,7 @@ const PointsHistoryScreen = () => {
           <Text style={[styles.pointsValue, { color }]}>
             {isPositive ? '+' : ''}{item.points.toFixed(2)}
           </Text>
-          <Text style={styles.pointsLabel}>puan</Text>
+          <Text style={styles.pointsLabel}>{t('pointsHistory.points')}</Text>
         </View>
       </View>
     );
@@ -138,7 +140,7 @@ const PointsHistoryScreen = () => {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Puan geçmişi yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('pointsHistory.loading')}</Text>
       </View>
     );
   }
@@ -147,9 +149,9 @@ const PointsHistoryScreen = () => {
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="star-outline" size={80} color="#CCC" />
-        <Text style={styles.emptyTitle}>Henüz Puan Geçmişi Yok</Text>
+        <Text style={styles.emptyTitle}>{t('pointsHistory.emptyTitle')}</Text>
         <Text style={styles.emptyText}>
-          Sipariş vererek puan kazanmaya başlayın!
+          {t('pointsHistory.emptyMessage')}
         </Text>
       </View>
     );

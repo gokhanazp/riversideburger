@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 import { getUserAddresses, deleteAddress, setDefaultAddress } from '../services/addressService';
@@ -18,6 +19,7 @@ import ConfirmModal from '../components/ConfirmModal';
 
 // Adres listesi ekranı - Canada Format (Address list screen - Canada Format)
 const AddressListScreen = ({ navigation }: any) => {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
 
   // State'ler (States)
@@ -38,14 +40,14 @@ const AddressListScreen = ({ navigation }: any) => {
       console.error('Error loading addresses:', error);
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: 'Failed to load addresses',
+        text1: t('address.error'),
+        text2: t('address.loadError'),
       });
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [user]);
+  }, [user, t]);
 
   useEffect(() => {
     loadAddresses();
@@ -65,16 +67,16 @@ const AddressListScreen = ({ navigation }: any) => {
       await setDefaultAddress(address.id, user.id);
       Toast.show({
         type: 'success',
-        text1: '✅ Success',
-        text2: 'Default address updated',
+        text1: '✅ ' + t('address.setDefaultSuccess'),
+        text2: t('address.setDefaultSuccess'),
       });
       loadAddresses();
     } catch (error) {
       console.error('Error setting default address:', error);
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: 'Failed to set default address',
+        text1: t('address.error'),
+        text2: t('address.setDefaultError'),
       });
     }
   };
@@ -87,8 +89,8 @@ const AddressListScreen = ({ navigation }: any) => {
       await deleteAddress(addressToDelete.id);
       Toast.show({
         type: 'success',
-        text1: '✅ Success',
-        text2: 'Address deleted',
+        text1: '✅ ' + t('address.deleteSuccess'),
+        text2: t('address.deleteSuccess'),
       });
       setShowDeleteModal(false);
       setAddressToDelete(null);
@@ -97,8 +99,8 @@ const AddressListScreen = ({ navigation }: any) => {
       console.error('Error deleting address:', error);
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: 'Failed to delete address',
+        text1: t('address.error'),
+        text2: t('address.deleteError'),
       });
     }
   };
@@ -132,7 +134,7 @@ const AddressListScreen = ({ navigation }: any) => {
           {item.is_default && (
             <View style={styles.defaultBadge}>
               <Ionicons name="star" size={14} color="#FFD700" />
-              <Text style={styles.defaultBadgeText}>Default</Text>
+              <Text style={styles.defaultBadgeText}>{t('address.default')}</Text>
             </View>
           )}
         </View>
@@ -170,7 +172,7 @@ const AddressListScreen = ({ navigation }: any) => {
               activeOpacity={0.7}
             >
               <Ionicons name="star-outline" size={18} color={Colors.primary} />
-              <Text style={styles.actionButtonText}>Set Default</Text>
+              <Text style={styles.actionButtonText}>{t('address.setDefault')}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -179,7 +181,7 @@ const AddressListScreen = ({ navigation }: any) => {
             activeOpacity={0.7}
           >
             <Ionicons name="create-outline" size={18} color={Colors.primary} />
-            <Text style={styles.actionButtonText}>Edit</Text>
+            <Text style={styles.actionButtonText}>{t('address.edit')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, styles.deleteButton]}
@@ -190,7 +192,7 @@ const AddressListScreen = ({ navigation }: any) => {
             activeOpacity={0.7}
           >
             <Ionicons name="trash-outline" size={18} color="#DC3545" />
-            <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete</Text>
+            <Text style={[styles.actionButtonText, styles.deleteButtonText]}>{t('address.delete')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -201,8 +203,8 @@ const AddressListScreen = ({ navigation }: any) => {
   const renderEmptyList = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="location-outline" size={80} color="#CCC" />
-      <Text style={styles.emptyTitle}>No Addresses</Text>
-      <Text style={styles.emptyText}>Add your first delivery address</Text>
+      <Text style={styles.emptyTitle}>{t('address.noAddresses')}</Text>
+      <Text style={styles.emptyText}>{t('address.noAddressesMessage')}</Text>
     </View>
   );
 
@@ -210,7 +212,7 @@ const AddressListScreen = ({ navigation }: any) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading addresses...</Text>
+        <Text style={styles.loadingText}>{t('address.loading')}</Text>
       </View>
     );
   }
@@ -244,20 +246,20 @@ const AddressListScreen = ({ navigation }: any) => {
         activeOpacity={0.8}
       >
         <Ionicons name="add" size={28} color={Colors.white} />
-        <Text style={styles.addButtonText}>Add New Address</Text>
+        <Text style={styles.addButtonText}>{t('address.addNew')}</Text>
       </TouchableOpacity>
 
       {/* Silme Onay Modal'ı (Delete Confirmation Modal) */}
       <ConfirmModal
         visible={showDeleteModal}
-        title="Delete Address"
-        message={`Are you sure you want to delete this address?\n\n${
+        title={t('address.deleteTitle')}
+        message={`${t('address.deleteMessage')}\n\n${
           addressToDelete
             ? `${addressToDelete.street_number} ${addressToDelete.street_name}, ${addressToDelete.city}`
             : ''
         }`}
-        confirmText="Delete"
-        cancelText="Cancel"
+        confirmText={t('address.deleteConfirm')}
+        cancelText={t('address.deleteCancel')}
         onConfirm={handleDeleteAddress}
         onCancel={() => {
           setShowDeleteModal(false);

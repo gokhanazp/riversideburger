@@ -14,6 +14,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import Toast from 'react-native-toast-message';
+import { useTranslation } from 'react-i18next';
 
 // Bildirim tipi (Notification type)
 interface Notification {
@@ -29,6 +30,7 @@ interface Notification {
 }
 
 export default function NotificationsScreen({ navigation }: any) {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,8 +54,8 @@ export default function NotificationsScreen({ navigation }: any) {
       console.error('Bildirimler yüklenemedi:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Bildirimler yüklenemedi',
+        text1: t('notifications.errorTitle'),
+        text2: t('notifications.errorLoad'),
       });
     } finally {
       setLoading(false);
@@ -102,15 +104,15 @@ export default function NotificationsScreen({ navigation }: any) {
 
       Toast.show({
         type: 'success',
-        text1: 'Başarılı',
-        text2: 'Tüm bildirimler okundu olarak işaretlendi',
+        text1: t('notifications.successMarkAll'),
+        text2: '',
       });
     } catch (error: any) {
       console.error('Bildirimler güncellenemedi:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Bildirimler güncellenemedi',
+        text1: t('notifications.errorTitle'),
+        text2: t('notifications.errorMarkRead'),
       });
     }
   };
@@ -217,7 +219,7 @@ export default function NotificationsScreen({ navigation }: any) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Bildirimler yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('notifications.loading')}</Text>
       </View>
     );
   }
@@ -227,8 +229,8 @@ export default function NotificationsScreen({ navigation }: any) {
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="notifications-off-outline" size={80} color={Colors.textSecondary} />
-        <Text style={styles.emptyTitle}>Henüz bildirim yok</Text>
-        <Text style={styles.emptyText}>Siparişleriniz ve kampanyalar hakkında bildirimler burada görünecek</Text>
+        <Text style={styles.emptyTitle}>{t('notifications.emptyTitle')}</Text>
+        <Text style={styles.emptyText}>{t('notifications.emptyMessage')}</Text>
       </View>
     );
   }
@@ -241,9 +243,9 @@ export default function NotificationsScreen({ navigation }: any) {
       {/* Header */}
       {unreadCount > 0 && (
         <View style={styles.header}>
-          <Text style={styles.headerText}>{unreadCount} okunmamış bildirim</Text>
+          <Text style={styles.headerText}>{t('notifications.unreadCount', { count: unreadCount })}</Text>
           <TouchableOpacity onPress={markAllAsRead} style={styles.markAllButton}>
-            <Text style={styles.markAllText}>Tümünü Okundu İşaretle</Text>
+            <Text style={styles.markAllText}>{t('notifications.markAllRead')}</Text>
           </TouchableOpacity>
         </View>
       )}

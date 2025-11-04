@@ -24,6 +24,7 @@ export type RootStackParamList = {
   AddressList: undefined;
   AddressEdit: { addressId: string | null };
   Notifications: undefined;
+  Settings: undefined; // Ayarlar ekranı (Settings screen)
   ReviewOrder: { orderId: string }; // Sipariş değerlendirme ekranı (Review order screen)
   // Admin ekranları (Admin screens)
   AdminDashboard: undefined;

@@ -20,6 +20,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { MenuItem } from '../types';
 import { useCartStore } from '../store/cartStore';
@@ -28,11 +29,13 @@ import { customizationService } from '../services/customizationService';
 import { CategoryWithOptions, SelectedCustomization } from '../types/customization';
 import { getProductReviews, getProductRating } from '../services/reviewService';
 import { Review, ProductRating } from '../types/database.types';
+import { formatPrice } from '../services/currencyService';
 
 const { width } = Dimensions.get('window');
 
 // Ürün detay ekranı (Product detail screen)
 const ProductDetailScreen = ({ route, navigation }: any) => {
+  const { t } = useTranslation();
   const { item } = route.params as { item: MenuItem };
   const [quantity, setQuantity] = useState(1);
   const [customizations, setCustomizations] = useState<CategoryWithOptions[]>([]);
@@ -129,8 +132,8 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
       ) {
         Toast.show({
           type: 'error',
-          text1: '⚠️ Maksimum Seçim',
-          text2: `Bu kategoriden en fazla ${categoryWithOptions.max_selections} seçenek seçebilirsiniz`,
+          text1: '⚠️ ' + t('product.maxSelection'),
+          text2: t('product.maxSelectionDesc', { max: categoryWithOptions.max_selections }),
           position: 'bottom',
           visibilityTime: 2000,
         });
@@ -186,8 +189,8 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
     // Toast bildirimi göster (Show toast notification)
     Toast.show({
       type: 'success',
-      text1: '🍔 Sepete Eklendi!',
-      text2: `${quantity}x ${item.name} sepetinize eklendi`,
+      text1: '🍔 ' + t('cart.addedToCart'),
+      text2: t('product.addedToCartDesc', { quantity, name: item.name }),
       position: 'bottom',
       visibilityTime: 2000,
       bottomOffset: 100,
@@ -220,7 +223,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
               toggleFavorite(item);
               Toast.show({
                 type: favorite ? 'info' : 'success',
-                text1: favorite ? '💔 Favorilerden Çıkarıldı' : '❤️ Favorilere Eklendi',
+                text1: favorite ? '💔 ' + t('favorites.removedFromFavorites') : '❤️ ' + t('favorites.addedToFavorites'),
                 text2: item.name,
                 position: 'bottom',
                 visibilityTime: 1500,
@@ -244,22 +247,22 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
             <View style={styles.titleContainer}>
               <Text style={styles.name}>{item.name}</Text>
               {item.preparationTime && (
-                <Text style={styles.preparationTime}>⏱️ {item.preparationTime} dk</Text>
+                <Text style={styles.preparationTime}>⏱️ {item.preparationTime} {t('product.minutes')}</Text>
               )}
             </View>
-            <Text style={styles.price}>₺{item.price.toFixed(2)}</Text>
+            <Text style={styles.price}>{formatPrice(item.price)}</Text>
           </View>
 
           {/* Açıklama (Description) */}
           <Animated.View entering={FadeInDown.delay(300).duration(600)} style={styles.section}>
-            <Text style={styles.sectionTitle}>Açıklama</Text>
+            <Text style={styles.sectionTitle}>{t('product.description')}</Text>
             <Text style={styles.description}>{item.description}</Text>
           </Animated.View>
 
           {/* İçindekiler (Ingredients) */}
           {item.ingredients && item.ingredients.length > 0 && (
             <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.section}>
-              <Text style={styles.sectionTitle}>İçindekiler</Text>
+              <Text style={styles.sectionTitle}>{t('product.ingredients')}</Text>
               <View style={styles.ingredientsContainer}>
                 {item.ingredients.map((ingredient, index) => (
                   <View key={index} style={styles.ingredientTag}>
@@ -274,7 +277,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
           {loadingCustomizations ? (
             <Animated.View entering={FadeInDown.delay(500).duration(600)} style={styles.section}>
               <ActivityIndicator size="small" color={Colors.primary} />
-              <Text style={styles.loadingText}>Seçenekler yükleniyor...</Text>
+              <Text style={styles.loadingText}>{t('common.loading')}...</Text>
             </Animated.View>
           ) : customizations.length > 0 ? (
             <>
@@ -318,7 +321,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
                       </Text>
                       {categoryWithOptions.max_selections && (
                         <Text style={styles.maxSelectionsText}>
-                          En fazla {categoryWithOptions.max_selections} seçim
+                          {t('product.maxSelectionsLabel', { max: categoryWithOptions.max_selections })}
                         </Text>
                       )}
                     </View>
@@ -367,7 +370,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
                                     isSelected && styles.optionPriceSelected,
                                   ]}
                                 >
-                                  +₺{option.price.toFixed(2)}
+                                  +{formatPrice(option.price)}
                                 </Text>
                               )}
                             </View>
@@ -384,10 +387,10 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
                 entering={FadeInDown.delay(500 + customizations.length * 100).duration(600)}
                 style={styles.section}
               >
-                <Text style={styles.sectionTitle}>Özel Notlar</Text>
+                <Text style={styles.sectionTitle}>{t('product.specialInstructions')}</Text>
                 <TextInput
                   style={styles.specialInstructionsInput}
-                  placeholder="Özel bir isteğiniz var mı? (Opsiyonel)"
+                  placeholder={t('product.specialInstructionsPlaceholder')}
                   placeholderTextColor="#999"
                   value={specialInstructions}
                   onChangeText={setSpecialInstructions}
@@ -402,14 +405,14 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
           {/* Yorumlar ve Değerlendirmeler (Reviews and Ratings) */}
           {loadingReviews ? (
             <Animated.View entering={FadeInDown.delay(700).duration(600)} style={styles.section}>
-              <Text style={styles.sectionTitle}>Değerlendirmeler</Text>
+              <Text style={styles.sectionTitle}>{t('reviews.title')}</Text>
               <ActivityIndicator size="small" color={Colors.primary} />
-              <Text style={styles.loadingText}>Yorumlar yükleniyor...</Text>
+              <Text style={styles.loadingText}>{t('common.loading')}...</Text>
             </Animated.View>
           ) : reviews.length > 0 ? (
             <Animated.View entering={FadeInDown.delay(700).duration(600)} style={styles.section}>
               <View style={styles.reviewsHeader}>
-                <Text style={styles.sectionTitle}>Değerlendirmeler</Text>
+                <Text style={styles.sectionTitle}>{t('reviews.title')}</Text>
                 <View style={styles.ratingBadge}>
                   <Ionicons name="star" size={16} color="#FFD700" />
                   <Text style={styles.ratingText}>
@@ -422,7 +425,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
                 <View key={review.id} style={styles.reviewCard}>
                   <View style={styles.reviewHeader}>
                     <Text style={styles.reviewUserName}>
-                      {review.user?.full_name || 'Kullanıcı'}
+                      {review.user?.full_name || t('common.user')}
                     </Text>
                     <View style={styles.reviewStars}>
                       {[1, 2, 3, 4, 5].map((star) => (
@@ -448,7 +451,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
 
               {reviews.length > 3 && (
                 <Text style={styles.moreReviewsText}>
-                  +{reviews.length - 3} yorum daha
+                  {t('reviews.moreReviews', { count: reviews.length - 3 })}
                 </Text>
               )}
             </Animated.View>
@@ -487,8 +490,8 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
 
         {/* Toplam (Total) */}
         <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Toplam</Text>
-          <Text style={styles.totalPrice}>₺{calculateTotalPrice().toFixed(2)}</Text>
+          <Text style={styles.totalLabel}>{t('cart.total')}</Text>
+          <Text style={styles.totalPrice}>{formatPrice(calculateTotalPrice())}</Text>
         </View>
 
         {/* Sepete Ekle Butonu (Add to Cart Button) */}
@@ -499,7 +502,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
             activeOpacity={0.8}
           >
             <Ionicons name="cart" size={20} color={Colors.white} style={styles.cartIcon} />
-            <Text style={styles.addToCartButtonText}>Sepete Ekle</Text>
+            <Text style={styles.addToCartButtonText}>{t('menu.addToCart')}</Text>
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>

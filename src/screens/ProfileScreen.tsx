@@ -8,9 +8,12 @@ import { useAuthStore } from '../store/authStore';
 import { MenuItem as MenuItemType } from '../types';
 import Toast from 'react-native-toast-message';
 import { getUserPoints } from '../services/pointsService';
+import { useTranslation } from 'react-i18next';
+import { formatPrice } from '../services/currencyService';
 
 // Profil ekranı (Profile screen)
 const ProfileScreen = ({ navigation }: any) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'profile' | 'favorites'>('profile');
   const { favorites, toggleFavorite } = useFavoritesStore();
   const addItem = useCartStore((state) => state.addItem);
@@ -40,14 +43,14 @@ const ProfileScreen = ({ navigation }: any) => {
       await logout();
       Toast.show({
         type: 'success',
-        text1: '👋 Çıkış Yapıldı',
-        text2: 'Başarıyla çıkış yaptınız',
+        text1: `👋 ${t('profile.logoutSuccess')}`,
+        text2: t('profile.logoutSuccessMessage'),
       });
     } catch (error) {
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Çıkış yapılırken bir hata oluştu',
+        text1: t('profile.logoutError'),
+        text2: t('profile.logoutErrorMessage'),
       });
     }
   };
@@ -99,7 +102,7 @@ const ProfileScreen = ({ navigation }: any) => {
           toggleFavorite(item);
           Toast.show({
             type: 'info',
-            text1: '💔 Favorilerden Çıkarıldı',
+            text1: `💔 ${t('profile.removedFromFavorites')}`,
             text2: item.name,
             position: 'bottom',
             visibilityTime: 1500,
@@ -113,7 +116,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
       <View style={styles.favoriteInfo}>
         <Text style={styles.favoriteName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.favoritePrice}>₺{item.price.toFixed(2)}</Text>
+        <Text style={styles.favoritePrice}>{formatPrice(item.price)}</Text>
         <TouchableOpacity
           style={styles.favoriteAddButton}
           onPress={(e) => {
@@ -121,7 +124,7 @@ const ProfileScreen = ({ navigation }: any) => {
             addItem(item);
             Toast.show({
               type: 'success',
-              text1: '🍔 Sepete Eklendi!',
+              text1: `🍔 ${t('profile.addedToCart')}`,
               text2: item.name,
               position: 'bottom',
               visibilityTime: 1500,
@@ -151,7 +154,7 @@ const ProfileScreen = ({ navigation }: any) => {
             color={activeTab === 'profile' ? Colors.primary : Colors.textSecondary}
           />
           <Text style={[styles.tabText, activeTab === 'profile' && styles.tabTextActive]}>
-            Profil
+            {t('profile.tab')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -165,7 +168,7 @@ const ProfileScreen = ({ navigation }: any) => {
             color={activeTab === 'favorites' ? Colors.primary : Colors.textSecondary}
           />
           <Text style={[styles.tabText, activeTab === 'favorites' && styles.tabTextActive]}>
-            Favoriler ({favorites.length})
+            {t('profile.favoritesTab', { count: favorites.length })}
           </Text>
         </TouchableOpacity>
       </View>
@@ -179,7 +182,7 @@ const ProfileScreen = ({ navigation }: any) => {
             </View>
             {isAuthenticated && user ? (
               <>
-                <Text style={styles.userName}>{user.full_name || 'Kullanıcı'}</Text>
+                <Text style={styles.userName}>{user.full_name || t('common.user')}</Text>
                 <Text style={styles.userEmail}>{user.email}</Text>
 
                 {/* Puan Kartı (Points Card) */}
@@ -188,22 +191,22 @@ const ProfileScreen = ({ navigation }: any) => {
                     <Ionicons name="star" size={24} color="#FFD700" />
                   </View>
                   <View style={styles.pointsInfo}>
-                    <Text style={styles.pointsLabel}>Toplam Puanınız</Text>
-                    <Text style={styles.pointsValue}>{userPoints.toFixed(2)} Puan</Text>
-                    <Text style={styles.pointsSubtext}>1 Puan = 1 TL indirim</Text>
+                    <Text style={styles.pointsLabel}>{t('profile.totalPoints')}</Text>
+                    <Text style={styles.pointsValue}>{t('profile.points', { points: userPoints.toFixed(2) })}</Text>
+                    <Text style={styles.pointsSubtext}>{t('profile.pointsDiscount')}</Text>
                   </View>
                 </View>
               </>
             ) : (
               <>
-                <Text style={styles.userName}>Misafir Kullanıcı</Text>
-                <Text style={styles.userEmail}>Sipariş vermek için giriş yapın</Text>
+                <Text style={styles.userName}>{t('profile.guestUser')}</Text>
+                <Text style={styles.userEmail}>{t('profile.guestMessage')}</Text>
                 <TouchableOpacity
                   style={styles.loginButton}
                   onPress={() => navigation.navigate('Login')}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.loginButtonText}>Giriş Yap / Kayıt Ol</Text>
+                  <Text style={styles.loginButtonText}>{t('profile.loginRegister')}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -212,12 +215,12 @@ const ProfileScreen = ({ navigation }: any) => {
           {/* Admin Panel (Admin Panel) - Sadece admin kullanıcılar için */}
           {isAuthenticated && user?.role === 'admin' && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Admin Panel</Text>
+              <Text style={styles.sectionTitle}>{t('profile.adminPanel')}</Text>
               <View style={styles.card}>
                 <MenuItem
                   iconName="shield-checkmark"
-                  title="Admin Dashboard"
-                  subtitle="Yönetim paneline git"
+                  title={t('profile.adminDashboard')}
+                  subtitle={t('profile.adminDashboardSubtitle')}
                   onPress={() => navigation.navigate('AdminDashboard')}
                 />
               </View>
@@ -227,21 +230,25 @@ const ProfileScreen = ({ navigation }: any) => {
           {/* Hesap bölümü (Account section) */}
           {isAuthenticated && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Hesap</Text>
+              <Text style={styles.sectionTitle}>{t('profile.accountSection')}</Text>
               <View style={styles.card}>
                 <MenuItem
                   iconName="person-outline"
-                  title="Profil Bilgileri"
-                  subtitle="Kişisel bilgilerinizi düzenleyin"
+                  title={t('profile.profileInfo')}
+                  subtitle={t('profile.profileInfoSubtitle')}
                   onPress={() => navigation.navigate('ProfileEdit')}
                 />
                 <MenuItem
                   iconName="location-outline"
-                  title="Adreslerim"
-                  subtitle="Teslimat adreslerinizi yönetin"
+                  title={t('profile.myAddresses')}
+                  subtitle={t('profile.myAddressesSubtitle')}
                   onPress={() => navigation.navigate('AddressList')}
                 />
-                <MenuItem iconName="card-outline" title="Ödeme Yöntemleri" subtitle="Kayıtlı kartlarınız" />
+                <MenuItem
+                  iconName="card-outline"
+                  title={t('profile.paymentMethods')}
+                  subtitle={t('profile.paymentMethodsSubtitle')}
+                />
               </View>
             </View>
           )}
@@ -249,18 +256,18 @@ const ProfileScreen = ({ navigation }: any) => {
           {/* Siparişler bölümü (Orders section) */}
           {isAuthenticated && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Siparişler</Text>
+              <Text style={styles.sectionTitle}>{t('profile.ordersSection')}</Text>
               <View style={styles.card}>
                 <MenuItem
                   iconName="receipt-outline"
-                  title="Sipariş Geçmişi"
-                  subtitle="Geçmiş siparişlerinizi görün"
+                  title={t('profile.orderHistory')}
+                  subtitle={t('profile.orderHistorySubtitle')}
                   onPress={() => navigation.navigate('OrderHistory')}
                 />
                 <MenuItem
                   iconName="star-outline"
-                  title="Puan Geçmişi"
-                  subtitle="Kazandığınız ve kullandığınız puanlar"
+                  title={t('profile.pointsHistory')}
+                  subtitle={t('profile.pointsHistorySubtitle')}
                   onPress={() => navigation.navigate('PointsHistory')}
                 />
               </View>
@@ -269,18 +276,33 @@ const ProfileScreen = ({ navigation }: any) => {
 
           {/* Ayarlar bölümü (Settings section) */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ayarlar</Text>
+            <Text style={styles.sectionTitle}>{t('profile.settingsSection')}</Text>
             <View style={styles.card}>
               <MenuItem
+                iconName="settings-outline"
+                title={t('profile.languageCurrency')}
+                subtitle={t('profile.languageCurrencySubtitle')}
+                onPress={() => navigation.navigate('Settings')}
+              />
+              <MenuItem
                 iconName="notifications-outline"
-                title="Bildirimler"
-                subtitle="Bildirim tercihleriniz"
+                title={t('profile.notifications')}
+                subtitle={t('profile.notificationsSubtitle')}
                 onPress={() => navigation.navigate('Notifications')}
               />
-              <MenuItem iconName="language-outline" title="Dil" subtitle="Türkçe" />
-              <MenuItem iconName="help-circle-outline" title="Yardım & Destek" subtitle="SSS ve iletişim" />
-              <MenuItem iconName="shield-outline" title="Gizlilik Politikası" />
-              <MenuItem iconName="document-text-outline" title="Kullanım Koşulları" />
+              <MenuItem
+                iconName="help-circle-outline"
+                title={t('profile.helpSupport')}
+                subtitle={t('profile.helpSupportSubtitle')}
+              />
+              <MenuItem
+                iconName="shield-outline"
+                title={t('profile.privacyPolicy')}
+              />
+              <MenuItem
+                iconName="document-text-outline"
+                title={t('profile.termsOfService')}
+              />
             </View>
           </View>
 
@@ -292,7 +314,7 @@ const ProfileScreen = ({ navigation }: any) => {
               activeOpacity={0.7}
             >
               <Ionicons name="log-out-outline" size={20} color={Colors.primary} />
-              <Text style={styles.logoutText}>Çıkış Yap</Text>
+              <Text style={styles.logoutText}>{t('profile.logout')}</Text>
             </TouchableOpacity>
           )}
 
@@ -300,9 +322,9 @@ const ProfileScreen = ({ navigation }: any) => {
           <View style={styles.footer}>
             {/* About Us */}
             <View style={styles.footerSection}>
-              <Text style={styles.footerTitle}>About Us</Text>
+              <Text style={styles.footerTitle}>{t('profile.aboutUs')}</Text>
               <Text style={styles.footerText}>
-                Riverside Burgers was established in 2019. Our passion for fresh and high quality burgers led us to creating our Signature Burger.
+                {t('profile.aboutUsText')}
               </Text>
               {/* Social Media */}
               <View style={styles.socialContainer}>
@@ -325,7 +347,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
             {/* Locations - Yan yana (Side by side) */}
             <View style={styles.footerSection}>
-              <Text style={styles.footerTitle}>Locations</Text>
+              <Text style={styles.footerTitle}>{t('profile.locations')}</Text>
               <View style={styles.locationsRow}>
                 <TouchableOpacity
                   style={styles.locationItem}
@@ -358,13 +380,13 @@ const ProfileScreen = ({ navigation }: any) => {
             {/* Copyright */}
             <View style={styles.copyright}>
               <Text style={styles.copyrightText}>
-                © 2023 Riverside Burgers. All rights reserved.
+                {t('profile.copyright')}
               </Text>
             </View>
           </View>
 
           {/* Versiyon bilgisi (Version info) */}
-          <Text style={styles.version}>Versiyon 1.0.0</Text>
+          <Text style={styles.version}>{t('profile.versionText', { version: '1.0.0' })}</Text>
         </ScrollView>
       ) : (
         <View style={styles.favoritesContainer}>
@@ -380,9 +402,9 @@ const ProfileScreen = ({ navigation }: any) => {
           ) : (
             <View style={styles.emptyContainer}>
               <Ionicons name="heart-outline" size={64} color={Colors.textSecondary} />
-              <Text style={styles.emptyTitle}>Henüz Favori Yok</Text>
+              <Text style={styles.emptyTitle}>{t('profile.noFavorites')}</Text>
               <Text style={styles.emptyText}>
-                Beğendiğiniz ürünleri favorilere ekleyerek buradan kolayca ulaşabilirsiniz
+                {t('profile.noFavoritesMessage')}
               </Text>
             </View>
           )}
@@ -694,6 +716,12 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.textMuted,
     textAlign: 'center',
+  },
+  version: {
+    fontSize: FontSizes.xs,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: Spacing.lg,
   },
 });
 

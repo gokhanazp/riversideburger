@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 // Ekranları import et (Import screens)
 import HomeScreen from '../screens/HomeScreen';
@@ -26,6 +27,7 @@ import AddressListScreen from '../screens/AddressListScreen';
 import AddressEditScreen from '../screens/AddressEditScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ReviewOrderScreen from '../screens/ReviewOrderScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 // Admin ekranları (Admin screens)
 import AdminDashboard from '../screens/admin/AdminDashboard';
@@ -69,6 +71,8 @@ const TabIcon = ({
 
 // Ana tab navigator (Main tab navigator)
 const MainTabs = () => {
+  const { t } = useTranslation();
+
   // Sepetteki toplam ürün sayısını al (Get total items count from cart)
   const totalItems = useCartStore((state) =>
     state.items.reduce((sum, item) => sum + item.quantity, 0)
@@ -111,7 +115,7 @@ const MainTabs = () => {
         name="HomeTab"
         component={HomeScreen}
         options={{
-          title: 'Ana Sayfa',
+          title: t('navigation.home'),
           headerTitle: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Ionicons name="restaurant" size={28} color={Colors.primary} />
@@ -155,12 +159,12 @@ const MainTabs = () => {
         name="MenuTab"
         component={MenuScreen}
         options={{
-          title: 'Menü',
+          title: t('navigation.menu'),
           headerTitle: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Ionicons name="fast-food" size={26} color={Colors.primary} />
               <Text style={{ fontSize: 20, fontWeight: 'bold', color: Colors.text }}>
-                Menü
+                {t('navigation.menu')}
               </Text>
             </View>
           ),
@@ -177,12 +181,12 @@ const MainTabs = () => {
         name="CartTab"
         component={CartScreen}
         options={{
-          title: 'Sepet',
+          title: t('navigation.cart'),
           headerTitle: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Ionicons name="cart" size={26} color={Colors.primary} />
               <Text style={{ fontSize: 20, fontWeight: 'bold', color: Colors.text }}>
-                Sepetim
+                {t('navigation.cart')}
               </Text>
             </View>
           ),
@@ -201,12 +205,12 @@ const MainTabs = () => {
         name="ProfileTab"
         component={ProfileScreen}
         options={{
-          title: 'Profil',
+          title: t('navigation.profile'),
           headerTitle: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Ionicons name="person" size={26} color={Colors.primary} />
               <Text style={{ fontSize: 20, fontWeight: 'bold', color: Colors.text }}>
-                Profilim
+                {t('navigation.profile')}
               </Text>
             </View>
           ),
@@ -225,6 +229,8 @@ const MainTabs = () => {
 
 // Root stack navigator (Root stack navigator)
 const AppNavigator = () => {
+  const { t } = useTranslation();
+
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -276,8 +282,8 @@ const AppNavigator = () => {
         <Stack.Screen
           name="OrderHistory"
           component={OrderHistoryScreen}
-          options={{
-            title: '📦 Sipariş Geçmişi',
+          options={({ navigation }) => ({
+            title: t('navigation.orderHistory'),
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
@@ -292,13 +298,13 @@ const AppNavigator = () => {
               fontWeight: 'bold',
               fontSize: 18,
             },
-          }}
+          })}
         />
         <Stack.Screen
           name="PointsHistory"
           component={PointsHistoryScreen}
-          options={{
-            title: '⭐ Puan Geçmişi',
+          options={({ navigation }) => ({
+            title: t('navigation.pointsHistory'),
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
@@ -313,13 +319,13 @@ const AppNavigator = () => {
               fontWeight: 'bold',
               fontSize: 18,
             },
-          }}
+          })}
         />
         <Stack.Screen
           name="ProfileEdit"
           component={ProfileEditScreen}
-          options={{
-            title: '✏️ Profil Düzenle',
+          options={({ navigation }) => ({
+            title: t('navigation.profileEdit'),
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
@@ -334,13 +340,13 @@ const AppNavigator = () => {
               fontWeight: 'bold',
               fontSize: 18,
             },
-          }}
+          })}
         />
         <Stack.Screen
           name="AddressList"
           component={AddressListScreen}
-          options={{
-            title: '📍 Adreslerim',
+          options={({ navigation }) => ({
+            title: t('navigation.addressList'),
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
@@ -355,13 +361,13 @@ const AppNavigator = () => {
               fontWeight: 'bold',
               fontSize: 18,
             },
-          }}
+          })}
         />
         <Stack.Screen
           name="AddressEdit"
           component={AddressEditScreen}
-          options={{
-            title: '📝 Adres Düzenle',
+          options={({ navigation }) => ({
+            title: t('navigation.addressEdit'),
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
@@ -376,13 +382,13 @@ const AppNavigator = () => {
               fontWeight: 'bold',
               fontSize: 18,
             },
-          }}
+          })}
         />
         <Stack.Screen
           name="Notifications"
           component={NotificationsScreen}
-          options={{
-            title: '🔔 Bildirimler',
+          options={({ navigation }) => ({
+            title: t('navigation.notifications'),
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
@@ -397,13 +403,20 @@ const AppNavigator = () => {
               fontWeight: 'bold',
               fontSize: 18,
             },
+          })}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            headerShown: false,
           }}
         />
         <Stack.Screen
           name="ReviewOrder"
           component={ReviewOrderScreen}
-          options={{
-            title: '⭐ Siparişi Değerlendir',
+          options={({ navigation }) => ({
+            title: t('navigation.reviewOrder'),
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
@@ -418,7 +431,7 @@ const AppNavigator = () => {
               fontWeight: 'bold',
               fontSize: 18,
             },
-          }}
+          })}
         />
 
         {/* Admin Ekranları (Admin Screens) */}

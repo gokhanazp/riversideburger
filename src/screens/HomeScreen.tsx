@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { CATEGORY_NAMES } from '../constants/mockData';
 import { CategoryType } from '../types';
@@ -10,6 +11,7 @@ import { supabase } from '../lib/supabase';
 import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
 import Toast from 'react-native-toast-message';
+import { formatPrice } from '../services/currencyService';
 
 // Ürün tipi (Product type)
 interface Product {
@@ -26,6 +28,8 @@ interface Product {
 
 // Ana sayfa ekranı (Home screen)
 const HomeScreen = ({ navigation }: any) => {
+  const { t } = useTranslation();
+
   // State'ler (States)
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -101,10 +105,11 @@ const HomeScreen = ({ navigation }: any) => {
 
     Toast.show({
       type: 'success',
-      text1: '✅ Sepete Eklendi',
+      text1: '✅ ' + t('cart.addedToCart'),
       text2: product.name,
       position: 'bottom',
       visibilityTime: 2000,
+      bottomOffset: 100,
     });
   };
 
@@ -115,10 +120,11 @@ const HomeScreen = ({ navigation }: any) => {
 
     Toast.show({
       type: isFavorite ? 'info' : 'success',
-      text1: isFavorite ? '💔 Favorilerden Çıkarıldı' : '❤️ Favorilere Eklendi',
+      text1: isFavorite ? '💔 ' + t('favorites.removedFromFavorites') : '❤️ ' + t('favorites.addedToFavorites'),
       text2: product.name,
       position: 'bottom',
       visibilityTime: 2000,
+      bottomOffset: 100,
     });
   };
 
@@ -144,7 +150,7 @@ const HomeScreen = ({ navigation }: any) => {
         <View style={styles.categoryIconContainer}>
           <Ionicons name={iconName} size={32} color={Colors.primary} />
         </View>
-        <Text style={styles.categoryName}>{CATEGORY_NAMES[category]}</Text>
+        <Text style={styles.categoryName}>{t(`categories.${category}`)}</Text>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -174,7 +180,7 @@ const HomeScreen = ({ navigation }: any) => {
           entering={FadeInDown.delay(200).duration(600)}
           style={styles.sectionTitle}
         >
-          Menümüz
+          {t('home.ourMenu')}
         </Animated.Text>
         <View style={styles.categoriesGrid}>
           <CategoryCard category="burger" iconName="fast-food" index={0} />
@@ -193,15 +199,15 @@ const HomeScreen = ({ navigation }: any) => {
           style={styles.sectionHeader}
         >
           <View>
-            <Text style={styles.sectionTitle}>Önerilen Ürünler</Text>
-            <Text style={styles.sectionSubtitle}>Sizin için seçtiklerimiz</Text>
+            <Text style={styles.sectionTitle}>{t('home.featuredProducts')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('home.featuredProductsSubtitle')}</Text>
           </View>
           <TouchableOpacity
             onPress={() => navigation.navigate('MenuTab')}
             style={styles.viewAllButton}
             activeOpacity={0.7}
           >
-            <Text style={styles.viewAllText}>Tümünü Gör</Text>
+            <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
             <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
           </TouchableOpacity>
         </Animated.View>
@@ -209,7 +215,7 @@ const HomeScreen = ({ navigation }: any) => {
         {loadingProducts ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Ürünler yükleniyor...</Text>
+            <Text style={styles.loadingText}>{t('common.loading')}</Text>
           </View>
         ) : featuredProducts.length > 0 ? (
           <ScrollView
@@ -251,7 +257,7 @@ const HomeScreen = ({ navigation }: any) => {
                     {/* Önerilen Badge (Recommended Badge) */}
                     <View style={styles.recommendedBadge}>
                       <Ionicons name="star" size={12} color={Colors.white} />
-                      <Text style={styles.recommendedText}>ÖNERİLEN</Text>
+                      <Text style={styles.recommendedText}>{t('home.featured').toUpperCase()}</Text>
                     </View>
 
                     {/* Ürün Bilgileri (Product Info) */}
@@ -265,7 +271,7 @@ const HomeScreen = ({ navigation }: any) => {
 
                       {/* Fiyat ve Sepete Ekle (Price and Add to Cart) */}
                       <View style={styles.productFooter}>
-                        <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
+                        <Text style={styles.productPrice}>{formatPrice(product.price)}</Text>
                         <TouchableOpacity
                           style={styles.addToCartButton}
                           onPress={() => handleAddToCart(product)}
@@ -283,9 +289,9 @@ const HomeScreen = ({ navigation }: any) => {
         ) : (
           <View style={styles.emptyContainer}>
             <Ionicons name="star-outline" size={48} color="#CCC" />
-            <Text style={styles.emptyText}>Henüz önerilen ürün yok</Text>
+            <Text style={styles.emptyText}>{t('home.noFeaturedProducts')}</Text>
             <Text style={styles.emptySubtext}>
-              Admin panelinden ürünleri "Öne Çıkan" olarak işaretleyebilirsiniz
+              {t('home.noFeaturedProductsSubtext')}
             </Text>
           </View>
         )}
@@ -297,7 +303,7 @@ const HomeScreen = ({ navigation }: any) => {
           entering={FadeInDown.delay(300).duration(600)}
           style={styles.sectionTitle}
         >
-          Hakkımızda
+          {t('home.aboutUs')}
         </Animated.Text>
         <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.aboutCard}>
           <Image
@@ -318,7 +324,7 @@ const HomeScreen = ({ navigation }: any) => {
           entering={FadeInDown.delay(500).duration(600)}
           style={styles.sectionTitle}
         >
-          Teslimat Ortaklarımız
+          {t('home.deliveryPartners')}
         </Animated.Text>
         <Animated.View entering={FadeInDown.delay(600).duration(600)} style={styles.deliveryPartnersContainer}>
           <View style={styles.deliveryPartnerCard}>
@@ -351,13 +357,13 @@ const HomeScreen = ({ navigation }: any) => {
           entering={FadeInDown.delay(700).duration(600)}
           style={styles.sectionTitle}
         >
-          ⭐ Müşteri Yorumları
+          ⭐ {t('home.customerReviews')}
         </Animated.Text>
         <Animated.Text
           entering={FadeInDown.delay(750).duration(600)}
           style={styles.sectionSubtitle}
         >
-          Müşterilerimizin bizim hakkımızda söyledikleri
+          {t('home.customerReviewsSubtitle')}
         </Animated.Text>
         <ScrollView
           horizontal
@@ -441,7 +447,7 @@ const HomeScreen = ({ navigation }: any) => {
           entering={FadeInDown.delay(950).duration(600)}
           style={styles.sectionTitle}
         >
-          🎯 Neden Riverside Burgers?
+          {t('home.whyRiversideBurgers')}
         </Animated.Text>
         <View style={styles.featuresContainer}>
           <Animated.View entering={FadeInDown.delay(1000).duration(600)} style={styles.featureCard}>
@@ -449,10 +455,10 @@ const HomeScreen = ({ navigation }: any) => {
               <Ionicons name="time" size={48} color={Colors.white} />
             </View>
             <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Hızlı Teslimat</Text>
-              <Text style={styles.featureText}>30 dakikada kapınızda, sıcacık teslim</Text>
+              <Text style={styles.featureTitle}>{t('home.fastDelivery')}</Text>
+              <Text style={styles.featureText}>{t('home.fastDeliveryDesc')}</Text>
               <View style={styles.featureBadge}>
-                <Text style={styles.featureBadgeText}>⚡ Express Teslimat</Text>
+                <Text style={styles.featureBadgeText}>{t('home.fastDeliveryBadge')}</Text>
               </View>
             </View>
           </Animated.View>
@@ -462,10 +468,10 @@ const HomeScreen = ({ navigation }: any) => {
               <Ionicons name="shield-checkmark" size={48} color={Colors.white} />
             </View>
             <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Kalite Garantisi</Text>
-              <Text style={styles.featureText}>Her zaman taze malzemeler ve hijyen</Text>
+              <Text style={styles.featureTitle}>{t('home.qualityGuarantee')}</Text>
+              <Text style={styles.featureText}>{t('home.qualityGuaranteeDesc')}</Text>
               <View style={styles.featureBadge}>
-                <Text style={styles.featureBadgeText}>✓ %100 Kalite</Text>
+                <Text style={styles.featureBadgeText}>{t('home.qualityGuaranteeBadge')}</Text>
               </View>
             </View>
           </Animated.View>
@@ -475,10 +481,10 @@ const HomeScreen = ({ navigation }: any) => {
               <Ionicons name="star" size={48} color={Colors.white} />
             </View>
             <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>5 Yıldız Memnuniyet</Text>
-              <Text style={styles.featureText}>Binlerce mutlu müşteri yorumu</Text>
+              <Text style={styles.featureTitle}>{t('home.fiveStarSatisfaction')}</Text>
+              <Text style={styles.featureText}>{t('home.fiveStarSatisfactionDesc')}</Text>
               <View style={styles.featureBadge}>
-                <Text style={styles.featureBadgeText}>⭐ 4.9/5 Puan</Text>
+                <Text style={styles.featureBadgeText}>{t('home.fiveStarSatisfactionBadge')}</Text>
               </View>
             </View>
           </Animated.View>

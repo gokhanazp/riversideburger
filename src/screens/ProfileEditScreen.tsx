@@ -13,9 +13,11 @@ import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/
 import { useAuthStore } from '../store/authStore';
 import { updateUserProfile } from '../services/userService';
 import Toast from 'react-native-toast-message';
+import { useTranslation } from 'react-i18next';
 
 // Profil düzenleme ekranı (Profile edit screen)
 const ProfileEditScreen = ({ navigation }: any) => {
+  const { t } = useTranslation();
   const { user, setUser } = useAuthStore();
 
   // Form state'leri (Form states)
@@ -39,8 +41,8 @@ const ProfileEditScreen = ({ navigation }: any) => {
     if (!fullName.trim()) {
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Lütfen adınızı ve soyadınızı girin',
+        text1: t('profileEdit.errorTitle'),
+        text2: t('profileEdit.errorFullName'),
       });
       return;
     }
@@ -48,8 +50,8 @@ const ProfileEditScreen = ({ navigation }: any) => {
     if (!phone.trim()) {
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Lütfen telefon numaranızı girin',
+        text1: t('profileEdit.errorTitle'),
+        text2: t('profileEdit.errorPhone'),
       });
       return;
     }
@@ -59,8 +61,8 @@ const ProfileEditScreen = ({ navigation }: any) => {
     if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Lütfen geçerli bir telefon numarası girin (10-11 rakam)',
+        text1: t('profileEdit.errorTitle'),
+        text2: t('profileEdit.errorPhoneFormat'),
       });
       return;
     }
@@ -79,8 +81,8 @@ const ProfileEditScreen = ({ navigation }: any) => {
 
       Toast.show({
         type: 'success',
-        text1: '✅ Başarılı',
-        text2: 'Profiliniz güncellendi',
+        text1: t('profileEdit.successTitle'),
+        text2: t('profileEdit.successMessage'),
       });
 
       // Geri dön (Go back)
@@ -89,8 +91,8 @@ const ProfileEditScreen = ({ navigation }: any) => {
       console.error('Error updating profile:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Profil güncellenirken bir hata oluştu',
+        text1: t('profileEdit.errorTitle'),
+        text2: error.message || t('profileEdit.errorUpdate'),
       });
     } finally {
       setIsLoading(false);
@@ -106,9 +108,9 @@ const ProfileEditScreen = ({ navigation }: any) => {
         {/* Başlık (Header) */}
         <View style={styles.header}>
           <Ionicons name="person-circle-outline" size={80} color={Colors.primary} />
-          <Text style={styles.headerTitle}>Profil Bilgileriniz</Text>
+          <Text style={styles.headerTitle}>{t('profileEdit.title')}</Text>
           <Text style={styles.headerSubtitle}>
-            Adınızı ve telefon numaranızı güncelleyin
+            {t('profileEdit.subtitle')}
           </Text>
         </View>
 
@@ -116,22 +118,22 @@ const ProfileEditScreen = ({ navigation }: any) => {
         <View style={styles.form}>
           {/* Email (sadece gösterim) - Email (display only) */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{t('profileEdit.email')}</Text>
             <View style={[styles.input, styles.disabledInput]}>
               <Ionicons name="mail-outline" size={20} color="#999" />
               <Text style={styles.disabledText}>{user?.email}</Text>
             </View>
-            <Text style={styles.helperText}>Email değiştirilemez</Text>
+            <Text style={styles.helperText}>{t('profileEdit.emailHelper')}</Text>
           </View>
 
           {/* Ad Soyad (Full Name) */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Ad Soyad *</Text>
+            <Text style={styles.label}>{t('profileEdit.fullName')} {t('profileEdit.required')}</Text>
             <View style={styles.inputContainer}>
               <Ionicons name="person-outline" size={20} color={Colors.primary} />
               <TextInput
                 style={styles.textInput}
-                placeholder="Adınız ve soyadınız"
+                placeholder={t('profileEdit.fullNamePlaceholder')}
                 placeholderTextColor="#999"
                 value={fullName}
                 onChangeText={setFullName}
@@ -142,12 +144,12 @@ const ProfileEditScreen = ({ navigation }: any) => {
 
           {/* Telefon (Phone) */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Telefon *</Text>
+            <Text style={styles.label}>{t('profileEdit.phone')} {t('profileEdit.required')}</Text>
             <View style={styles.inputContainer}>
               <Ionicons name="call-outline" size={20} color={Colors.primary} />
               <TextInput
                 style={styles.textInput}
-                placeholder="5XX XXX XX XX"
+                placeholder={t('profileEdit.phonePlaceholder')}
                 placeholderTextColor="#999"
                 value={phone}
                 onChangeText={setPhone}
@@ -155,7 +157,7 @@ const ProfileEditScreen = ({ navigation }: any) => {
                 maxLength={11}
               />
             </View>
-            <Text style={styles.helperText}>Örnek: 5551234567</Text>
+            <Text style={styles.helperText}>{t('profileEdit.phoneHelper')}</Text>
           </View>
         </View>
 
@@ -171,7 +173,7 @@ const ProfileEditScreen = ({ navigation }: any) => {
           ) : (
             <>
               <Ionicons name="checkmark-circle-outline" size={24} color={Colors.white} />
-              <Text style={styles.saveButtonText}>Kaydet</Text>
+              <Text style={styles.saveButtonText}>{t('profileEdit.save')}</Text>
             </>
           )}
         </TouchableOpacity>

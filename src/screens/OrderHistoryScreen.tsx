@@ -11,15 +11,18 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
 import { Order } from '../types/database.types';
 import { supabase } from '../lib/supabase';
 import Toast from 'react-native-toast-message';
 import { Colors } from '../constants/theme';
 import { hasUserReviewedOrder } from '../services/reviewService';
+import { formatPrice } from '../services/currencyService';
 
 const OrderHistoryScreen = () => {
   const navigation = useNavigation();
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,8 +73,8 @@ const OrderHistoryScreen = () => {
       console.error('Error fetching orders:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Siparişler yüklenirken bir hata oluştu',
+        text1: t('orderHistory.error'),
+        text2: t('orderHistory.errorMessage'),
       });
     } finally {
       setLoading(false);
@@ -110,19 +113,19 @@ const OrderHistoryScreen = () => {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'Bekliyor';
+        return t('orderHistory.statusPending');
       case 'confirmed':
-        return 'Onaylandı';
+        return t('orderHistory.statusConfirmed');
       case 'preparing':
-        return 'Hazırlanıyor';
+        return t('orderHistory.statusPreparing');
       case 'ready':
-        return 'Hazır';
+        return t('orderHistory.statusReady');
       case 'delivering':
-        return 'Yolda';
+        return t('orderHistory.statusDelivering');
       case 'delivered':
-        return 'Teslim Edildi';
+        return t('orderHistory.statusDelivered');
       case 'cancelled':
-        return 'İptal Edildi';
+        return t('orderHistory.statusCancelled');
       default:
         return status;
     }
@@ -190,7 +193,7 @@ const OrderHistoryScreen = () => {
         {/* Ürünler Listesi (Products List) */}
         {item.order_items && item.order_items.length > 0 && (
           <View style={styles.productsContainer}>
-            <Text style={styles.productsTitle}>Ürünler ({itemCount} adet):</Text>
+            <Text style={styles.productsTitle}>{t('orderHistory.products', { count: itemCount })}:</Text>
             {item.order_items.map((orderItem, index) => {
               // Bu ürüne ait özelleştirmeleri bul (Find customizations for this product)
               const allCustomizations = (item as any).order_item_customizations || [];
@@ -206,7 +209,7 @@ const OrderHistoryScreen = () => {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.productName} numberOfLines={1}>
-                        {orderItem.product?.name || 'Ürün'}
+                        {orderItem.product?.name || t('orderHistory.product')}
                       </Text>
                       {/* Özelleştirmeler (Customizations) */}
                       {customizations.length > 0 && (
@@ -214,7 +217,7 @@ const OrderHistoryScreen = () => {
                           {customizations.map((custom: any, idx: number) => (
                             <Text key={idx} style={styles.customizationText}>
                               • {custom.option_name}
-                              {custom.option_price > 0 && ` (+₺${custom.option_price.toFixed(2)})`}
+                              {custom.option_price > 0 && ` (+${formatPrice(custom.option_price)})`}
                             </Text>
                           ))}
                         </View>
@@ -222,7 +225,7 @@ const OrderHistoryScreen = () => {
                     </View>
                   </View>
                   <Text style={styles.productPrice}>
-                    ₺{orderItem.subtotal.toFixed(2)}
+                    {formatPrice(orderItem.subtotal)}
                   </Text>
                 </View>
               );
@@ -233,19 +236,19 @@ const OrderHistoryScreen = () => {
         {/* Alt Kısım - Fiyat ve Puan (Bottom - Price and Points) */}
         <View style={styles.orderFooter}>
           <View style={styles.priceContainer}>
-            <Text style={styles.totalLabel}>Toplam:</Text>
-            <Text style={styles.totalPrice}>₺{item.total_amount.toFixed(2)}</Text>
+            <Text style={styles.totalLabel}>{t('orderHistory.total')}</Text>
+            <Text style={styles.totalPrice}>{formatPrice(item.total_amount)}</Text>
           </View>
           {item.points_earned > 0 && (
             <View style={styles.pointsEarned}>
               <Ionicons name="star" size={16} color="#FFD700" />
-              <Text style={styles.pointsEarnedText}>+{item.points_earned} puan kazandınız</Text>
+              <Text style={styles.pointsEarnedText}>{t('orderHistory.pointsEarned', { points: item.points_earned })}</Text>
             </View>
           )}
           {item.points_used > 0 && (
             <View style={styles.pointsUsed}>
               <Ionicons name="gift-outline" size={16} color={Colors.primary} />
-              <Text style={styles.pointsUsedText}>-{item.points_used} puan kullanıldı</Text>
+              <Text style={styles.pointsUsedText}>{t('orderHistory.pointsUsed', { points: item.points_used })}</Text>
             </View>
           )}
         </View>
@@ -257,7 +260,7 @@ const OrderHistoryScreen = () => {
             onPress={() => (navigation as any).navigate('ReviewOrder', { orderId: item.id })}
           >
             <Ionicons name="star-outline" size={20} color={Colors.primary} />
-            <Text style={styles.reviewButtonText}>Siparişi Değerlendir</Text>
+            <Text style={styles.reviewButtonText}>{t('orderHistory.reviewOrder')}</Text>
           </TouchableOpacity>
         )}
 
@@ -265,7 +268,7 @@ const OrderHistoryScreen = () => {
         {item.status === 'delivered' && reviewedOrders.has(item.id) && (
           <View style={styles.reviewedBadge}>
             <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-            <Text style={styles.reviewedBadgeText}>Değerlendirildi</Text>
+            <Text style={styles.reviewedBadgeText}>{t('orderHistory.reviewed')}</Text>
           </View>
         )}
       </View>
@@ -276,7 +279,7 @@ const OrderHistoryScreen = () => {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Siparişler yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('orderHistory.loading')}</Text>
       </View>
     );
   }
@@ -285,9 +288,9 @@ const OrderHistoryScreen = () => {
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="receipt-outline" size={80} color="#CCC" />
-        <Text style={styles.emptyTitle}>Henüz Sipariş Yok</Text>
+        <Text style={styles.emptyTitle}>{t('orderHistory.noOrders')}</Text>
         <Text style={styles.emptyText}>
-          İlk siparişinizi vererek puan kazanmaya başlayın!
+          {t('orderHistory.noOrdersMessage')}
         </Text>
       </View>
     );

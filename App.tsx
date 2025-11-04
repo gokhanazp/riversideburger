@@ -5,10 +5,13 @@ import { PaperProvider } from 'react-native-paper';
 import { View, ActivityIndicator, Platform } from 'react-native';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
+import './src/i18n'; // i18n'i başlat (Initialize i18n)
 import AppNavigator from './src/navigation/AppNavigator';
 import { toastConfig } from './src/components/ToastConfig';
 import { useAuthStore } from './src/store/authStore';
 import { registerForPushNotificationsAsync, clearBadgeCount } from './src/services/notificationService';
+import { loadSavedLanguage } from './src/i18n';
+import { initializeCurrencyService } from './src/services/currencyService';
 
 // Ana uygulama componenti (Main application component)
 export default function App() {
@@ -16,9 +19,17 @@ export default function App() {
   const notificationListener = useRef<any>();
   const responseListener = useRef<any>();
 
-  // Uygulama başladığında auth durumunu kontrol et (Check auth state on app start)
+  // Uygulama başladığında auth durumunu kontrol et ve dil/para birimi yükle
+  // (Check auth state on app start and load language/currency)
   useEffect(() => {
-    initialize();
+    const initializeApp = async () => {
+      await Promise.all([
+        initialize(),
+        loadSavedLanguage(),
+        initializeCurrencyService(),
+      ]);
+    };
+    initializeApp();
   }, []);
 
   // Notification listener'ları kur (Setup notification listeners)

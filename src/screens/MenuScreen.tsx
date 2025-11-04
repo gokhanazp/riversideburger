@@ -22,6 +22,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { CATEGORY_NAMES } from '../constants/mockData';
 import { MenuItem, CategoryType } from '../types';
@@ -29,9 +30,11 @@ import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { getProducts, getCategories } from '../services/productService';
 import { Product, Category } from '../types/database.types';
+import { formatPrice } from '../services/currencyService';
 
 // Menü ekranı (Menu screen)
 const MenuScreen = ({ navigation }: any) => {
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
@@ -108,8 +111,8 @@ const MenuScreen = ({ navigation }: any) => {
     // Toast bildirimi göster (Show toast notification)
     Toast.show({
       type: 'success',
-      text1: '🍔 Sepete Eklendi!',
-      text2: `${item.name} sepetinize eklendi`,
+      text1: '✅ ' + t('cart.addedToCart'),
+      text2: item.name,
       position: 'bottom',
       visibilityTime: 2000,
       bottomOffset: 100,
@@ -206,7 +209,7 @@ const MenuScreen = ({ navigation }: any) => {
               toggleFavorite(menuItem);
               Toast.show({
                 type: favorite ? 'info' : 'success',
-                text1: favorite ? '💔 Favorilerden Çıkarıldı' : '❤️ Favorilere Eklendi',
+                text1: favorite ? '💔 ' + t('favorites.removedFromFavorites') : '❤️ ' + t('favorites.addedToFavorites'),
                 text2: item.name,
                 position: 'bottom',
                 visibilityTime: 1500,
@@ -229,9 +232,9 @@ const MenuScreen = ({ navigation }: any) => {
             </Text>
             <View style={styles.menuFooter}>
               <View>
-                <Text style={styles.menuPrice}>₺{item.price.toFixed(2)}</Text>
+                <Text style={styles.menuPrice}>{formatPrice(item.price)}</Text>
                 {item.preparation_time && (
-                  <Text style={styles.preparationTime}>⏱️ {item.preparation_time} dk</Text>
+                  <Text style={styles.preparationTime}>⏱️ {item.preparation_time} {t('product.minutes')}</Text>
                 )}
               </View>
               <Animated.View style={animatedButtonStyle}>
@@ -240,7 +243,7 @@ const MenuScreen = ({ navigation }: any) => {
                   onPress={handleAddPress}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.addButtonText}>Ekle +</Text>
+                  <Text style={styles.addButtonText}>{t('menu.addToCart')}</Text>
                 </TouchableOpacity>
               </Animated.View>
             </View>
@@ -255,7 +258,7 @@ const MenuScreen = ({ navigation }: any) => {
     return (
       <View style={[styles.container, styles.centerContent]}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Ürünler yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -270,7 +273,7 @@ const MenuScreen = ({ navigation }: any) => {
         <Ionicons name="search" size={20} color={Colors.textSecondary} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Ürün ara..."
+          placeholder={t('home.searchPlaceholder')}
           placeholderTextColor={Colors.textSecondary}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -293,10 +296,24 @@ const MenuScreen = ({ navigation }: any) => {
         style={styles.categoriesContainer}
         contentContainerStyle={styles.categoriesContent}
       >
-        <CategoryButton category="all" label="Tümü" />
-        {categories.map((cat) => (
-          <CategoryButton key={cat.id} category={cat.id} label={cat.name} />
-        ))}
+        <CategoryButton category="all" label={t('menu.allCategories')} />
+        {categories.map((cat) => {
+          // Kategori adını küçük harfe çevir ve çeviri anahtarı oluştur (Convert category name to lowercase for translation key)
+          const categoryKey = cat.name.toLowerCase();
+          console.log('🔍 Category:', cat.name, '→ Key:', categoryKey);
+          // Çeviri anahtarını kontrol et, yoksa orijinal adı kullan (Check translation key, use original name if not found)
+          const translatedName = t(`categories.${categoryKey}`);
+          console.log('🌍 Translated:', translatedName);
+          const label = translatedName.startsWith('categories.') ? cat.name : translatedName;
+          console.log('✅ Final label:', label);
+          return (
+            <CategoryButton
+              key={cat.id}
+              category={cat.id}
+              label={label}
+            />
+          );
+        })}
       </ScrollView>
 
       {/* Menü listesi (Menu list) */}
@@ -319,9 +336,9 @@ const MenuScreen = ({ navigation }: any) => {
       ) : (
         <View style={styles.emptyContainer}>
           <Ionicons name="search-outline" size={64} color={Colors.textSecondary} />
-          <Text style={styles.emptyTitle}>Ürün Bulunamadı</Text>
+          <Text style={styles.emptyTitle}>{t('menu.noItems')}</Text>
           <Text style={styles.emptyText}>
-            {searchQuery ? `"${searchQuery}" için sonuç bulunamadı` : 'Bu kategoride ürün yok'}
+            {searchQuery ? `"${searchQuery}"` : t('menu.noItems')}
           </Text>
         </View>
       )}

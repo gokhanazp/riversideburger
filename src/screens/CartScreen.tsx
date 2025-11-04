@@ -12,6 +12,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { useCartStore } from '../store/cartStore';
 import { useAuthStore } from '../store/authStore';
@@ -22,9 +23,11 @@ import { createOrder } from '../services/orderService';
 import { getUserPoints, pointsToTL } from '../services/pointsService';
 import { getDefaultAddress, getUserAddresses } from '../services/addressService';
 import { Address } from '../types/database.types';
+import { formatPrice } from '../services/currencyService';
 
 // Sepet ekranı (Cart screen)
 const CartScreen = ({ navigation }: any) => {
+  const { t } = useTranslation();
   const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
   const { isAuthenticated, user } = useAuthStore();
 
@@ -219,8 +222,8 @@ const CartScreen = ({ navigation }: any) => {
 
       Toast.show({
         type: 'success',
-        text1: '🎉 Sipariş Alındı!',
-        text2: `Sipariş numaranız: #${order.order_number}`,
+        text1: t('cart.orderReceived'),
+        text2: t('cart.orderNumber', { number: order.order_number }),
         visibilityTime: 4000,
       });
 
@@ -233,8 +236,8 @@ const CartScreen = ({ navigation }: any) => {
       console.error('Error creating order:', error);
       Toast.show({
         type: 'error',
-        text1: '❌ Sipariş Oluşturulamadı',
-        text2: error.message || 'Bir hata oluştu, lütfen tekrar deneyin',
+        text1: t('cart.orderFailed'),
+        text2: error.message || t('cart.orderError'),
       });
     } finally {
       setIsCreatingOrder(false);
@@ -253,8 +256,8 @@ const CartScreen = ({ navigation }: any) => {
       removeItem(itemToDelete.id);
       Toast.show({
         type: 'success',
-        text1: '🗑️ Ürün Silindi',
-        text2: `${itemToDelete.name} sepetten çıkarıldı`,
+        text1: t('cart.itemDeleted'),
+        text2: t('cart.itemRemovedFromCart', { name: itemToDelete.name }),
       });
     }
     setShowDeleteModal(false);
@@ -325,15 +328,15 @@ const CartScreen = ({ navigation }: any) => {
       <View style={styles.emptyIconContainer}>
         <Ionicons name="cart-outline" size={100} color="#E0E0E0" />
       </View>
-      <Text style={styles.emptyTitle}>Sepetiniz Boş</Text>
-      <Text style={styles.emptySubtitle}>Menüden ürün ekleyerek başlayın</Text>
+      <Text style={styles.emptyTitle}>{t('cart.empty')}</Text>
+      <Text style={styles.emptySubtitle}>{t('cart.emptyDescription')}</Text>
       <TouchableOpacity
         style={styles.emptyButton}
         onPress={() => navigation.navigate('MenuTab')}
         activeOpacity={0.8}
       >
         <Ionicons name="fast-food" size={20} color={Colors.white} />
-        <Text style={styles.emptyButtonText}>Menüye Git</Text>
+        <Text style={styles.emptyButtonText}>{t('navigation.menu')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -360,7 +363,7 @@ const CartScreen = ({ navigation }: any) => {
               <View style={styles.addressSection}>
                 <View style={styles.addressHeader}>
                   <Ionicons name="location" size={20} color={Colors.primary} />
-                  <Text style={styles.addressHeaderText}>Teslimat Adresi</Text>
+                  <Text style={styles.addressHeaderText}>{t('checkout.deliveryAddress')}</Text>
                 </View>
 
                 {isLoadingAddress ? (
@@ -394,19 +397,19 @@ const CartScreen = ({ navigation }: any) => {
                     activeOpacity={0.7}
                   >
                     <Ionicons name="add-circle-outline" size={24} color={Colors.primary} />
-                    <Text style={styles.addAddressText}>Adres Ekle</Text>
+                    <Text style={styles.addAddressText}>{t('cart.addAddress')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
             )}
 
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Ara Toplam:</Text>
-              <Text style={styles.summaryValue}>₺{getTotalPrice().toFixed(2)}</Text>
+              <Text style={styles.summaryLabel}>{t('cart.subtotal')}:</Text>
+              <Text style={styles.summaryValue}>{formatPrice(getTotalPrice())}</Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Servis Ücreti:</Text>
-              <Text style={styles.summaryValue}>₺0.00</Text>
+              <Text style={styles.summaryLabel}>{t('cart.deliveryFee')}:</Text>
+              <Text style={styles.summaryValue}>{formatPrice(0)}</Text>
             </View>
 
             {/* Puan Kullanma Bölümü (Points Usage Section) */}
@@ -416,12 +419,12 @@ const CartScreen = ({ navigation }: any) => {
                   <View style={styles.pointsHeaderLeft}>
                     <Ionicons name="star" size={20} color="#FFD700" />
                     <Text style={styles.pointsHeaderText}>
-                      Puanlarınız: {userPoints.toFixed(2)}
+                      {t('cart.availablePoints')}: {userPoints.toFixed(2)}
                     </Text>
                   </View>
                   {pointsToUse > 0 && (
                     <TouchableOpacity onPress={handleClearPoints}>
-                      <Text style={styles.clearPointsText}>Temizle</Text>
+                      <Text style={styles.clearPointsText}>{t('cart.clear')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -431,7 +434,7 @@ const CartScreen = ({ navigation }: any) => {
                     <View style={styles.pointsInputContainer}>
                       <TextInput
                         style={styles.pointsInput}
-                        placeholder="Kullanmak istediğiniz puan"
+                        placeholder={t('cart.enterPoints')}
                         keyboardType="decimal-pad"
                         value={pointsInputValue}
                         onChangeText={handlePointsChange}
@@ -440,32 +443,32 @@ const CartScreen = ({ navigation }: any) => {
                         style={styles.useAllButton}
                         onPress={handleUseAllPoints}
                       >
-                        <Text style={styles.useAllButtonText}>Tümünü Kullan</Text>
+                        <Text style={styles.useAllButtonText}>{t('cart.apply')}</Text>
                       </TouchableOpacity>
                     </View>
 
                     {pointsToUse > 0 && (
                       <View style={styles.pointsDiscountRow}>
-                        <Text style={styles.pointsDiscountLabel}>Puan İndirimi:</Text>
-                        <Text style={styles.pointsDiscountValue}>-₺{pointsToUse.toFixed(2)}</Text>
+                        <Text style={styles.pointsDiscountLabel}>{t('cart.discount')}:</Text>
+                        <Text style={styles.pointsDiscountValue}>-{formatPrice(pointsToUse)}</Text>
                       </View>
                     )}
                   </>
                 ) : (
                   <Text style={styles.noPointsText}>
-                    Henüz puanınız yok. Sipariş vererek puan kazanabilirsiniz! 🎁
+                    {t('loyalty.noPoints')} 🎁
                   </Text>
                 )}
               </View>
             )}
 
             <View style={[styles.summaryRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>Toplam:</Text>
+              <Text style={styles.totalLabel}>{t('cart.total')}:</Text>
               <View style={styles.totalPriceContainer}>
                 {pointsToUse > 0 && (
-                  <Text style={styles.originalPrice}>₺{getTotalPrice().toFixed(2)}</Text>
+                  <Text style={styles.originalPrice}>{formatPrice(getTotalPrice())}</Text>
                 )}
-                <Text style={styles.totalValue}>₺{getFinalPrice().toFixed(2)}</Text>
+                <Text style={styles.totalValue}>{formatPrice(getFinalPrice())}</Text>
               </View>
             </View>
 
@@ -474,7 +477,7 @@ const CartScreen = ({ navigation }: any) => {
               onPress={handleCheckout}
               activeOpacity={0.8}
             >
-              <Text style={styles.checkoutButtonText}>Siparişi Onayla</Text>
+              <Text style={styles.checkoutButtonText}>{t('cart.confirmOrder')}</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -483,10 +486,10 @@ const CartScreen = ({ navigation }: any) => {
       {/* Giriş gerekli modal (Login required modal) */}
       <ConfirmModal
         visible={showLoginModal}
-        title="Giriş Gerekli"
-        message="Sipariş vermek için giriş yapmanız gerekiyor."
-        confirmText="Giriş Yap"
-        cancelText="İptal"
+        title={t('cart.loginRequired')}
+        message={t('cart.loginRequiredDesc')}
+        confirmText={t('cart.login')}
+        cancelText={t('cart.cancel')}
         onConfirm={handleLoginConfirm}
         onCancel={() => setShowLoginModal(false)}
         type="default"
@@ -495,14 +498,14 @@ const CartScreen = ({ navigation }: any) => {
       {/* Sipariş onay modal (Checkout confirmation modal) */}
       <ConfirmModal
         visible={showCheckoutModal}
-        title="Sipariş Onayı"
+        title={t('cart.confirmOrder')}
         message={
           pointsToUse > 0
-            ? `Ara Toplam: ₺${getTotalPrice().toFixed(2)}\nPuan İndirimi: -₺${pointsToUse.toFixed(2)}\n\nÖdenecek Tutar: ₺${getFinalPrice().toFixed(2)}\n\nSiparişinizi onaylıyor musunuz?`
-            : `Toplam: ₺${getTotalPrice().toFixed(2)}\n\nSiparişinizi onaylıyor musunuz?`
+            ? `${t('cart.subtotal')}: ${formatPrice(getTotalPrice())}\n${t('cart.discount')}: -${formatPrice(pointsToUse)}\n\n${t('cart.finalTotal')}: ${formatPrice(getFinalPrice())}\n\n${t('cart.confirmOrderDesc')}`
+            : `${t('cart.total')}: ${formatPrice(getTotalPrice())}\n\n${t('cart.confirmOrderDesc')}`
         }
-        confirmText="Onayla"
-        cancelText="İptal"
+        confirmText={t('cart.confirm')}
+        cancelText={t('cart.cancel')}
         onConfirm={handleCheckoutConfirm}
         onCancel={() => setShowCheckoutModal(false)}
         type="success"
@@ -511,10 +514,10 @@ const CartScreen = ({ navigation }: any) => {
       {/* Ürün silme modal (Delete item modal) */}
       <ConfirmModal
         visible={showDeleteModal}
-        title="Ürünü Sil"
-        message={`${itemToDelete?.name || 'Bu ürün'} sepetten çıkarılsın mı?`}
-        confirmText="Sil"
-        cancelText="İptal"
+        title={t('cart.deleteItem')}
+        message={t('cart.deleteItemDesc', { name: itemToDelete?.name || '' })}
+        confirmText={t('cart.delete')}
+        cancelText={t('cart.cancel')}
         onConfirm={handleDeleteConfirm}
         onCancel={() => {
           setShowDeleteModal(false);
@@ -528,7 +531,7 @@ const CartScreen = ({ navigation }: any) => {
         <View style={styles.modalOverlay}>
           <View style={styles.addressModal}>
             <View style={styles.addressModalHeader}>
-              <Text style={styles.addressModalTitle}>Teslimat Adresi Seçin</Text>
+              <Text style={styles.addressModalTitle}>{t('cart.selectAddress')}</Text>
               <TouchableOpacity onPress={() => setShowAddressModal(false)}>
                 <Ionicons name="close" size={24} color="#333" />
               </TouchableOpacity>
@@ -548,7 +551,7 @@ const CartScreen = ({ navigation }: any) => {
                     setShowAddressModal(false);
                     Toast.show({
                       type: 'success',
-                      text1: '✅ Adres Seçildi',
+                      text1: '✅ ' + t('address.addressSelected'),
                       text2: item.title,
                     });
                   }}
@@ -575,7 +578,7 @@ const CartScreen = ({ navigation }: any) => {
               ListEmptyComponent={
                 <View style={styles.emptyAddressList}>
                   <Ionicons name="location-outline" size={48} color="#ccc" />
-                  <Text style={styles.emptyAddressText}>Henüz adres eklenmemiş</Text>
+                  <Text style={styles.emptyAddressText}>{t('cart.noAddress')}</Text>
                 </View>
               }
               style={styles.addressModalList}
@@ -590,7 +593,7 @@ const CartScreen = ({ navigation }: any) => {
               activeOpacity={0.7}
             >
               <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
-              <Text style={styles.addNewAddressText}>Yeni Adres Ekle</Text>
+              <Text style={styles.addNewAddressText}>{t('cart.addAddress')}</Text>
             </TouchableOpacity>
           </View>
         </View>

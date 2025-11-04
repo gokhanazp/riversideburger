@@ -24,9 +24,11 @@ import {
   formatPhoneNumber,
   validatePhoneNumber,
 } from '../constants/canada';
+import { useTranslation } from 'react-i18next';
 
 // Adres düzenleme ekranı - Canada Format (Address edit screen - Canada Format)
 const AddressEditScreen = ({ route, navigation }: any) => {
+  const { t } = useTranslation();
   const { addressId } = route.params || {};
   const { user } = useAuthStore();
   const isEditMode = !!addressId;
@@ -80,8 +82,8 @@ const AddressEditScreen = ({ route, navigation }: any) => {
       console.error('Error loading address:', error);
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: 'Failed to load address',
+        text1: t('addressEdit.errorTitle'),
+        text2: t('addressEdit.errorSave'),
       });
     } finally {
       setIsLoadingData(false);
@@ -93,36 +95,28 @@ const AddressEditScreen = ({ route, navigation }: any) => {
     if (!user) return;
 
     // Validasyon (Validation)
-    if (!fullName.trim()) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter full name' });
-      return;
-    }
-    if (!phone.trim()) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter phone number' });
+    if (!fullName.trim() || !phone.trim() || !streetNumber.trim() || !streetName.trim() || !city.trim() || !postalCode.trim()) {
+      Toast.show({
+        type: 'error',
+        text1: t('addressEdit.errorTitle'),
+        text2: t('addressEdit.errorAllFields')
+      });
       return;
     }
     if (!validatePhoneNumber(phone)) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter a valid Canadian phone number' });
-      return;
-    }
-    if (!streetNumber.trim()) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter street number' });
-      return;
-    }
-    if (!streetName.trim()) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter street name' });
-      return;
-    }
-    if (!city.trim()) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter city' });
-      return;
-    }
-    if (!postalCode.trim()) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter postal code' });
+      Toast.show({
+        type: 'error',
+        text1: t('addressEdit.errorTitle'),
+        text2: t('addressEdit.errorPhone')
+      });
       return;
     }
     if (!validatePostalCode(postalCode)) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter a valid postal code (e.g., M5H 2N2)' });
+      Toast.show({
+        type: 'error',
+        text1: t('addressEdit.errorTitle'),
+        text2: t('addressEdit.errorPostalCode')
+      });
       return;
     }
 
@@ -148,15 +142,15 @@ const AddressEditScreen = ({ route, navigation }: any) => {
         await updateAddress(addressId, addressData);
         Toast.show({
           type: 'success',
-          text1: '✅ Success',
-          text2: 'Address updated',
+          text1: t('addressEdit.successUpdate'),
+          text2: '',
         });
       } else {
         await createAddress(addressData);
         Toast.show({
           type: 'success',
-          text1: '✅ Success',
-          text2: 'Address added',
+          text1: t('addressEdit.successCreate'),
+          text2: '',
         });
       }
 
@@ -165,8 +159,8 @@ const AddressEditScreen = ({ route, navigation }: any) => {
       console.error('Error saving address:', error);
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: error.message || 'Failed to save address',
+        text1: t('addressEdit.errorTitle'),
+        text2: error.message || t('addressEdit.errorSave'),
       });
     } finally {
       setIsLoading(false);
