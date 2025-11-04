@@ -90,13 +90,20 @@ const AdminProducts = ({ navigation }: any) => {
   // Kategorileri getir (Fetch categories)
   const fetchCategories = async () => {
     try {
+      console.log('🔍 Fetching categories from menu_categories...');
       const { data, error } = await supabase
         .from('menu_categories')
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw error;
+      }
+
+      console.log('✅ Categories fetched:', data?.length || 0);
+      console.log('📋 Category IDs:', data?.map(c => ({ id: c.id, name: c.name_en })));
       setCategories(data || []);
     } catch (error: any) {
       console.error('❌ Error fetching categories:', error);
@@ -271,6 +278,16 @@ const AdminProducts = ({ navigation }: any) => {
         return;
       }
 
+      // Kategori kontrolü (Category validation)
+      if (!formData.category_id) {
+        Toast.show({
+          type: 'error',
+          text1: 'Hata',
+          text2: 'Lütfen bir kategori seçin',
+        });
+        return;
+      }
+
       // Fiyat kontrolü (Price validation)
       const priceValue = parseFloat(formData.price);
       if (isNaN(priceValue) || priceValue <= 0) {
@@ -293,7 +310,8 @@ const AdminProducts = ({ navigation }: any) => {
         ingredients: formData.ingredients,
       };
 
-      console.log('💾 Saving product:', productData);
+      console.log('💾 Saving product with category_id:', formData.category_id);
+      console.log('📋 Full product data:', productData);
 
       if (selectedProduct) {
         // Güncelle (Update)
@@ -619,34 +637,41 @@ const AdminProducts = ({ navigation }: any) => {
 
                 {/* Kategori (Category) */}
                 <Text style={styles.label}>Kategori *</Text>
-                <View style={styles.categoryGrid}>
-                  {categories.map((cat) => (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={[
-                        styles.categoryButton,
-                        formData.category_id === cat.id && styles.categoryButtonActive,
-                      ]}
-                      onPress={() => setFormData({ ...formData, category_id: cat.id })}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons
-                        name={cat.icon as any}
-                        size={18}
-                        color={formData.category_id === cat.id ? Colors.primary : '#666'}
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text
+                {categories.length === 0 ? (
+                  <Text style={styles.helperText}>⚠️ Kategoriler yükleniyor...</Text>
+                ) : (
+                  <View style={styles.categoryGrid}>
+                    {categories.map((cat) => (
+                      <TouchableOpacity
+                        key={cat.id}
                         style={[
-                          styles.categoryButtonText,
-                          formData.category_id === cat.id && styles.categoryButtonTextActive,
+                          styles.categoryButton,
+                          formData.category_id === cat.id && styles.categoryButtonActive,
                         ]}
+                        onPress={() => {
+                          console.log('🎯 Category selected:', cat.id, cat.name_en);
+                          setFormData({ ...formData, category_id: cat.id });
+                        }}
+                        activeOpacity={0.7}
                       >
-                        {getCategoryName(cat)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                        <Ionicons
+                          name={cat.icon as any}
+                          size={18}
+                          color={formData.category_id === cat.id ? Colors.primary : '#666'}
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text
+                          style={[
+                            styles.categoryButtonText,
+                            formData.category_id === cat.id && styles.categoryButtonTextActive,
+                          ]}
+                        >
+                          {getCategoryName(cat)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
 
                 {/* Resim Yükleme (Image Upload) */}
                 <Text style={styles.label}>Ürün Resmi *</Text>
