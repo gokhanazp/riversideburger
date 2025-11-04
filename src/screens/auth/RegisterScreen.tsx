@@ -13,8 +13,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import Toast from 'react-native-toast-message';
+import { useTranslation } from 'react-i18next';
 
 export default function RegisterScreen({ navigation }: any) {
+  const { t } = useTranslation();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -32,8 +34,8 @@ export default function RegisterScreen({ navigation }: any) {
     if (!fullName || !email || !phone || !password || !confirmPassword) {
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Lütfen tüm alanları doldurun',
+        text1: t('auth.error'),
+        text2: t('auth.fillAllFields'),
       });
       return;
     }
@@ -41,8 +43,8 @@ export default function RegisterScreen({ navigation }: any) {
     if (password !== confirmPassword) {
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Şifreler eşleşmiyor',
+        text1: t('auth.error'),
+        text2: t('auth.passwordMismatch'),
       });
       return;
     }
@@ -50,8 +52,8 @@ export default function RegisterScreen({ navigation }: any) {
     if (password.length < 6) {
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Şifre en az 6 karakter olmalıdır',
+        text1: t('auth.error'),
+        text2: t('auth.passwordTooShort'),
       });
       return;
     }
@@ -62,8 +64,8 @@ export default function RegisterScreen({ navigation }: any) {
 
       Toast.show({
         type: 'success',
-        text1: '✅ Kayıt Başarılı!',
-        text2: 'Hesabınız oluşturuldu!',
+        text1: '✅ ' + t('auth.registerSuccess'),
+        text2: t('auth.welcome'),
       });
 
       // Modal'ı kapat ve ana sayfaya dön (Close modal and go back)
@@ -72,8 +74,8 @@ export default function RegisterScreen({ navigation }: any) {
       console.error('Register error:', error);
       Toast.show({
         type: 'error',
-        text1: '❌ Kayıt Başarısız',
-        text2: error.message || 'Bir hata oluştu',
+        text1: '❌ ' + t('auth.registerFailed'),
+        text2: error.message || t('auth.error'),
       });
     } finally {
       setIsLoading(false);
@@ -100,8 +102,8 @@ export default function RegisterScreen({ navigation }: any) {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Kayıt Ol</Text>
-          <Text style={styles.subtitle}>Yeni hesap oluşturun</Text>
+          <Text style={styles.title}>{t('auth.register')}</Text>
+          <Text style={styles.subtitle}>{t('auth.createAccount')}</Text>
         </View>
 
         {/* Form */}
@@ -111,7 +113,7 @@ export default function RegisterScreen({ navigation }: any) {
             <Ionicons name="person-outline" size={20} color="#6C757D" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Ad Soyad"
+              placeholder={t('auth.fullName')}
               placeholderTextColor="#ADB5BD"
               value={fullName}
               onChangeText={setFullName}
@@ -124,7 +126,7 @@ export default function RegisterScreen({ navigation }: any) {
             <Ionicons name="mail-outline" size={20} color="#6C757D" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder={t('auth.email')}
               placeholderTextColor="#ADB5BD"
               value={email}
               onChangeText={setEmail}
@@ -139,7 +141,7 @@ export default function RegisterScreen({ navigation }: any) {
             <Ionicons name="call-outline" size={20} color="#6C757D" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Telefon (örn: 5551234567)"
+              placeholder={t('auth.phone')}
               placeholderTextColor="#ADB5BD"
               value={phone}
               onChangeText={setPhone}
@@ -153,7 +155,7 @@ export default function RegisterScreen({ navigation }: any) {
             <Ionicons name="lock-closed-outline" size={20} color="#6C757D" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Şifre (en az 6 karakter)"
+              placeholder={t('auth.password')}
               placeholderTextColor="#ADB5BD"
               value={password}
               onChangeText={setPassword}
@@ -177,7 +179,7 @@ export default function RegisterScreen({ navigation }: any) {
             <Ionicons name="lock-closed-outline" size={20} color="#6C757D" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Şifre Tekrar"
+              placeholder={t('auth.confirmPassword')}
               placeholderTextColor="#ADB5BD"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -205,15 +207,15 @@ export default function RegisterScreen({ navigation }: any) {
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.registerButtonText}>Kayıt Ol</Text>
+              <Text style={styles.registerButtonText}>{t('auth.register')}</Text>
             )}
           </TouchableOpacity>
 
           {/* Giriş Yap Linki (Login Link) */}
           <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Zaten hesabınız var mı? </Text>
+            <Text style={styles.loginText}>{t('auth.alreadyHaveAccount')} </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.loginLink}>Giriş Yap</Text>
+              <Text style={styles.loginLink}>{t('auth.login')}</Text>
             </TouchableOpacity>
           </View>
         </View>

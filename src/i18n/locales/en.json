@@ -44,7 +44,17 @@
     "dontHaveAccount": "Don't have an account?",
     "loginSuccess": "Login successful!",
     "registerSuccess": "Registration successful!",
-    "logoutSuccess": "Logged out"
+    "logoutSuccess": "Logged out",
+    "welcome": "Welcome!",
+    "welcomeBack": "Welcome Back!",
+    "error": "Error",
+    "fillAllFields": "Please fill in all fields",
+    "loginFailed": "Login Failed",
+    "invalidCredentials": "Invalid email or password",
+    "passwordMismatch": "Passwords do not match",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "registerFailed": "Registration Failed",
+    "createAccount": "Create Account"
   },
   "navigation": {
     "home": "Home",

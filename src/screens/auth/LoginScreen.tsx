@@ -13,8 +13,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import Toast from 'react-native-toast-message';
+import { useTranslation } from 'react-i18next';
 
 export default function LoginScreen({ navigation }: any) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,8 +30,8 @@ export default function LoginScreen({ navigation }: any) {
     if (!email || !password) {
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Lütfen tüm alanları doldurun',
+        text1: t('auth.error'),
+        text2: t('auth.fillAllFields'),
       });
       return;
     }
@@ -40,8 +42,8 @@ export default function LoginScreen({ navigation }: any) {
 
       Toast.show({
         type: 'success',
-        text1: '✅ Giriş Başarılı!',
-        text2: 'Hoş geldiniz!',
+        text1: '✅ ' + t('auth.loginSuccess'),
+        text2: t('auth.welcome'),
       });
 
       // Modal'ı kapat ve ana sayfaya dön (Close modal and go back)
@@ -50,8 +52,8 @@ export default function LoginScreen({ navigation }: any) {
       console.error('Login error:', error);
       Toast.show({
         type: 'error',
-        text1: '❌ Giriş Başarısız',
-        text2: error.message || 'Email veya şifre hatalı',
+        text1: '❌ ' + t('auth.loginFailed'),
+        text2: error.message || t('auth.invalidCredentials'),
       });
     } finally {
       setIsLoading(false);
@@ -82,7 +84,7 @@ export default function LoginScreen({ navigation }: any) {
             <Ionicons name="fast-food" size={60} color="#E63946" />
           </View>
           <Text style={styles.title}>Riverside Burgers</Text>
-          <Text style={styles.subtitle}>Hoş Geldiniz!</Text>
+          <Text style={styles.subtitle}>{t('auth.welcomeBack')}</Text>
         </View>
 
         {/* Form */}
@@ -92,7 +94,7 @@ export default function LoginScreen({ navigation }: any) {
             <Ionicons name="mail-outline" size={20} color="#6C757D" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder={t('auth.email')}
               placeholderTextColor="#ADB5BD"
               value={email}
               onChangeText={setEmail}
@@ -107,7 +109,7 @@ export default function LoginScreen({ navigation }: any) {
             <Ionicons name="lock-closed-outline" size={20} color="#6C757D" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Şifre"
+              placeholder={t('auth.password')}
               placeholderTextColor="#ADB5BD"
               value={password}
               onChangeText={setPassword}
@@ -131,7 +133,7 @@ export default function LoginScreen({ navigation }: any) {
             onPress={() => navigation.navigate('ForgotPassword')}
             style={styles.forgotPassword}
           >
-            <Text style={styles.forgotPasswordText}>Şifremi Unuttum?</Text>
+            <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}?</Text>
           </TouchableOpacity>
 
           {/* Giriş Yap Butonu (Login Button) */}
@@ -143,15 +145,15 @@ export default function LoginScreen({ navigation }: any) {
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.loginButtonText}>Giriş Yap</Text>
+              <Text style={styles.loginButtonText}>{t('auth.login')}</Text>
             )}
           </TouchableOpacity>
 
           {/* Kayıt Ol Linki (Register Link) */}
           <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Hesabınız yok mu? </Text>
+            <Text style={styles.registerText}>{t('auth.dontHaveAccount')} </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.registerLink}>Kayıt Ol</Text>
+              <Text style={styles.registerLink}>{t('auth.register')}</Text>
             </TouchableOpacity>
           </View>
         </View>
