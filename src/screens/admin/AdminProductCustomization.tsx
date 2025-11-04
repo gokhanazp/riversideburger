@@ -9,173 +9,175 @@ import {
   Switch,
   TextInput,
   Alert,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
 import { customizationService } from '../../services/customizationService';
-import { ProductOptionCategory, ProductAvailableOption } from '../../types/customization';
+import { ProductOptionCategory, ProductOption } from '../../types/customization';
+
+// Seçenek ile birlikte ürün bilgisi (Option with product info)
+interface ProductSpecificOption {
+  id: string;
+  option_id: string;
+  is_required: boolean;
+  is_default: boolean;
+  option: ProductOption;
+  category: ProductOptionCategory;
+}
 
 // Admin ürün özelleştirme yönetimi (Admin product customization management)
 const AdminProductCustomization = ({ route, navigation }: any) => {
   const { product } = route.params;
+  const insets = useSafeAreaInsets();
+  const { i18n } = useTranslation();
+
   const [categories, setCategories] = useState<ProductOptionCategory[]>([]);
-  const [availableOptions, setAvailableOptions] = useState<ProductAvailableOption[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<ProductOptionCategory | null>(null);
+  const [categoryOptions, setCategoryOptions] = useState<ProductOption[]>([]);
+  const [productOptions, setProductOptions] = useState<ProductSpecificOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  // Kategori ayarları state (Category settings state)
-  const [categorySettings, setCategorySettings] = useState<{
-    [key: string]: {
-      enabled: boolean;
-      isRequired: boolean;
-      maxSelections: string;
-    };
-  }>({});
 
   useEffect(() => {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (selectedCategory) {
+      loadCategoryOptions(selectedCategory.id);
+    }
+  }, [selectedCategory]);
+
   // Verileri yükle (Load data)
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Tüm kategorileri getir (Get all categories)
       const allCategories = await customizationService.getAllCategories();
       setCategories(allCategories);
 
-      // Ürün için mevcut seçenekleri getir (Get available options for product)
-      const productCustomizations = await customizationService.getProductCustomizations(product.id);
-      
-      // Mevcut seçenekleri state'e dönüştür (Convert to state)
-      const settings: any = {};
-      allCategories.forEach((cat) => {
-        const existing = productCustomizations.find((pc) => pc.category.id === cat.id);
-        settings[cat.id] = {
-          enabled: !!existing,
-          isRequired: existing?.is_required || false,
-          maxSelections: existing?.max_selections?.toString() || '',
-        };
-      });
-      setCategorySettings(settings);
+      // İlk kategoriyi seç (Select first category)
+      if (allCategories.length > 0) {
+        setSelectedCategory(allCategories[0]);
+      }
 
-      // Mevcut available options'ları sakla (Store existing available options)
-      const availableOpts: ProductAvailableOption[] = [];
-      productCustomizations.forEach((pc) => {
-        availableOpts.push({
-          id: pc.category.id, // Geçici olarak category id kullanıyoruz
-          product_id: product.id,
-          category_id: pc.category.id,
-          is_required: pc.is_required,
-          max_selections: pc.max_selections,
-          created_at: new Date().toISOString(),
-        });
-      });
-      setAvailableOptions(availableOpts);
+      // Ürün için mevcut seçenekleri getir (Get existing options for product)
+      await loadProductOptions();
     } catch (error) {
       console.error('Error loading data:', error);
       Toast.show({
         type: 'error',
-        text1: '❌ Hata',
-        text2: 'Veriler yüklenirken hata oluştu',
+        text1: i18n.language === 'tr' ? '❌ Hata' : '❌ Error',
+        text2: i18n.language === 'tr' ? 'Veriler yüklenirken hata oluştu' : 'Error loading data',
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // Kategori toggle (Toggle category)
-  const toggleCategory = (categoryId: string) => {
-    setCategorySettings((prev) => ({
-      ...prev,
-      [categoryId]: {
-        ...prev[categoryId],
-        enabled: !prev[categoryId].enabled,
-      },
-    }));
-  };
-
-  // Zorunlu toggle (Toggle required)
-  const toggleRequired = (categoryId: string) => {
-    setCategorySettings((prev) => ({
-      ...prev,
-      [categoryId]: {
-        ...prev[categoryId],
-        isRequired: !prev[categoryId].isRequired,
-      },
-    }));
-  };
-
-  // Maksimum seçim değiştir (Change max selections)
-  const changeMaxSelections = (categoryId: string, value: string) => {
-    setCategorySettings((prev) => ({
-      ...prev,
-      [categoryId]: {
-        ...prev[categoryId],
-        maxSelections: value,
-      },
-    }));
-  };
-
-  // Kaydet (Save)
-  const handleSave = async () => {
+  // Ürün seçeneklerini yükle (Load product options)
+  const loadProductOptions = async () => {
     try {
-      setSaving(true);
+      const options = await customizationService.getProductSpecificOptions(product.id);
 
-      // Önce mevcut tüm seçenekleri sil (Delete all existing options)
-      // Not: Gerçek uygulamada bunu daha akıllı yapmalıyız
-      // Şimdilik basit yaklaşım: Hepsini sil, yeniden ekle
+      // Veriyi düzenle (Format data)
+      const formatted: ProductSpecificOption[] = options.map((opt: any) => ({
+        id: opt.id,
+        option_id: opt.option.id,
+        is_required: opt.is_required,
+        is_default: opt.is_default,
+        option: opt.option,
+        category: opt.option.category,
+      }));
 
-      // Etkin kategorileri ekle (Add enabled categories)
-      for (const category of categories) {
-        const settings = categorySettings[category.id];
-        
-        if (settings.enabled) {
-          const maxSelections = settings.maxSelections
-            ? parseInt(settings.maxSelections, 10)
-            : undefined;
-
-          try {
-            await customizationService.addProductCustomization(
-              product.id,
-              category.id,
-              settings.isRequired,
-              maxSelections
-            );
-          } catch (error: any) {
-            // Eğer zaten varsa hata vermez, devam eder
-            console.log('Category already exists or error:', error.message);
-          }
-        }
-      }
-
-      Toast.show({
-        type: 'success',
-        text1: '✅ Başarılı',
-        text2: 'Özelleştirme ayarları kaydedildi',
-      });
-
-      // Geri dön (Go back)
-      setTimeout(() => navigation.goBack(), 1000);
+      setProductOptions(formatted);
     } catch (error) {
-      console.error('Error saving:', error);
+      console.error('Error loading product options:', error);
+    }
+  };
+
+  // Kategori seçeneklerini yükle (Load category options)
+  const loadCategoryOptions = async (categoryId: string) => {
+    try {
+      const options = await customizationService.getCategoryOptions(categoryId);
+      setCategoryOptions(options);
+    } catch (error) {
+      console.error('Error loading category options:', error);
       Toast.show({
         type: 'error',
-        text1: '❌ Hata',
-        text2: 'Kaydetme sırasında hata oluştu',
+        text1: i18n.language === 'tr' ? '❌ Hata' : '❌ Error',
+        text2: i18n.language === 'tr' ? 'Seçenekler yüklenemedi' : 'Failed to load options',
       });
-    } finally {
-      setSaving(false);
     }
+  };
+
+  // Seçenek ekleme/çıkarma (Add/remove option)
+  const toggleOption = async (option: ProductOption) => {
+    try {
+      // Seçenek zaten ekli mi kontrol et (Check if option already added)
+      const existing = productOptions.find((po) => po.option_id === option.id);
+
+      if (existing) {
+        // Kaldır (Remove)
+        await customizationService.removeProductSpecificOption(existing.id);
+        Toast.show({
+          type: 'success',
+          text1: i18n.language === 'tr' ? '✅ Kaldırıldı' : '✅ Removed',
+          text2: i18n.language === 'tr'
+            ? `${option.name} kaldırıldı`
+            : `${option.name_en || option.name} removed`,
+        });
+      } else {
+        // Ekle (Add)
+        await customizationService.addProductSpecificOption(product.id, option.id, false, false);
+        Toast.show({
+          type: 'success',
+          text1: i18n.language === 'tr' ? '✅ Eklendi' : '✅ Added',
+          text2: i18n.language === 'tr'
+            ? `${option.name} eklendi`
+            : `${option.name_en || option.name} added`,
+        });
+      }
+
+      // Listeyi yenile (Refresh list)
+      await loadProductOptions();
+    } catch (error) {
+      console.error('Error toggling option:', error);
+      Toast.show({
+        type: 'error',
+        text1: i18n.language === 'tr' ? '❌ Hata' : '❌ Error',
+        text2: i18n.language === 'tr' ? 'İşlem başarısız' : 'Operation failed',
+      });
+    }
+  };
+
+  // Kategori adını al (Get category name)
+  const getCategoryName = (category: ProductOptionCategory): string => {
+    return i18n.language === 'tr' ? category.name : category.name_en || category.name;
+  };
+
+  // Seçenek adını al (Get option name)
+  const getOptionName = (option: ProductOption): string => {
+    return i18n.language === 'tr' ? option.name : option.name_en || option.name;
+  };
+
+  // Seçenek ekli mi kontrol et (Check if option is added)
+  const isOptionAdded = (optionId: string): boolean => {
+    return productOptions.some((po) => po.option_id === optionId);
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>
+          {i18n.language === 'tr' ? 'Yükleniyor...' : 'Loading...'}
+        </Text>
       </View>
     );
   }
@@ -183,107 +185,142 @@ const AdminProductCustomization = ({ route, navigation }: any) => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>🎨 Ürün Özelleştirme</Text>
+          <Text style={styles.headerTitle}>
+            {i18n.language === 'tr' ? '🎨 Ürün Özelleştirme' : '🎨 Product Customization'}
+          </Text>
           <Text style={styles.headerSubtitle}>{product.name}</Text>
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.infoCard}>
-          <Ionicons name="information-circle" size={20} color={Colors.primary} />
-          <Text style={styles.infoText}>
-            Bu ürün için hangi özelleştirme seçeneklerinin gösterileceğini belirleyin
+      {/* İki panelli layout (Two-panel layout) */}
+      <View style={styles.mainContent}>
+        {/* Sol panel: Kategoriler (Left panel: Categories) */}
+        <View style={styles.leftPanel}>
+          <Text style={styles.panelTitle}>
+            {i18n.language === 'tr' ? 'Kategoriler' : 'Categories'}
           </Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {categories.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.categoryItem,
+                  selectedCategory?.id === category.id && styles.categoryItemActive,
+                ]}
+                onPress={() => setSelectedCategory(category)}
+              >
+                <Text
+                  style={[
+                    styles.categoryItemText,
+                    selectedCategory?.id === category.id && styles.categoryItemTextActive,
+                  ]}
+                >
+                  {getCategoryName(category)}
+                </Text>
+                {/* Seçili seçenek sayısı (Selected option count) */}
+                {(() => {
+                  const count = productOptions.filter(
+                    (po) => po.category.id === category.id
+                  ).length;
+                  return count > 0 ? (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{count}</Text>
+                    </View>
+                  ) : null;
+                })()}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
-        {categories.map((category) => {
-          const settings = categorySettings[category.id] || {
-            enabled: false,
-            isRequired: false,
-            maxSelections: '',
-          };
-
-          return (
-            <View key={category.id} style={styles.categoryCard}>
-              {/* Kategori başlığı ve toggle (Category header and toggle) */}
-              <View style={styles.categoryHeader}>
-                <View style={styles.categoryHeaderLeft}>
-                  <Text style={styles.categoryName}>{category.name}</Text>
-                  {category.description && (
-                    <Text style={styles.categoryDescription}>{category.description}</Text>
-                  )}
-                </View>
-                <Switch
-                  value={settings.enabled}
-                  onValueChange={() => toggleCategory(category.id)}
-                  trackColor={{ false: '#D1D5DB', true: Colors.primary }}
-                  thumbColor={Colors.white}
-                />
+        {/* Sağ panel: Seçenekler (Right panel: Options) */}
+        <View style={styles.rightPanel}>
+          {selectedCategory ? (
+            <>
+              <View style={styles.panelHeader}>
+                <Text style={styles.panelTitle}>
+                  {i18n.language === 'tr' ? 'Seçenekler' : 'Options'}
+                </Text>
+                <Text style={styles.panelSubtitle}>
+                  {getCategoryName(selectedCategory)}
+                </Text>
               </View>
 
-              {/* Kategori ayarları (Category settings) */}
-              {settings.enabled && (
-                <View style={styles.categorySettings}>
-                  {/* Zorunlu mu? (Is required?) */}
-                  <View style={styles.settingRow}>
-                    <View style={styles.settingLeft}>
-                      <Ionicons name="alert-circle-outline" size={20} color={Colors.textSecondary} />
-                      <Text style={styles.settingLabel}>Zorunlu Seçim</Text>
-                    </View>
-                    <Switch
-                      value={settings.isRequired}
-                      onValueChange={() => toggleRequired(category.id)}
-                      trackColor={{ false: '#D1D5DB', true: Colors.primary }}
-                      thumbColor={Colors.white}
-                    />
-                  </View>
-
-                  {/* Maksimum seçim (Max selections) */}
-                  <View style={styles.settingRow}>
-                    <View style={styles.settingLeft}>
-                      <Ionicons name="options-outline" size={20} color={Colors.textSecondary} />
-                      <Text style={styles.settingLabel}>Maksimum Seçim</Text>
-                    </View>
-                    <TextInput
-                      style={styles.maxSelectionsInput}
-                      placeholder="Sınırsız"
-                      placeholderTextColor="#999"
-                      value={settings.maxSelections}
-                      onChangeText={(value) => changeMaxSelections(category.id, value)}
-                      keyboardType="number-pad"
-                      maxLength={2}
-                    />
-                  </View>
+              {categoryOptions.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="fast-food-outline" size={48} color="#CCC" />
+                  <Text style={styles.emptyText}>
+                    {i18n.language === 'tr'
+                      ? 'Bu kategoride seçenek yok'
+                      : 'No options in this category'}
+                  </Text>
                 </View>
+              ) : (
+                <FlatList
+                  data={categoryOptions}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => {
+                    const isAdded = isOptionAdded(item.id);
+                    return (
+                      <TouchableOpacity
+                        style={[
+                          styles.optionCard,
+                          isAdded && styles.optionCardActive,
+                        ]}
+                        onPress={() => toggleOption(item)}
+                      >
+                        <View style={styles.optionLeft}>
+                          <View style={[
+                            styles.checkbox,
+                            isAdded && styles.checkboxActive,
+                          ]}>
+                            {isAdded && (
+                              <Ionicons name="checkmark" size={16} color="#FFF" />
+                            )}
+                          </View>
+                          <View style={styles.optionInfo}>
+                            <Text style={[
+                              styles.optionName,
+                              isAdded && styles.optionNameActive,
+                            ]}>
+                              {getOptionName(item)}
+                            </Text>
+                            {item.description && (
+                              <Text style={styles.optionDescription}>
+                                {item.description}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                        <Text style={[
+                          styles.optionPrice,
+                          isAdded && styles.optionPriceActive,
+                        ]}>
+                          +{item.price.toFixed(2)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  }}
+                  showsVerticalScrollIndicator={false}
+                />
               )}
-            </View>
-          );
-        })}
-      </ScrollView>
-
-      {/* Kaydet butonu (Save button) */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={saving}
-          activeOpacity={0.8}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color={Colors.white} />
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle" size={24} color={Colors.white} />
-              <Text style={styles.saveButtonText}>Kaydet</Text>
             </>
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="albums-outline" size={48} color="#CCC" />
+              <Text style={styles.emptyText}>
+                {i18n.language === 'tr'
+                  ? 'Bir kategori seçin'
+                  : 'Select a category'}
+              </Text>
+            </View>
           )}
-        </TouchableOpacity>
-      </View>
+        </View>
     </View>
   );
 };
@@ -308,8 +345,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.lg,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
+    backgroundColor: Colors.primary,
+    borderBottomWidth: 0,
     borderBottomColor: Colors.border,
     ...Shadows.small,
   },
@@ -322,115 +359,152 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FontSizes.xl,
     fontWeight: 'bold',
-    color: Colors.text,
+    color: '#FFF',
   },
   headerSubtitle: {
+    fontSize: FontSizes.sm,
+    color: '#FFF',
+    marginTop: 2,
+    opacity: 0.9,
+  },
+  mainContent: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  leftPanel: {
+    width: '35%',
+    backgroundColor: '#F9FAFB',
+    borderRightWidth: 1,
+    borderRightColor: Colors.border,
+    padding: Spacing.md,
+  },
+  rightPanel: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    padding: Spacing.md,
+  },
+  panelTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: Spacing.md,
+  },
+  panelHeader: {
+    marginBottom: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  panelSubtitle: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.xs,
+    backgroundColor: Colors.white,
+  },
+  categoryItemActive: {
+    backgroundColor: Colors.primary,
+  },
+  categoryItemText: {
+    fontSize: FontSizes.md,
+    color: Colors.text,
+    flex: 1,
+  },
+  categoryItemTextActive: {
+    color: '#FFF',
+    fontWeight: '600',
+  },
+  badge: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  badgeText: {
+    fontSize: FontSizes.xs,
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  optionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  optionCardActive: {
+    backgroundColor: '#FFF5F5',
+    borderColor: Colors.primary,
+  },
+  optionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: Spacing.md,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+  },
+  checkboxActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  optionInfo: {
+    flex: 1,
+  },
+  optionName: {
+    fontSize: FontSizes.md,
+    color: Colors.text,
+    fontWeight: '500',
+  },
+  optionNameActive: {
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  optionDescription: {
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
     marginTop: 2,
   },
-  content: {
-    flex: 1,
-    padding: Spacing.lg,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF5F5',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: FontSizes.sm,
-    color: Colors.text,
-    lineHeight: 20,
-  },
-  categoryCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    ...Shadows.small,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  categoryHeaderLeft: {
-    flex: 1,
-    marginRight: Spacing.md,
-  },
-  categoryName: {
-    fontSize: FontSizes.lg,
+  optionPrice: {
+    fontSize: FontSizes.md,
     fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  categoryDescription: {
-    fontSize: FontSizes.sm,
     color: Colors.textSecondary,
   },
-  categorySettings: {
-    marginTop: Spacing.lg,
-    paddingTop: Spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    gap: Spacing.md,
+  optionPriceActive: {
+    color: Colors.primary,
   },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
+  emptyState: {
     flex: 1,
-  },
-  settingLabel: {
-    fontSize: FontSizes.md,
-    color: Colors.text,
-  },
-  maxSelectionsInput: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    fontSize: FontSizes.md,
-    color: Colors.text,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    minWidth: 80,
-    textAlign: 'center',
-  },
-  footer: {
-    padding: Spacing.lg,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    ...Shadows.medium,
-  },
-  saveButton: {
-    flexDirection: 'row',
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.sm,
-    ...Shadows.medium,
+    justifyContent: 'center',
+    padding: Spacing.xl,
   },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.white,
+  emptyText: {
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+    textAlign: 'center',
   },
 });
 

@@ -146,6 +146,124 @@ export const customizationService = {
     }
   },
 
+  // Ürün için spesifik seçenekleri getir (Get specific options for product)
+  async getProductSpecificOptions(productId: string): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('product_specific_options')
+        .select(`
+          id,
+          is_required,
+          is_default,
+          option:product_options (
+            id,
+            name,
+            name_en,
+            description,
+            price,
+            display_order,
+            category:product_option_categories (
+              id,
+              name,
+              name_en,
+              display_order
+            )
+          )
+        `)
+        .eq('product_id', productId)
+        .order('option.category.display_order', { ascending: true })
+        .order('option.display_order', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching product specific options:', error);
+      throw error;
+    }
+  },
+
+  // Ürüne spesifik seçenek ekle (Add specific option to product)
+  async addProductSpecificOption(
+    productId: string,
+    optionId: string,
+    isRequired: boolean = false,
+    isDefault: boolean = false
+  ): Promise<any> {
+    try {
+      const { data, error } = await supabase
+        .from('product_specific_options')
+        .insert({
+          product_id: productId,
+          option_id: optionId,
+          is_required: isRequired,
+          is_default: isDefault,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error adding product specific option:', error);
+      throw error;
+    }
+  },
+
+  // Üründen spesifik seçeneği kaldır (Remove specific option from product)
+  async removeProductSpecificOption(id: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('product_specific_options')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error removing product specific option:', error);
+      throw error;
+    }
+  },
+
+  // Ürünün spesifik seçeneğini güncelle (Update product specific option)
+  async updateProductSpecificOption(
+    id: string,
+    isRequired: boolean,
+    isDefault: boolean
+  ): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('product_specific_options')
+        .update({
+          is_required: isRequired,
+          is_default: isDefault,
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating product specific option:', error);
+      throw error;
+    }
+  },
+
+  // Kategoriye göre tüm seçenekleri getir (Get all options by category)
+  async getCategoryOptions(categoryId: string): Promise<ProductOption[]> {
+    try {
+      const { data, error } = await supabase
+        .from('product_options')
+        .select('*')
+        .eq('category_id', categoryId)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching category options:', error);
+      throw error;
+    }
+  },
+
   // Sipariş özelleştirmelerini kaydet (Save order customizations)
   async saveOrderCustomizations(
     orderId: string,
