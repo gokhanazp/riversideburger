@@ -15,6 +15,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
 import Toast from 'react-native-toast-message';
@@ -37,6 +38,7 @@ interface Banner {
 
 // Admin Banner Yönetimi Ekranı (Admin Banners Management Screen)
 const AdminBanners = () => {
+  const { t } = useTranslation();
   // State'ler (States)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -86,8 +88,8 @@ const AdminBanners = () => {
       console.error('❌ Error fetching banners:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Banner\'lar yüklenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: error.message || t('admin.banners.errorLoading'),
       });
       setBanners([]);
     } finally {
@@ -168,15 +170,15 @@ const AdminBanners = () => {
 
       Toast.show({
         type: 'success',
-        text1: '✅ Resim Yüklendi',
+        text1: t('admin.banners.imageUploaded'),
         text2: file.name,
       });
     } catch (error: any) {
       console.error('❌ Resim yükleme hatası:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Resim yüklenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: error.message || t('admin.banners.errorUploading'),
       });
     } finally {
       setUploadingImage(false);
@@ -190,8 +192,8 @@ const AdminBanners = () => {
       if (!formData.title || !formData.image_url) {
         Toast.show({
           type: 'error',
-          text1: 'Hata',
-          text2: 'Lütfen başlık ve resim URL\'si girin',
+          text1: t('admin.error'),
+          text2: t('admin.banners.errorRequired'),
         });
         return;
       }
@@ -225,7 +227,7 @@ const AdminBanners = () => {
 
         Toast.show({
           type: 'success',
-          text1: '✅ Banner Güncellendi',
+          text1: t('admin.banners.bannerUpdated'),
           text2: formData.title,
         });
       } else {
@@ -244,7 +246,7 @@ const AdminBanners = () => {
 
         Toast.show({
           type: 'success',
-          text1: '✅ Banner Eklendi',
+          text1: t('admin.banners.bannerAdded'),
           text2: formData.title,
         });
       }
@@ -255,8 +257,8 @@ const AdminBanners = () => {
       console.error('❌ Error saving banner:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Banner kaydedilirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: error.message || t('admin.banners.errorSaving'),
       });
     }
   };
@@ -279,7 +281,7 @@ const AdminBanners = () => {
 
       Toast.show({
         type: 'success',
-        text1: '✅ Banner Silindi',
+        text1: t('admin.banners.bannerDeleted'),
         text2: selectedBanner.title,
       });
 
@@ -290,8 +292,8 @@ const AdminBanners = () => {
       console.error('❌ Error deleting banner:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Banner silinirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: error.message || t('admin.banners.errorDeleting'),
       });
     }
   };
@@ -308,7 +310,7 @@ const AdminBanners = () => {
 
       Toast.show({
         type: 'success',
-        text1: banner.is_active ? '⚫ Banner Pasif' : '🟢 Banner Aktif',
+        text1: banner.is_active ? t('admin.banners.bannerDeactivated') : t('admin.banners.bannerActivated'),
         text2: banner.title,
       });
 
@@ -317,8 +319,8 @@ const AdminBanners = () => {
       console.error('Error toggling banner status:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Durum değiştirilirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: t('admin.banners.errorToggling'),
       });
     }
   };
@@ -388,7 +390,7 @@ const AdminBanners = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('admin.banners.loading')}</Text>
       </View>
     );
   }
@@ -480,7 +482,7 @@ const AdminBanners = () => {
                   {uploadingImage ? (
                     <>
                       <ActivityIndicator size="small" color={Colors.white} />
-                      <Text style={styles.uploadButtonText}>Yükleniyor...</Text>
+                      <Text style={styles.uploadButtonText}>{t('admin.banners.uploading')}</Text>
                     </>
                   ) : (
                     <>
