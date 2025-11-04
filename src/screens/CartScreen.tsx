@@ -23,13 +23,27 @@ import { createOrder } from '../services/orderService';
 import { getUserPoints, pointsToTL } from '../services/pointsService';
 import { getDefaultAddress, getUserAddresses } from '../services/addressService';
 import { Address } from '../types/database.types';
-import { formatProductPrice } from '../services/currencyService';
+import { formatProductPrice, convertPrice, getCurrentCurrency } from '../services/currencyService';
 
 // Sepet ekranı (Cart screen)
 const CartScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
   const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
   const { isAuthenticated, user } = useAuthStore();
+
+  // Sepet toplamını hesapla - her ürünün kendi para birimini dikkate alarak
+  // (Calculate cart total - considering each product's own currency)
+  const calculateCartTotal = () => {
+    const currentCurrency = getCurrentCurrency();
+    return items.reduce((total, item) => {
+      const itemCurrency = item.currency || 'TRY';
+      const itemTotal = item.price * item.quantity;
+      // Ürünün para biriminden mevcut para birimine çevir
+      // (Convert from item's currency to current currency)
+      const convertedPrice = convertPrice(itemTotal, itemCurrency, currentCurrency);
+      return total + convertedPrice;
+    }, 0);
+  };
 
   // Modal state'leri (Modal states)
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -102,7 +116,7 @@ const CartScreen = ({ navigation }: any) => {
     const numValue = parseFloat(value) || 0;
 
     // Maksimum kullanılabilir puan: Kullanıcının puanı ve sepet toplamının küçük olanı
-    const maxPoints = Math.min(userPoints, getTotalPrice());
+    const maxPoints = Math.min(userPoints, calculateCartTotal());
 
     if (numValue > maxPoints) {
       setPointsToUse(maxPoints);
@@ -122,7 +136,7 @@ const CartScreen = ({ navigation }: any) => {
 
   // Tüm puanları kullan (Use all points)
   const handleUseAllPoints = () => {
-    const maxPoints = Math.min(userPoints, getTotalPrice());
+    const maxPoints = Math.min(userPoints, calculateCartTotal());
     setPointsToUse(maxPoints);
     setPointsInputValue(maxPoints.toFixed(2));
   };
@@ -135,7 +149,7 @@ const CartScreen = ({ navigation }: any) => {
 
   // İndirimli toplam fiyat (Discounted total price)
   const getFinalPrice = () => {
-    return Math.max(0, getTotalPrice() - pointsToUse);
+    return Math.max(0, calculateCartTotal() - pointsToUse);
   };
 
   // Sipariş onaylama işlevi (Order confirmation handler)
@@ -408,13 +422,13 @@ const CartScreen = ({ navigation }: any) => {
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>{t('cart.subtotal')}:</Text>
               <Text style={styles.summaryValue}>
-                {formatProductPrice(getTotalPrice(), 'TRY')}
+                {formatProductPrice(calculateCartTotal(), getCurrentCurrency())}
               </Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>{t('cart.deliveryFee')}:</Text>
               <Text style={styles.summaryValue}>
-                {formatProductPrice(0, 'TRY')}
+                {formatProductPrice(0, getCurrentCurrency())}
               </Text>
             </View>
 
@@ -457,7 +471,7 @@ const CartScreen = ({ navigation }: any) => {
                       <View style={styles.pointsDiscountRow}>
                         <Text style={styles.pointsDiscountLabel}>{t('cart.discount')}:</Text>
                         <Text style={styles.pointsDiscountValue}>
-                          -{formatProductPrice(pointsToUse, 'TRY')}
+                          -{formatProductPrice(pointsToUse, getCurrentCurrency())}
                         </Text>
                       </View>
                     )}
@@ -475,11 +489,11 @@ const CartScreen = ({ navigation }: any) => {
               <View style={styles.totalPriceContainer}>
                 {pointsToUse > 0 && (
                   <Text style={styles.originalPrice}>
-                    {formatProductPrice(getTotalPrice(), 'TRY')}
+                    {formatProductPrice(calculateCartTotal(), getCurrentCurrency())}
                   </Text>
                 )}
                 <Text style={styles.totalValue}>
-                  {formatProductPrice(getFinalPrice(), 'TRY')}
+                  {formatProductPrice(getFinalPrice(), getCurrentCurrency())}
                 </Text>
               </View>
             </View>
@@ -513,8 +527,8 @@ const CartScreen = ({ navigation }: any) => {
         title={t('cart.confirmOrder')}
         message={
           pointsToUse > 0
-            ? `${t('cart.subtotal')}: ${formatProductPrice(getTotalPrice(), 'TRY')}\n${t('cart.discount')}: -${formatProductPrice(pointsToUse, 'TRY')}\n\n${t('cart.finalTotal')}: ${formatProductPrice(getFinalPrice(), 'TRY')}\n\n${t('cart.confirmOrderDesc')}`
-            : `${t('cart.total')}: ${formatProductPrice(getTotalPrice(), 'TRY')}\n\n${t('cart.confirmOrderDesc')}`
+            ? `${t('cart.subtotal')}: ${formatProductPrice(calculateCartTotal(), getCurrentCurrency())}\n${t('cart.discount')}: -${formatProductPrice(pointsToUse, getCurrentCurrency())}\n\n${t('cart.finalTotal')}: ${formatProductPrice(getFinalPrice(), getCurrentCurrency())}\n\n${t('cart.confirmOrderDesc')}`
+            : `${t('cart.total')}: ${formatProductPrice(calculateCartTotal(), getCurrentCurrency())}\n\n${t('cart.confirmOrderDesc')}`
         }
         confirmText={t('cart.confirm')}
         cancelText={t('cart.cancel')}
