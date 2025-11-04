@@ -6,7 +6,7 @@ export const getProducts = async (): Promise<Product[]> => {
   try {
     const { data, error } = await supabase
       .from('products')
-      .select('*, category:categories(*)')
+      .select('*')
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
@@ -23,7 +23,7 @@ export const getProductsByCategory = async (categoryId: string): Promise<Product
   try {
     const { data, error } = await supabase
       .from('products')
-      .select('*, category:categories(*)')
+      .select('*')
       .eq('category_id', categoryId)
       .eq('is_active', true)
       .order('created_at', { ascending: false });
@@ -41,7 +41,7 @@ export const getProduct = async (id: string): Promise<Product | null> => {
   try {
     const { data, error } = await supabase
       .from('products')
-      .select('*, category:categories(*)')
+      .select('*')
       .eq('id', id)
       .single();
 
