@@ -20,6 +20,8 @@ import { supabase } from '../../lib/supabase';
 import Toast from 'react-native-toast-message';
 import ConfirmModal from '../../components/ConfirmModal';
 import { uploadProductImage, deleteImage } from '../../services/imageService';
+import { useTranslation } from 'react-i18next';
+import { MenuCategory } from '../../types';
 
 // Ürün tipi (Product type)
 interface Product {
@@ -27,7 +29,8 @@ interface Product {
   name: string;
   description: string;
   price: number; // Fiyat - ülke seçimine göre sembol eklenir (Price - symbol added based on country selection)
-  category: string;
+  category: string; // Eski kategori (Old category - deprecated)
+  category_id?: string; // Yeni kategori ID (New category ID from menu_categories)
   image_url: string;
   stock_status: 'in_stock' | 'out_of_stock';
   is_featured: boolean;
@@ -35,33 +38,31 @@ interface Product {
   created_at: string;
 }
 
-// Kategori listesi (Category list)
-const CATEGORIES = [
-  { value: 'burger', label: 'Burger' },
-  { value: 'pizza', label: 'Pizza' },
-  { value: 'pasta', label: 'Pasta' },
-  { value: 'salad', label: 'Salad' },
-  { value: 'dessert', label: 'Dessert' },
-  { value: 'drink', label: 'Drink' },
-];
-
 // Admin Ürünler Ekranı (Admin Products Screen)
 const AdminProducts = ({ navigation }: any) => {
+  const { i18n } = useTranslation();
+
   // State'ler (States)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<MenuCategory[]>([]); // Dinamik kategoriler (Dynamic categories)
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('all');
+
+  // Kategori ismini mevcut dile göre al (Get category name based on current language)
+  const getCategoryName = (category: MenuCategory): string => {
+    return i18n.language === 'tr' ? category.name_tr : category.name_en;
+  };
 
   // Form state'leri (Form states)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
-    category: 'burger',
+    category_id: '', // Yeni: Kategori ID (New: Category ID)
     image_url: '',
     stock_status: 'in_stock' as 'in_stock' | 'out_of_stock',
     is_featured: false,
@@ -76,10 +77,32 @@ const AdminProducts = ({ navigation }: any) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sayfa yüklendiğinde ürünleri getir (Fetch products on page load)
+  // Sayfa yüklendiğinde ürünleri ve kategorileri getir (Fetch products and categories on page load)
   useEffect(() => {
+    fetchCategories();
     fetchProducts();
   }, [filterCategory]);
+
+  // Kategorileri getir (Fetch categories)
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('menu_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error: any) {
+      console.error('❌ Error fetching categories:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Hata',
+        text2: 'Kategoriler yüklenirken bir hata oluştu',
+      });
+    }
+  };
 
   // Ürünleri getir (Fetch products)
   const fetchProducts = async () => {
@@ -94,7 +117,7 @@ const AdminProducts = ({ navigation }: any) => {
 
       // Kategori filtresi (Category filter)
       if (filterCategory !== 'all') {
-        query = query.eq('category', filterCategory);
+        query = query.eq('category_id', filterCategory);
       }
 
       const { data, error } = await query;
@@ -135,7 +158,7 @@ const AdminProducts = ({ navigation }: any) => {
       name: '',
       description: '',
       price: '',
-      category: 'burger',
+      category_id: categories.length > 0 ? categories[0].id : '', // İlk kategoriyi seç (Select first category)
       image_url: '',
       stock_status: 'in_stock',
       is_featured: false,
@@ -153,7 +176,7 @@ const AdminProducts = ({ navigation }: any) => {
       name: product.name,
       description: product.description,
       price: product.price.toString(),
-      category: product.category,
+      category_id: product.category_id || (categories.length > 0 ? categories[0].id : ''),
       image_url: product.image_url,
       stock_status: product.stock_status,
       is_featured: product.is_featured,
@@ -259,7 +282,7 @@ const AdminProducts = ({ navigation }: any) => {
         name: formData.name.trim(),
         description: formData.description.trim(),
         price: priceValue,
-        category: formData.category,
+        category_id: formData.category_id, // Yeni: Kategori ID (New: Category ID)
         image_url: formData.image_url.trim(),
         stock_status: formData.stock_status,
         is_featured: formData.is_featured,
@@ -500,20 +523,20 @@ const AdminProducts = ({ navigation }: any) => {
               Tümü
             </Text>
           </TouchableOpacity>
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <TouchableOpacity
-              key={cat.value}
-              style={[styles.filterButton, filterCategory === cat.value && styles.filterButtonActive]}
-              onPress={() => setFilterCategory(cat.value)}
+              key={cat.id}
+              style={[styles.filterButton, filterCategory === cat.id && styles.filterButtonActive]}
+              onPress={() => setFilterCategory(cat.id)}
               activeOpacity={0.7}
             >
               <Text
                 style={[
                   styles.filterButtonText,
-                  filterCategory === cat.value && styles.filterButtonTextActive,
+                  filterCategory === cat.id && styles.filterButtonTextActive,
                 ]}
               >
-                {cat.label}
+                {getCategoryName(cat)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -593,23 +616,29 @@ const AdminProducts = ({ navigation }: any) => {
                 {/* Kategori (Category) */}
                 <Text style={styles.label}>Kategori *</Text>
                 <View style={styles.categoryGrid}>
-                  {CATEGORIES.map((cat) => (
+                  {categories.map((cat) => (
                     <TouchableOpacity
-                      key={cat.value}
+                      key={cat.id}
                       style={[
                         styles.categoryButton,
-                        formData.category === cat.value && styles.categoryButtonActive,
+                        formData.category_id === cat.id && styles.categoryButtonActive,
                       ]}
-                      onPress={() => setFormData({ ...formData, category: cat.value })}
+                      onPress={() => setFormData({ ...formData, category_id: cat.id })}
                       activeOpacity={0.7}
                     >
+                      <Ionicons
+                        name={cat.icon as any}
+                        size={18}
+                        color={formData.category_id === cat.id ? Colors.primary : '#666'}
+                        style={{ marginRight: 6 }}
+                      />
                       <Text
                         style={[
                           styles.categoryButtonText,
-                          formData.category === cat.value && styles.categoryButtonTextActive,
+                          formData.category_id === cat.id && styles.categoryButtonTextActive,
                         ]}
                       >
-                        {cat.label}
+                        {getCategoryName(cat)}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -1012,6 +1041,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   categoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
