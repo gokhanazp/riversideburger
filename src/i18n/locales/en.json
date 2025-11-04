@@ -674,6 +674,27 @@
       "rejectReasonRequired": "Please enter rejection reason",
       "rejectReasonTitle": "Rejection Reason",
       "loading": "Loading..."
+    },
+    "settings": {
+      "title": "Settings",
+      "pointsPercentage": "Points Percentage",
+      "pointsPercentageDesc": "Percentage of points earned per order",
+      "minOrderAmount": "Minimum Order Amount",
+      "minOrderAmountDesc": "Minimum amount required for orders",
+      "deliveryFee": "Delivery Fee",
+      "deliveryFeeDesc": "Standard delivery fee",
+      "freeDeliveryThreshold": "Free Delivery Threshold",
+      "freeDeliveryThresholdDesc": "Free delivery above this amount",
+      "saveSettings": "Save Settings",
+      "saving": "Saving...",
+      "settingsSaved": "Settings Saved",
+      "settingsSavedDesc": "Changes saved successfully",
+      "errorLoading": "Error loading settings",
+      "errorCreatingDefaults": "Failed to create default settings",
+      "errorSaving": "Error saving settings",
+      "pointsPercentageError": "Points percentage must be between 0-100",
+      "minOrderAmountError": "Minimum order amount cannot be less than 0",
+      "loading": "Loading..."
     }
   },
   "favorites": {

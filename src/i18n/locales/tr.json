@@ -674,6 +674,27 @@
       "rejectReasonRequired": "Lütfen red nedeni girin",
       "rejectReasonTitle": "Red Nedeni",
       "loading": "Yükleniyor..."
+    },
+    "settings": {
+      "title": "Ayarlar",
+      "pointsPercentage": "Puan Yüzdesi",
+      "pointsPercentageDesc": "Her siparişten kazanılan puan yüzdesi",
+      "minOrderAmount": "Minimum Sipariş Tutarı",
+      "minOrderAmountDesc": "Sipariş için minimum tutar",
+      "deliveryFee": "Teslimat Ücreti",
+      "deliveryFeeDesc": "Standart teslimat ücreti",
+      "freeDeliveryThreshold": "Ücretsiz Teslimat Eşiği",
+      "freeDeliveryThresholdDesc": "Bu tutarın üzerinde teslimat ücretsiz",
+      "saveSettings": "Ayarları Kaydet",
+      "saving": "Kaydediliyor...",
+      "settingsSaved": "Ayarlar Kaydedildi",
+      "settingsSavedDesc": "Değişiklikler başarıyla kaydedildi",
+      "errorLoading": "Ayarlar yüklenirken bir hata oluştu",
+      "errorCreatingDefaults": "Varsayılan ayarlar oluşturulamadı",
+      "errorSaving": "Ayarlar kaydedilirken bir hata oluştu",
+      "pointsPercentageError": "Puan yüzdesi 0-100 arasında olmalıdır",
+      "minOrderAmountError": "Minimum sipariş tutarı 0'dan küçük olamaz",
+      "loading": "Yükleniyor..."
     }
   },
   "favorites": {

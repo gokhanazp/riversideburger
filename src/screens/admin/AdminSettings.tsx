@@ -10,6 +10,7 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
 import Toast from 'react-native-toast-message';
@@ -28,6 +29,7 @@ interface Settings {
 
 // Admin Ayarlar Ekranı (Admin Settings Screen)
 const AdminSettings = () => {
+  const { t } = useTranslation();
   // State'ler (States)
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -77,8 +79,8 @@ const AdminSettings = () => {
       console.error('❌ Error fetching settings:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Ayarlar yüklenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: error.message || t('admin.settings.errorLoading'),
       });
     } finally {
       setLoading(false);
@@ -110,8 +112,8 @@ const AdminSettings = () => {
       console.error('❌ Error creating default settings:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Varsayılan ayarlar oluşturulamadı',
+        text1: t('admin.error'),
+        text2: t('admin.settings.errorCreatingDefaults'),
       });
     }
   };
@@ -126,8 +128,8 @@ const AdminSettings = () => {
       if (settings.points_percentage < 0 || settings.points_percentage > 100) {
         Toast.show({
           type: 'error',
-          text1: 'Hata',
-          text2: 'Puan yüzdesi 0-100 arasında olmalıdır',
+          text1: t('admin.error'),
+          text2: t('admin.settings.pointsPercentageError'),
         });
         return;
       }
@@ -135,8 +137,8 @@ const AdminSettings = () => {
       if (settings.min_order_amount < 0) {
         Toast.show({
           type: 'error',
-          text1: 'Hata',
-          text2: 'Minimum sipariş tutarı 0\'dan küçük olamaz',
+          text1: t('admin.error'),
+          text2: t('admin.settings.minOrderAmountError'),
         });
         return;
       }
@@ -162,15 +164,15 @@ const AdminSettings = () => {
 
       Toast.show({
         type: 'success',
-        text1: '✅ Ayarlar Kaydedildi',
-        text2: 'Değişiklikler başarıyla kaydedildi',
+        text1: t('admin.settings.settingsSaved'),
+        text2: t('admin.settings.settingsSavedDesc'),
       });
     } catch (error: any) {
       console.error('❌ Error saving settings:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Ayarlar kaydedilirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: error.message || t('admin.settings.errorSaving'),
       });
     } finally {
       setSaving(false);
@@ -207,7 +209,7 @@ const AdminSettings = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('admin.settings.loading')}</Text>
       </View>
     );
   }
@@ -340,7 +342,7 @@ const AdminSettings = () => {
           ) : (
             <>
               <Ionicons name="checkmark-circle" size={24} color={Colors.white} />
-              <Text style={styles.saveButtonText}>Değişiklikleri Kaydet</Text>
+              <Text style={styles.saveButtonText}>{t('admin.settings.saveSettings')}</Text>
             </>
           )}
         </TouchableOpacity>
