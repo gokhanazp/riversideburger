@@ -459,7 +459,7 @@ const AdminProducts = ({ navigation }: any) => {
                 { color: product.stock_status === 'in_stock' ? '#28A745' : '#DC3545' },
               ]}
             >
-              {product.stock_status === 'in_stock' ? 'Stokta' : 'Stokta Yok'}
+              {product.stock_status === 'in_stock' ? t('admin.products.inStock') : t('admin.products.outOfStock')}
             </Text>
           </View>
         </View>
@@ -481,7 +481,7 @@ const AdminProducts = ({ navigation }: any) => {
                 { color: product.stock_status === 'in_stock' ? '#DC3545' : '#28A745' },
               ]}
             >
-              {product.stock_status === 'in_stock' ? 'Stoktan Çıkar' : 'Stoğa Ekle'}
+              {product.stock_status === 'in_stock' ? t('admin.products.removeFromStock') : t('admin.products.addToStock')}
             </Text>
           </TouchableOpacity>
 
@@ -591,7 +591,7 @@ const AdminProducts = ({ navigation }: any) => {
             <View style={styles.editModal}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
-                  {selectedProduct ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}
+                  {selectedProduct ? t('admin.products.editProductTitle') : t('admin.products.addProductTitle')}
                 </Text>
                 <TouchableOpacity onPress={() => setShowEditModal(false)}>
                   <Ionicons name="close" size={24} color="#333" />
@@ -600,7 +600,7 @@ const AdminProducts = ({ navigation }: any) => {
 
               <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
                 {/* Ürün Adı (Product Name) */}
-                <Text style={styles.label}>Ürün Adı *</Text>
+                <Text style={styles.label}>{t('admin.products.productNameLabel')}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder={t('admin.products.namePlaceholder')}
@@ -610,7 +610,7 @@ const AdminProducts = ({ navigation }: any) => {
                 />
 
                 {/* Açıklama (Description) */}
-                <Text style={styles.label}>Açıklama</Text>
+                <Text style={styles.label}>{t('admin.products.descriptionLabel')}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   placeholder={t('admin.products.descriptionPlaceholder')}
@@ -622,7 +622,7 @@ const AdminProducts = ({ navigation }: any) => {
                 />
 
                 {/* Fiyat (Price) */}
-                <Text style={styles.label}>Fiyat *</Text>
+                <Text style={styles.label}>{t('admin.products.priceLabel')}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder={t('admin.products.pricePlaceholder')}
@@ -632,11 +632,11 @@ const AdminProducts = ({ navigation }: any) => {
                   keyboardType="decimal-pad"
                 />
                 <Text style={styles.helperText}>
-                  Türkiye için ₺ TRY, Kanada için $ CAD olarak gösterilir
+                  {t('admin.products.priceHelper')}
                 </Text>
 
                 {/* Kategori (Category) */}
-                <Text style={styles.label}>Kategori *</Text>
+                <Text style={styles.label}>{t('admin.products.categoryLabel')}</Text>
                 {categories.length === 0 ? (
                   <Text style={styles.helperText}>⚠️ {t('admin.products.categoriesLoading')}</Text>
                 ) : (
@@ -676,7 +676,7 @@ const AdminProducts = ({ navigation }: any) => {
                 )}
 
                 {/* Resim Yükleme (Image Upload) */}
-                <Text style={styles.label}>Ürün Resmi *</Text>
+                <Text style={styles.label}>{t('admin.products.productImageLabel')}</Text>
 
                 {/* Web için file input (File input for web) */}
                 {Platform.OS === 'web' && (
@@ -705,7 +705,7 @@ const AdminProducts = ({ navigation }: any) => {
                     <>
                       <Ionicons name="cloud-upload" size={24} color={Colors.white} />
                       <Text style={styles.uploadButtonText}>
-                        {formData.image_url ? 'Resmi Değiştir' : 'Resim Yükle'}
+                        {formData.image_url ? t('admin.products.changeImageButton') : t('admin.products.uploadImageButton')}
                       </Text>
                     </>
                   )}
@@ -713,10 +713,10 @@ const AdminProducts = ({ navigation }: any) => {
 
                 {/* Bilgi mesajı (Info message) */}
                 <Text style={styles.uploadInfo}>
-                  📸 Maksimum 5MB, JPEG/PNG/WebP formatında
+                  {t('admin.products.uploadInfo1')}
                 </Text>
                 <Text style={styles.uploadInfo}>
-                  🎨 Resim otomatik olarak 800x800 boyutuna küçültülecek
+                  {t('admin.products.uploadInfo2')}
                 </Text>
 
                 {/* Resim Önizleme (Image Preview) */}
@@ -734,7 +734,7 @@ const AdminProducts = ({ navigation }: any) => {
                 )}
 
                 {/* Manuel URL girişi (Manual URL input) - Opsiyonel */}
-                <Text style={styles.label}>veya Manuel URL Gir</Text>
+                <Text style={styles.label}>{t('admin.products.manualUrlLabel')}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder={t('admin.products.imageUrlPlaceholder')}
@@ -746,7 +746,7 @@ const AdminProducts = ({ navigation }: any) => {
 
                 {/* Stok Durumu (Stock Status) */}
                 <View style={styles.switchRow}>
-                  <Text style={styles.label}>Stokta</Text>
+                  <Text style={styles.label}>{t('admin.products.stockLabel')}</Text>
                   <Switch
                     value={formData.stock_status === 'in_stock'}
                     onValueChange={(value) =>
@@ -758,9 +758,9 @@ const AdminProducts = ({ navigation }: any) => {
                 </View>
 
                 {/* Malzemeler (Ingredients) */}
-                <Text style={styles.label}>Malzemeler</Text>
+                <Text style={styles.label}>{t('admin.products.ingredientsLabel')}</Text>
                 <Text style={styles.helperText}>
-                  Müşteriler bu malzemeleri çıkarabilir
+                  {t('admin.products.ingredientsHelper')}
                 </Text>
 
                 {/* Malzeme ekleme input (Ingredient input) */}
@@ -801,7 +801,7 @@ const AdminProducts = ({ navigation }: any) => {
 
                 {/* Öne Çıkan (Featured) */}
                 <View style={styles.switchRow}>
-                  <Text style={styles.label}>Öne Çıkan Ürün</Text>
+                  <Text style={styles.label}>{t('admin.products.featuredLabel')}</Text>
                   <Switch
                     value={formData.is_featured}
                     onValueChange={(value) => setFormData({ ...formData, is_featured: value })}
@@ -814,7 +814,7 @@ const AdminProducts = ({ navigation }: any) => {
               {/* Kaydet Butonu (Save Button) */}
               <TouchableOpacity style={styles.saveButton} onPress={handleSaveProduct} activeOpacity={0.8}>
                 <Text style={styles.saveButtonText}>
-                  {selectedProduct ? 'Güncelle' : 'Ekle'}
+                  {selectedProduct ? t('admin.products.updateButton') : t('admin.products.addButton')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -825,10 +825,10 @@ const AdminProducts = ({ navigation }: any) => {
       {/* Silme Onay Modal (Delete Confirmation Modal) */}
       <ConfirmModal
         visible={showDeleteModal}
-        title="Ürünü Sil"
-        message={`"${selectedProduct?.name}" ürününü silmek istediğinize emin misiniz?`}
-        confirmText="Sil"
-        cancelText="İptal"
+        title={t('admin.products.deleteTitle')}
+        message={`"${selectedProduct?.name}" ${t('admin.products.deleteMessage')}`}
+        confirmText={t('admin.products.deleteConfirmButton')}
+        cancelText={t('admin.products.deleteCancelButton')}
         onConfirm={handleDeleteProduct}
         onCancel={() => setShowDeleteModal(false)}
         type="danger"
