@@ -77,9 +77,13 @@ const AdminProducts = ({ navigation }: any) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sayfa yüklendiğinde ürünleri ve kategorileri getir (Fetch products and categories on page load)
+  // Sayfa yüklendiğinde kategorileri getir (Fetch categories on page load)
   useEffect(() => {
     fetchCategories();
+  }, []);
+
+  // Kategori filtresi değiştiğinde ürünleri getir (Fetch products when filter changes)
+  useEffect(() => {
     fetchProducts();
   }, [filterCategory]);
 
