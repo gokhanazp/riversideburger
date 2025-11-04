@@ -288,14 +288,14 @@ const AdminDashboard = ({ navigation }: any) => {
           />
           <MenuCard
             iconName="images-outline"
-            title={t('admin.banners')}
+            title={t('admin.bannersMenu')}
             subtitle={t('admin.bannersSubtitle')}
             color="#007BFF"
             onPress={() => navigation.navigate('AdminBanners')}
           />
           <MenuCard
             iconName="notifications-outline"
-            title={t('admin.notifications')}
+            title={t('admin.notificationsMenu')}
             subtitle={t('admin.notificationsSubtitle')}
             color="#FD7E14"
             onPress={() => navigation.navigate('AdminNotifications')}
@@ -309,7 +309,7 @@ const AdminDashboard = ({ navigation }: any) => {
           />
           <MenuCard
             iconName="language-outline"
-            title={t('admin.languageSettings')}
+            title={t('admin.languageSettingsMenu')}
             subtitle={t('admin.languageSettingsSubtitle')}
             color="#17A2B8"
             onPress={() => navigation.navigate('AdminLanguageSettings')}
