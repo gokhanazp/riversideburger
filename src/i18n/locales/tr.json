@@ -494,7 +494,7 @@
     "pointsExpiring": "Süresi Dolacak Puan",
     "noPoints": "Henüz puanınız yok. Sipariş vererek puan kazanabilirsiniz!"
   },
-  "notifications": {
+  "notificationSettings": {
     "title": "Bildirimler",
     "orderUpdates": "Sipariş Güncellemeleri",
     "promotions": "Kampanyalar",

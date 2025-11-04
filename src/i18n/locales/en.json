@@ -494,7 +494,7 @@
     "pointsExpiring": "Points Expiring",
     "noPoints": "You don't have any points yet. Place an order to earn points!"
   },
-  "notifications": {
+  "notificationSettings": {
     "title": "Notifications",
     "orderUpdates": "Order Updates",
     "promotions": "Promotions",
