@@ -11,6 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
 import { User } from '../../types/database.types';
@@ -18,6 +19,7 @@ import Toast from 'react-native-toast-message';
 
 // Admin Kullanıcılar Ekranı (Admin Users Screen)
 const AdminUsers = () => {
+  const { t } = useTranslation();
   // State'ler (States)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,8 +62,8 @@ const AdminUsers = () => {
       console.error('❌ Error fetching users:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Kullanıcılar yüklenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: error.message || t('admin.users.errorLoading'),
       });
       setUsers([]);
     } finally {
@@ -104,8 +106,8 @@ const AdminUsers = () => {
       console.error('Error fetching user details:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Kullanıcı detayları yüklenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: t('admin.users.errorLoadingDetails'),
       });
     }
   };
@@ -123,11 +125,11 @@ const AdminUsers = () => {
 
       <View style={styles.userInfo}>
         <View style={styles.userHeader}>
-          <Text style={styles.userName}>{user.full_name || 'İsimsiz Kullanıcı'}</Text>
+          <Text style={styles.userName}>{user.full_name || t('admin.users.anonymousUser')}</Text>
           {user.role === 'admin' && (
             <View style={styles.adminBadge}>
               <Ionicons name="shield-checkmark" size={14} color="#FFD700" />
-              <Text style={styles.adminBadgeText}>Admin</Text>
+              <Text style={styles.adminBadgeText}>{t('admin.users.admin')}</Text>
             </View>
           )}
         </View>
@@ -180,7 +182,7 @@ const AdminUsers = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('admin.users.loading')}</Text>
       </View>
     );
   }
@@ -204,7 +206,7 @@ const AdminUsers = () => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="people-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>Kullanıcı bulunamadı</Text>
+            <Text style={styles.emptyText}>{t('admin.users.noUsers')}</Text>
           </View>
         }
       />
@@ -215,7 +217,7 @@ const AdminUsers = () => {
           <View style={styles.modalOverlay}>
             <View style={styles.detailsModal}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Kullanıcı Detayları</Text>
+                <Text style={styles.modalTitle}>{t('admin.users.userDetails')}</Text>
                 <TouchableOpacity onPress={() => setShowDetailsModal(false)}>
                   <Ionicons name="close" size={24} color="#333" />
                 </TouchableOpacity>
@@ -229,22 +231,22 @@ const AdminUsers = () => {
 
                 {/* Kullanıcı Bilgileri (User Info) */}
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Ad Soyad</Text>
+                  <Text style={styles.detailLabel}>{t('admin.users.name')}</Text>
                   <Text style={styles.detailValue}>{selectedUser.full_name || '-'}</Text>
                 </View>
 
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Email</Text>
+                  <Text style={styles.detailLabel}>{t('admin.users.email')}</Text>
                   <Text style={styles.detailValue}>{selectedUser.email}</Text>
                 </View>
 
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Telefon</Text>
+                  <Text style={styles.detailLabel}>{t('admin.users.phone')}</Text>
                   <Text style={styles.detailValue}>{selectedUser.phone || '-'}</Text>
                 </View>
 
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Rol</Text>
+                  <Text style={styles.detailLabel}>{t('admin.users.role')}</Text>
                   <View style={styles.roleBadge}>
                     <Ionicons
                       name={selectedUser.role === 'admin' ? 'shield-checkmark' : 'person'}
@@ -252,7 +254,7 @@ const AdminUsers = () => {
                       color={selectedUser.role === 'admin' ? '#FFD700' : Colors.primary}
                     />
                     <Text style={styles.roleText}>
-                      {selectedUser.role === 'admin' ? 'Admin' : 'Müşteri'}
+                      {selectedUser.role === 'admin' ? t('admin.users.admin') : t('admin.users.customer')}
                     </Text>
                   </View>
                 </View>
@@ -263,7 +265,7 @@ const AdminUsers = () => {
                 </View>
 
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Kayıt Tarihi</Text>
+                  <Text style={styles.detailLabel}>{t('admin.users.createdAt')}</Text>
                   <Text style={styles.detailValue}>
                     {new Date(selectedUser.created_at).toLocaleDateString('tr-TR', {
                       day: '2-digit',

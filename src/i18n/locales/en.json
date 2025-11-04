@@ -635,12 +635,18 @@
       "phone": "Phone",
       "role": "Role",
       "createdAt": "Created At",
-      "noUsers": "No users yet",
+      "noUsers": "No users found",
       "noUsersDescription": "Users will appear here",
       "searchPlaceholder": "Search users...",
       "admin": "Admin",
       "customer": "Customer",
-      "errorLoading": "Error loading users"
+      "errorLoading": "Error loading users",
+      "errorLoadingDetails": "Error loading user details",
+      "userDetails": "User Details",
+      "anonymousUser": "Anonymous User",
+      "orderCount": "Order Count",
+      "totalSpent": "Total Spent",
+      "loading": "Loading..."
     },
     "reviews": {
       "title": "Review Management",

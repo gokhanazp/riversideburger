@@ -635,12 +635,18 @@
       "phone": "Telefon",
       "role": "Rol",
       "createdAt": "Kayıt Tarihi",
-      "noUsers": "Henüz kullanıcı yok",
+      "noUsers": "Kullanıcı bulunamadı",
       "noUsersDescription": "Kullanıcılar burada görünecek",
       "searchPlaceholder": "Kullanıcı ara...",
       "admin": "Admin",
       "customer": "Müşteri",
-      "errorLoading": "Kullanıcılar yüklenirken hata oluştu"
+      "errorLoading": "Kullanıcılar yüklenirken bir hata oluştu",
+      "errorLoadingDetails": "Kullanıcı detayları yüklenirken bir hata oluştu",
+      "userDetails": "Kullanıcı Detayları",
+      "anonymousUser": "İsimsiz Kullanıcı",
+      "orderCount": "Sipariş Sayısı",
+      "totalSpent": "Toplam Harcama",
+      "loading": "Yükleniyor..."
     },
     "reviews": {
       "title": "Yorum Yönetimi",
