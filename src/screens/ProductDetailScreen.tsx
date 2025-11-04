@@ -29,7 +29,7 @@ import { customizationService } from '../services/customizationService';
 import { CategoryWithOptions, SelectedCustomization } from '../types/customization';
 import { getProductReviews, getProductRating } from '../services/reviewService';
 import { Review, ProductRating } from '../types/database.types';
-import { formatProductPrice } from '../services/currencyService';
+import { formatPrice } from '../services/currencyService';
 
 const { width } = Dimensions.get('window');
 
@@ -157,8 +157,6 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
   };
 
   // Toplam fiyat hesapla (Calculate total price)
-  // Not: Fiyatlar ürünün kendi para biriminde hesaplanır, gösterim sırasında dönüştürülür
-  // (Note: Prices are calculated in product's own currency, converted during display)
   const calculateTotalPrice = () => {
     const basePrice = item.price * quantity;
     const extraPrice = calculateExtraPrice() * quantity;
@@ -253,7 +251,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
               )}
             </View>
             <Text style={styles.price}>
-              {formatProductPrice(item.price, item.currency || 'TRY')}
+              {formatPrice(item.price)}
             </Text>
           </View>
 
@@ -374,7 +372,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
                                     isSelected && styles.optionPriceSelected,
                                   ]}
                                 >
-                                  +{formatProductPrice(option.price, item.currency || 'TRY')}
+                                  +{formatPrice(option.price)}
                                 </Text>
                               )}
                             </View>
@@ -496,7 +494,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>{t('cart.total')}</Text>
           <Text style={styles.totalPrice}>
-            {formatProductPrice(calculateTotalPrice(), item.currency || 'TRY')}
+            {formatPrice(calculateTotalPrice())}
           </Text>
         </View>
 

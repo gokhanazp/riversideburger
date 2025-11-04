@@ -30,7 +30,7 @@ import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { getProducts, getCategories } from '../services/productService';
 import { Product, Category } from '../types/database.types';
-import { formatProductPrice } from '../services/currencyService';
+import { formatPrice } from '../services/currencyService';
 
 // Menü ekranı (Menu screen)
 const MenuScreen = ({ navigation }: any) => {
@@ -100,7 +100,6 @@ const MenuScreen = ({ navigation }: any) => {
       name: item.name,
       description: item.description || '',
       price: item.price,
-      currency: item.currency || 'TRY', // Para birimi (Currency)
       image: item.image_url,
       category: 'burger', // Varsayılan kategori (Default category)
       preparationTime: item.preparation_time || 15,
@@ -166,7 +165,6 @@ const MenuScreen = ({ navigation }: any) => {
       name: item.name,
       description: item.description || '',
       price: item.price,
-      currency: item.currency || 'TRY', // Para birimi (Currency)
       image: item.image_url,
       category: 'burger',
       preparationTime: item.preparation_time || 15,
@@ -235,7 +233,7 @@ const MenuScreen = ({ navigation }: any) => {
             <View style={styles.menuFooter}>
               <View>
                 <Text style={styles.menuPrice}>
-                  {formatProductPrice(item.price, item.currency || 'TRY')}
+                  {formatPrice(item.price)}
                 </Text>
                 {item.preparation_time && (
                   <Text style={styles.preparationTime}>⏱️ {item.preparation_time} {t('product.minutes')}</Text>

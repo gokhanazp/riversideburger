@@ -26,8 +26,7 @@ interface Product {
   id: string;
   name: string;
   description: string;
-  price: number;
-  currency: 'TRY' | 'CAD'; // Para birimi (Currency)
+  price: number; // Fiyat - ülke seçimine göre sembol eklenir (Price - symbol added based on country selection)
   category: string;
   image_url: string;
   stock_status: 'in_stock' | 'out_of_stock';
@@ -62,7 +61,6 @@ const AdminProducts = ({ navigation }: any) => {
     name: '',
     description: '',
     price: '',
-    currency: 'TRY' as 'TRY' | 'CAD', // Para birimi (Currency)
     category: 'burger',
     image_url: '',
     stock_status: 'in_stock' as 'in_stock' | 'out_of_stock',
@@ -137,7 +135,6 @@ const AdminProducts = ({ navigation }: any) => {
       name: '',
       description: '',
       price: '',
-      currency: 'TRY',
       category: 'burger',
       image_url: '',
       stock_status: 'in_stock',
@@ -156,7 +153,6 @@ const AdminProducts = ({ navigation }: any) => {
       name: product.name,
       description: product.description,
       price: product.price.toString(),
-      currency: product.currency || 'TRY', // Varsayılan TRY (Default TRY)
       category: product.category,
       image_url: product.image_url,
       stock_status: product.stock_status,
@@ -263,7 +259,6 @@ const AdminProducts = ({ navigation }: any) => {
         name: formData.name.trim(),
         description: formData.description.trim(),
         price: priceValue,
-        currency: formData.currency, // Para birimi (Currency)
         category: formData.category,
         image_url: formData.image_url.trim(),
         stock_status: formData.stock_status,
@@ -405,7 +400,7 @@ const AdminProducts = ({ navigation }: any) => {
 
         <View style={styles.productFooter}>
           <Text style={styles.productPrice}>
-            {product.currency === 'CAD' ? '$' : '₺'}{product.price.toFixed(2)} {product.currency}
+            {product.price.toFixed(2)}
           </Text>
           <View
             style={[
@@ -583,50 +578,17 @@ const AdminProducts = ({ navigation }: any) => {
 
                 {/* Fiyat (Price) */}
                 <Text style={styles.label}>Fiyat *</Text>
-                <View style={styles.priceContainer}>
-                  <TextInput
-                    style={[styles.input, styles.priceInput]}
-                    placeholder="0.00"
-                    placeholderTextColor="#999"
-                    value={formData.price}
-                    onChangeText={(text) => setFormData({ ...formData, price: text })}
-                    keyboardType="decimal-pad"
-                  />
-                  <View style={styles.currencySelector}>
-                    <TouchableOpacity
-                      style={[
-                        styles.currencyButton,
-                        formData.currency === 'TRY' && styles.currencyButtonActive,
-                      ]}
-                      onPress={() => setFormData({ ...formData, currency: 'TRY' })}
-                    >
-                      <Text
-                        style={[
-                          styles.currencyButtonText,
-                          formData.currency === 'TRY' && styles.currencyButtonTextActive,
-                        ]}
-                      >
-                        ₺ TRY
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.currencyButton,
-                        formData.currency === 'CAD' && styles.currencyButtonActive,
-                      ]}
-                      onPress={() => setFormData({ ...formData, currency: 'CAD' })}
-                    >
-                      <Text
-                        style={[
-                          styles.currencyButtonText,
-                          formData.currency === 'CAD' && styles.currencyButtonTextActive,
-                        ]}
-                      >
-                        $ CAD
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="150.00"
+                  placeholderTextColor="#999"
+                  value={formData.price}
+                  onChangeText={(text) => setFormData({ ...formData, price: text })}
+                  keyboardType="decimal-pad"
+                />
+                <Text style={styles.helperText}>
+                  Türkiye için ₺ TRY, Kanada için $ CAD olarak gösterilir
+                </Text>
 
                 {/* Kategori (Category) */}
                 <Text style={styles.label}>Kategori *</Text>
@@ -1069,38 +1031,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: 'bold',
   },
-  priceContainer: {
-    marginBottom: Spacing.md,
-  },
-  priceInput: {
-    marginBottom: Spacing.sm,
-  },
-  currencySelector: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  currencyButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-  },
-  currencyButtonActive: {
-    backgroundColor: Colors.primary + '10',
-    borderColor: Colors.primary,
-  },
-  currencyButtonText: {
-    fontSize: FontSizes.md,
-    color: '#666',
-    fontWeight: '600',
-  },
-  currencyButtonTextActive: {
-    color: Colors.primary,
-    fontWeight: 'bold',
-  },
+
   uploadButton: {
     flexDirection: 'row',
     alignItems: 'center',

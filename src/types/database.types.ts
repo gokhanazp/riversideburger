@@ -64,8 +64,7 @@ export interface Product {
   category_id: string;
   name: string;
   description: string;
-  price: number;
-  currency: 'TRY' | 'CAD'; // Para birimi (Currency)
+  price: number; // Fiyat - ülke seçimine göre sembol eklenir (Price - symbol added based on country selection)
   image_url: string;
   preparation_time: number;
   is_active: boolean;
