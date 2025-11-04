@@ -40,7 +40,7 @@ interface Product {
 
 // Admin Ürünler Ekranı (Admin Products Screen)
 const AdminProducts = ({ navigation }: any) => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // State'ler (States)
   const [loading, setLoading] = useState(true);
@@ -109,8 +109,8 @@ const AdminProducts = ({ navigation }: any) => {
       console.error('❌ Error fetching categories:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Kategoriler yüklenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: t('admin.categories.errorLoading'),
       });
     }
   };
@@ -144,8 +144,8 @@ const AdminProducts = ({ navigation }: any) => {
       console.error('❌ Error fetching products:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Ürünler yüklenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: error.message || t('admin.products.errorLoading'),
       });
       setProducts([]); // Hata durumunda boş array
     } finally {
