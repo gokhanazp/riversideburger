@@ -35,7 +35,7 @@ const { width } = Dimensions.get('window');
 
 // Ürün detay ekranı (Product detail screen)
 const ProductDetailScreen = ({ route, navigation }: any) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { item } = route.params as { item: MenuItem };
   const [quantity, setQuantity] = useState(1);
   const [customizations, setCustomizations] = useState<CategoryWithOptions[]>([]);
@@ -344,7 +344,9 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
                   >
                     <View style={styles.categoryHeader}>
                       <Text style={styles.sectionTitle}>
-                        {categoryWithOptions.category.name}
+                        {i18n.language === 'en'
+                          ? (categoryWithOptions.category.name_en || categoryWithOptions.category.name)
+                          : categoryWithOptions.category.name}
                         {categoryWithOptions.is_required && (
                           <Text style={styles.requiredText}> *</Text>
                         )}
@@ -390,7 +392,9 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
                                     isSelected && styles.optionNameSelected,
                                   ]}
                                 >
-                                  {option.name}
+                                  {i18n.language === 'en'
+                                    ? (option.name_en || option.name)
+                                    : option.name}
                                 </Text>
                               </View>
                               {option.price > 0 && (
