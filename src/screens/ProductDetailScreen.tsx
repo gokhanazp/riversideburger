@@ -63,8 +63,13 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
     try {
       setLoadingCustomizations(true);
 
+      console.log('🔍 Loading customizations for product:', item.id, item.name);
+
       // Yeni sistem: Ürün bazlı spesifik seçenekleri getir
       const specificOptions = await customizationService.getProductSpecificOptions(item.id);
+
+      console.log('📦 Specific options fetched:', specificOptions.length, 'options');
+      console.log('📋 Options data:', JSON.stringify(specificOptions, null, 2));
 
       // Kategorilere göre grupla (Group by categories)
       const grouped: { [key: string]: CategoryWithOptions } = {};
@@ -85,9 +90,10 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
       });
 
       const data = Object.values(grouped);
+      console.log('✅ Customizations grouped into', data.length, 'categories');
       setCustomizations(data);
     } catch (error) {
-      console.error('Error loading customizations:', error);
+      console.error('❌ Error loading customizations:', error);
     } finally {
       setLoadingCustomizations(false);
     }

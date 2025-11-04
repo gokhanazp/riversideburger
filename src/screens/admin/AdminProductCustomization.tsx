@@ -122,8 +122,16 @@ const AdminProductCustomization = ({ route, navigation }: any) => {
       // Seçenek zaten ekli mi kontrol et (Check if option already added)
       const existing = productOptions.find((po) => po.option_id === option.id);
 
+      console.log('🔄 Toggle option:', {
+        optionId: option.id,
+        optionName: option.name,
+        existing: existing ? 'YES' : 'NO',
+        productId: product.id,
+      });
+
       if (existing) {
         // Kaldır (Remove)
+        console.log('🗑️ Removing option:', existing.id);
         await customizationService.removeProductSpecificOption(existing.id);
         Toast.show({
           type: 'success',
@@ -134,7 +142,9 @@ const AdminProductCustomization = ({ route, navigation }: any) => {
         });
       } else {
         // Ekle (Add)
-        await customizationService.addProductSpecificOption(product.id, option.id, false, false);
+        console.log('➕ Adding option:', option.id, 'to product:', product.id);
+        const result = await customizationService.addProductSpecificOption(product.id, option.id, false, false);
+        console.log('✅ Added result:', result);
         Toast.show({
           type: 'success',
           text1: i18n.language === 'tr' ? '✅ Eklendi' : '✅ Added',
@@ -145,9 +155,11 @@ const AdminProductCustomization = ({ route, navigation }: any) => {
       }
 
       // Listeyi yenile (Refresh list)
+      console.log('🔄 Reloading product options...');
       await loadProductOptions();
+      console.log('✅ Product options reloaded. Count:', productOptions.length);
     } catch (error) {
-      console.error('Error toggling option:', error);
+      console.error('❌ Error toggling option:', error);
       Toast.show({
         type: 'error',
         text1: i18n.language === 'tr' ? '❌ Hata' : '❌ Error',
