@@ -354,20 +354,8 @@
   },
   "settings": {
     "title": "Ayarlar",
-    "adminControlsLanguage": "Dil ve para birimi ayarları admin tarafından yönetilmektedir. Değişiklik yapmak için admin paneline başvurun.",
-    "currentSettings": "Mevcut Ayarlar",
-    "country": "Ülke",
-    "language": "Dil",
-    "currency": "Para Birimi",
-    "languageAndCurrency": "Dil ve Para Birimi",
-    "selectLanguage": "Dil Seçin",
-    "selectCurrency": "Para Birimi Seçin",
-    "turkish": "Türkçe",
-    "english": "English",
-    "turkishLira": "Türk Lirası (₺)",
-    "canadianDollar": "Kanada Doları ($)",
-    "settingsSaved": "Ayarlar kaydedildi",
-    "settingsError": "Ayarlar kaydedilemedi"
+    "noSettings": "Ayar Bulunamadı",
+    "noSettingsDescription": "Şu anda kullanılabilir ayar bulunmamaktadır. Dil ve para birimi ayarları admin tarafından yönetilmektedir."
   },
   "profileEdit": {
     "title": "Profil Bilgileriniz",

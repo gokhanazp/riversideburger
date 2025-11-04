@@ -354,20 +354,8 @@
   },
   "settings": {
     "title": "Settings",
-    "adminControlsLanguage": "Language and currency settings are managed by the admin. Please contact the admin panel to make changes.",
-    "currentSettings": "Current Settings",
-    "country": "Country",
-    "language": "Language",
-    "currency": "Currency",
-    "languageAndCurrency": "Language and Currency",
-    "selectLanguage": "Select Language",
-    "selectCurrency": "Select Currency",
-    "turkish": "Türkçe",
-    "english": "English",
-    "turkishLira": "Turkish Lira (₺)",
-    "canadianDollar": "Canadian Dollar ($)",
-    "settingsSaved": "Settings saved",
-    "settingsError": "Failed to save settings"
+    "noSettings": "No Settings Available",
+    "noSettingsDescription": "There are currently no settings available. Language and currency settings are managed by the admin."
   },
   "profileEdit": {
     "title": "Your Profile Information",
