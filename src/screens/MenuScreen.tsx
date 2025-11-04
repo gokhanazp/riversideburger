@@ -33,7 +33,7 @@ import { Product, Category } from '../types/database.types';
 import { formatPrice } from '../services/currencyService';
 
 // Menü ekranı (Menu screen)
-const MenuScreen = ({ navigation }: any) => {
+const MenuScreen = ({ navigation, route }: any) => {
   const { t, i18n } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,6 +82,14 @@ const MenuScreen = ({ navigation }: any) => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Route parametresinden gelen kategoriyi ayarla (Set category from route params)
+  useEffect(() => {
+    if (route?.params?.categoryId) {
+      console.log('🎯 Category ID from HomeScreen:', route.params.categoryId);
+      setSelectedCategory(route.params.categoryId);
+    }
+  }, [route?.params?.categoryId]);
 
   // Seçili kategoriye ve arama sorgusuna göre menü öğelerini filtrele (Filter menu items by category and search query)
   const filteredItems = products.filter((item) => {

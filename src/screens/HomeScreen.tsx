@@ -12,6 +12,8 @@ import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
 import Toast from 'react-native-toast-message';
 import { formatPrice } from '../services/currencyService';
+import { getCategories } from '../services/productService';
+import { Category } from '../types/database.types';
 
 // Ürün tipi (Product type)
 interface Product {
@@ -28,19 +30,22 @@ interface Product {
 
 // Ana sayfa ekranı (Home screen)
 const HomeScreen = ({ navigation }: any) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // State'ler (States)
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   // Store'lar (Stores)
   const { addItem } = useCartStore();
   const { favorites, toggleFavorite } = useFavoritesStore();
 
-  // Sayfa yüklendiğinde öne çıkan ürünleri getir (Fetch featured products on page load)
+  // Sayfa yüklendiğinde öne çıkan ürünleri ve kategorileri getir (Fetch featured products and categories on page load)
   useEffect(() => {
     fetchFeaturedProducts();
+    fetchCategories();
   }, []);
 
   // Öne çıkan ürünleri getir (Fetch featured products)
@@ -71,9 +76,30 @@ const HomeScreen = ({ navigation }: any) => {
     }
   };
 
+  // Kategorileri getir (Fetch categories)
+  const fetchCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      console.log('🔍 Fetching categories for HomeScreen...');
+      const data = await getCategories();
+      console.log('✅ Categories fetched:', data.length);
+      setCategories(data.slice(0, 6)); // İlk 6 kategoriyi göster (Show first 6 categories)
+    } catch (error: any) {
+      console.error('❌ Error fetching categories:', error);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  // Kategori ismini mevcut dile göre al (Get category name based on current language)
+  const getCategoryName = (category: Category): string => {
+    return i18n.language === 'tr' ? category.name_tr : category.name_en;
+  };
+
   // Kategorilere tıklandığında menü ekranına yönlendir (Navigate to menu screen on category click)
-  const handleCategoryPress = (category: CategoryType) => {
-    navigation.navigate('MenuTab', { category });
+  const handleCategoryPress = (categoryId: string) => {
+    console.log('🎯 Navigating to MenuTab with category:', categoryId);
+    navigation.navigate('MenuTab', { categoryId });
   };
 
   // Ürüne tıklandığında detay sayfasına git (Navigate to product detail)
@@ -131,16 +157,14 @@ const HomeScreen = ({ navigation }: any) => {
   // Kategori kartı componenti (Category card component)
   const CategoryCard = ({
     category,
-    iconName,
     index
   }: {
-    category: CategoryType;
-    iconName: keyof typeof Ionicons.glyphMap;
+    category: Category;
     index: number;
   }) => (
     <TouchableOpacity
       style={styles.categoryCard}
-      onPress={() => handleCategoryPress(category)}
+      onPress={() => handleCategoryPress(category.id)}
       activeOpacity={0.7}
     >
       <Animated.View
@@ -148,9 +172,9 @@ const HomeScreen = ({ navigation }: any) => {
         style={styles.categoryCardContent}
       >
         <View style={styles.categoryIconContainer}>
-          <Ionicons name={iconName} size={32} color={Colors.primary} />
+          <Ionicons name={category.icon as any} size={32} color={Colors.primary} />
         </View>
-        <Text style={styles.categoryName}>{t(`categories.${category}`)}</Text>
+        <Text style={styles.categoryName}>{getCategoryName(category)}</Text>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -182,14 +206,17 @@ const HomeScreen = ({ navigation }: any) => {
         >
           {t('home.ourMenu')}
         </Animated.Text>
-        <View style={styles.categoriesGrid}>
-          <CategoryCard category="burger" iconName="fast-food" index={0} />
-          <CategoryCard category="pizza" iconName="pizza" index={1} />
-          <CategoryCard category="pasta" iconName="restaurant" index={2} />
-          <CategoryCard category="salad" iconName="leaf" index={3} />
-          <CategoryCard category="dessert" iconName="ice-cream" index={4} />
-          <CategoryCard category="drink" iconName="cafe" index={5} />
-        </View>
+        {loadingCategories ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+        ) : (
+          <View style={styles.categoriesGrid}>
+            {categories.map((category, index) => (
+              <CategoryCard key={category.id} category={category} index={index} />
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Önerilen Ürünler bölümü (Recommended Products section) */}
