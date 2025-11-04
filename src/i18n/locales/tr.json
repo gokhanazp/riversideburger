@@ -695,6 +695,28 @@
       "pointsPercentageError": "Puan yüzdesi 0-100 arasında olmalıdır",
       "minOrderAmountError": "Minimum sipariş tutarı 0'dan küçük olamaz",
       "loading": "Yükleniyor..."
+    },
+    "notifications": {
+      "title": "Bildirimler",
+      "sendNotification": "Bildirim Gönder",
+      "notificationTitle": "Bildirim Başlığı",
+      "notificationTitlePlaceholder": "Bildirim başlığı...",
+      "notificationBody": "Bildirim İçeriği",
+      "notificationBodyPlaceholder": "Bildirim içeriği...",
+      "selectUsers": "Kullanıcı Seç",
+      "selectAll": "Tümünü Seç",
+      "deselectAll": "Tümünü Kaldır",
+      "selectedCount": "seçili",
+      "send": "Gönder",
+      "sending": "Gönderiliyor...",
+      "success": "Başarılı",
+      "notificationSent": "kullanıcıya bildirim gönderildi",
+      "errorLoadingUsers": "Kullanıcılar yüklenirken bir hata oluştu",
+      "errorTitleRequired": "Lütfen bildirim başlığı girin",
+      "errorBodyRequired": "Lütfen bildirim içeriği girin",
+      "errorSelectUsers": "Lütfen en az bir kullanıcı seçin",
+      "errorSending": "Bildirim gönderilirken bir hata oluştu",
+      "loading": "Yükleniyor..."
     }
   },
   "favorites": {

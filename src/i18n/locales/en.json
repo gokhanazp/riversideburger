@@ -695,6 +695,28 @@
       "pointsPercentageError": "Points percentage must be between 0-100",
       "minOrderAmountError": "Minimum order amount cannot be less than 0",
       "loading": "Loading..."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "sendNotification": "Send Notification",
+      "notificationTitle": "Notification Title",
+      "notificationTitlePlaceholder": "Notification title...",
+      "notificationBody": "Notification Content",
+      "notificationBodyPlaceholder": "Notification content...",
+      "selectUsers": "Select Users",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "selectedCount": "selected",
+      "send": "Send",
+      "sending": "Sending...",
+      "success": "Success",
+      "notificationSent": "notification sent to users",
+      "errorLoadingUsers": "Error loading users",
+      "errorTitleRequired": "Please enter notification title",
+      "errorBodyRequired": "Please enter notification content",
+      "errorSelectUsers": "Please select at least one user",
+      "errorSending": "Error sending notification",
+      "loading": "Loading..."
     }
   },
   "favorites": {

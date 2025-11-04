@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
 import Toast from 'react-native-toast-message';
@@ -20,6 +21,7 @@ type NotificationType = 'general' | 'promotion' | 'order_status' | 'points_earne
 
 // Admin Notifications Ekranı (Admin Notifications Screen)
 const AdminNotifications = ({ navigation }: any) => {
+  const { t } = useTranslation();
   // State'ler (States)
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
@@ -48,8 +50,8 @@ const AdminNotifications = ({ navigation }: any) => {
       console.error('Error fetching users:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Kullanıcılar yüklenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: t('admin.notifications.errorLoadingUsers'),
       });
     } finally {
       setLoading(false);
@@ -80,8 +82,8 @@ const AdminNotifications = ({ navigation }: any) => {
     if (!title.trim()) {
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Lütfen bildirim başlığı girin',
+        text1: t('admin.error'),
+        text2: t('admin.notifications.errorTitleRequired'),
       });
       return;
     }
@@ -89,8 +91,8 @@ const AdminNotifications = ({ navigation }: any) => {
     if (!body.trim()) {
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Lütfen bildirim içeriği girin',
+        text1: t('admin.error'),
+        text2: t('admin.notifications.errorBodyRequired'),
       });
       return;
     }
@@ -98,8 +100,8 @@ const AdminNotifications = ({ navigation }: any) => {
     if (selectedUsers.length === 0) {
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Lütfen en az bir kullanıcı seçin',
+        text1: t('admin.error'),
+        text2: t('admin.notifications.errorSelectUsers'),
       });
       return;
     }
@@ -129,8 +131,8 @@ const AdminNotifications = ({ navigation }: any) => {
 
       Toast.show({
         type: 'success',
-        text1: 'Başarılı',
-        text2: `${selectedUsers.length} kullanıcıya bildirim gönderildi`,
+        text1: t('admin.notifications.success'),
+        text2: `${selectedUsers.length} ${t('admin.notifications.notificationSent')}`,
       });
 
       // Formu temizle (Clear form)
@@ -142,8 +144,8 @@ const AdminNotifications = ({ navigation }: any) => {
       console.error('Error sending notification:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Bildirim gönderilirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: t('admin.notifications.errorSending'),
       });
     } finally {
       setSendingNotification(false);
@@ -185,7 +187,7 @@ const AdminNotifications = ({ navigation }: any) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('admin.notifications.loading')}</Text>
       </View>
     );
   }
@@ -240,7 +242,7 @@ const AdminNotifications = ({ navigation }: any) => {
         <Text style={styles.label}>Başlık</Text>
         <TextInput
           style={styles.input}
-          placeholder="Bildirim başlığı..."
+          placeholder={t('admin.notifications.notificationTitlePlaceholder')}
           value={title}
           onChangeText={setTitle}
           maxLength={100}
@@ -250,7 +252,7 @@ const AdminNotifications = ({ navigation }: any) => {
         <Text style={styles.label}>İçerik</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Bildirim içeriği..."
+          placeholder={t('admin.notifications.notificationBodyPlaceholder')}
           value={body}
           onChangeText={setBody}
           multiline
