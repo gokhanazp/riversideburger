@@ -250,15 +250,15 @@ const AdminProducts = ({ navigation }: any) => {
 
       Toast.show({
         type: 'success',
-        text1: '✅ Resim Yüklendi',
+        text1: t('admin.products.imageUploaded'),
         text2: file.name,
       });
     } catch (error: any) {
       console.error('❌ Resim yükleme hatası:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Resim yüklenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: error.message || t('admin.products.imageUploadError'),
       });
     } finally {
       setUploadingImage(false);
@@ -272,8 +272,8 @@ const AdminProducts = ({ navigation }: any) => {
       if (!formData.name || !formData.price || !formData.image_url) {
         Toast.show({
           type: 'error',
-          text1: 'Hata',
-          text2: 'Lütfen tüm zorunlu alanları doldurun',
+          text1: t('admin.error'),
+          text2: t('admin.products.fillAllFields'),
         });
         return;
       }
@@ -282,8 +282,8 @@ const AdminProducts = ({ navigation }: any) => {
       if (!formData.category_id) {
         Toast.show({
           type: 'error',
-          text1: 'Hata',
-          text2: 'Lütfen bir kategori seçin',
+          text1: t('admin.error'),
+          text2: t('admin.products.selectCategory'),
         });
         return;
       }
@@ -293,8 +293,8 @@ const AdminProducts = ({ navigation }: any) => {
       if (isNaN(priceValue) || priceValue <= 0) {
         Toast.show({
           type: 'error',
-          text1: 'Hata',
-          text2: 'Lütfen geçerli bir fiyat girin',
+          text1: t('admin.error'),
+          text2: t('admin.products.invalidPrice'),
         });
         return;
       }
@@ -330,8 +330,8 @@ const AdminProducts = ({ navigation }: any) => {
 
         Toast.show({
           type: 'success',
-          text1: '✅ Ürün Güncellendi',
-          text2: formData.name,
+          text1: t('admin.products.success'),
+          text2: t('admin.products.productUpdated'),
         });
       } else {
         // Yeni ekle (Insert)
@@ -349,8 +349,8 @@ const AdminProducts = ({ navigation }: any) => {
 
         Toast.show({
           type: 'success',
-          text1: '✅ Ürün Eklendi',
-          text2: formData.name,
+          text1: t('admin.products.success'),
+          text2: t('admin.products.productAdded'),
         });
       }
 
@@ -360,8 +360,8 @@ const AdminProducts = ({ navigation }: any) => {
       console.error('❌ Error saving product:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Ürün kaydedilirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: error.message || t('admin.products.errorSaving'),
       });
     }
   };
@@ -377,8 +377,8 @@ const AdminProducts = ({ navigation }: any) => {
 
       Toast.show({
         type: 'success',
-        text1: '✅ Ürün Silindi',
-        text2: selectedProduct.name,
+        text1: t('admin.products.success'),
+        text2: t('admin.products.productDeleted'),
       });
 
       setShowDeleteModal(false);
@@ -387,8 +387,8 @@ const AdminProducts = ({ navigation }: any) => {
       console.error('Error deleting product:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Ürün silinirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: t('admin.products.errorDeleting'),
       });
     }
   };
@@ -407,8 +407,8 @@ const AdminProducts = ({ navigation }: any) => {
 
       Toast.show({
         type: 'success',
-        text1: '✅ Stok Durumu Güncellendi',
-        text2: newStatus === 'in_stock' ? 'Stokta' : 'Stokta Yok',
+        text1: t('admin.products.success'),
+        text2: t('admin.products.stockUpdated'),
       });
 
       fetchProducts();
@@ -416,8 +416,8 @@ const AdminProducts = ({ navigation }: any) => {
       console.error('Error updating stock status:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Stok durumu güncellenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: t('admin.products.stockUpdateError'),
       });
     }
   };
@@ -524,7 +524,7 @@ const AdminProducts = ({ navigation }: any) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('admin.loading')}</Text>
       </View>
     );
   }
@@ -603,7 +603,7 @@ const AdminProducts = ({ navigation }: any) => {
                 <Text style={styles.label}>Ürün Adı *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Örn: Double Riverside Burger"
+                  placeholder={t('admin.products.namePlaceholder')}
                   placeholderTextColor="#999"
                   value={formData.name}
                   onChangeText={(text) => setFormData({ ...formData, name: text })}
@@ -613,7 +613,7 @@ const AdminProducts = ({ navigation }: any) => {
                 <Text style={styles.label}>Açıklama</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Ürün açıklaması..."
+                  placeholder={t('admin.products.descriptionPlaceholder')}
                   placeholderTextColor="#999"
                   value={formData.description}
                   onChangeText={(text) => setFormData({ ...formData, description: text })}
@@ -625,10 +625,10 @@ const AdminProducts = ({ navigation }: any) => {
                 <Text style={styles.label}>Fiyat *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="150.00"
+                  placeholder={t('admin.products.pricePlaceholder')}
                   placeholderTextColor="#999"
                   value={formData.price}
-                  onChangeText={(text) => setFormData({ ...formData, price: text })}
+                  onChangeText={(text) => setFormData({ ...formData, name: text })}
                   keyboardType="decimal-pad"
                 />
                 <Text style={styles.helperText}>
@@ -638,7 +638,7 @@ const AdminProducts = ({ navigation }: any) => {
                 {/* Kategori (Category) */}
                 <Text style={styles.label}>Kategori *</Text>
                 {categories.length === 0 ? (
-                  <Text style={styles.helperText}>⚠️ Kategoriler yükleniyor...</Text>
+                  <Text style={styles.helperText}>⚠️ {t('admin.products.categoriesLoading')}</Text>
                 ) : (
                   <View style={styles.categoryGrid}>
                     {categories.map((cat) => (
@@ -699,7 +699,7 @@ const AdminProducts = ({ navigation }: any) => {
                   {uploadingImage ? (
                     <>
                       <ActivityIndicator size="small" color={Colors.white} />
-                      <Text style={styles.uploadButtonText}>Yükleniyor...</Text>
+                      <Text style={styles.uploadButtonText}>{t('admin.products.uploading')}</Text>
                     </>
                   ) : (
                     <>
@@ -737,7 +737,7 @@ const AdminProducts = ({ navigation }: any) => {
                 <Text style={styles.label}>veya Manuel URL Gir</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="https://example.com/image.jpg"
+                  placeholder={t('admin.products.imageUrlPlaceholder')}
                   placeholderTextColor="#999"
                   value={formData.image_url}
                   onChangeText={(text) => setFormData({ ...formData, image_url: text })}
@@ -767,7 +767,7 @@ const AdminProducts = ({ navigation }: any) => {
                 <View style={styles.ingredientInputContainer}>
                   <TextInput
                     style={styles.ingredientInput}
-                    placeholder="Malzeme adı (örn: Marul, Domates)"
+                    placeholder={t('admin.products.ingredientPlaceholder')}
                     placeholderTextColor="#999"
                     value={ingredientInput}
                     onChangeText={setIngredientInput}
