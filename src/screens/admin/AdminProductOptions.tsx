@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -20,6 +21,9 @@ import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constan
 import { supabase } from '../../lib/supabase';
 import { ProductOptionCategory, ProductOption } from '../../types/customization';
 import Toast from 'react-native-toast-message';
+
+const { width } = Dimensions.get('window');
+const isSmallScreen = width < 768;
 
 const AdminProductOptions = () => {
   const navigation = useNavigation();
@@ -373,64 +377,94 @@ const AdminProductOptions = () => {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>
+      <View style={[styles.content, isSmallScreen && styles.contentVertical]}>
         {/* Sol taraf - Kategoriler (Left side - Categories) */}
-        <View style={styles.leftPanel}>
-          <Text style={styles.panelTitle}>
-            {i18n.language === 'tr' ? 'Kategoriler' : 'Categories'}
-          </Text>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {categories.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.categoryItem,
-                  selectedCategory?.id === category.id && styles.categoryItemActive,
-                ]}
-                onPress={() => setSelectedCategory(category)}
-              >
-                <View style={styles.categoryItemLeft}>
-                  <Text style={[
-                    styles.categoryItemName,
-                    selectedCategory?.id === category.id && styles.categoryItemNameActive,
-                  ]}>
-                    {i18n.language === 'tr' ? category.name : (category.name_en || category.name)}
-                  </Text>
-                </View>
-                <View style={styles.categoryItemActions}>
-                  <TouchableOpacity
-                    onPress={() => openCategoryModal(category)}
-                    style={styles.iconButton}
-                  >
-                    <Ionicons name="pencil" size={18} color={Colors.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteCategory(category)}
-                    style={styles.iconButton}
-                  >
-                    <Ionicons name="trash" size={18} color="#DC3545" />
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            ))}
+        <View style={[styles.leftPanel, isSmallScreen && styles.leftPanelVertical]}>
+          <View style={styles.panelHeader}>
+            <Text style={styles.panelTitle}>
+              {i18n.language === 'tr' ? 'Kategoriler' : 'Categories'}
+            </Text>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryBadgeText}>{categories.length}</Text>
+            </View>
+          </View>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            horizontal={isSmallScreen}
+            style={isSmallScreen && styles.categoryScrollHorizontal}
+          >
+            <View style={isSmallScreen && styles.categoryRowContainer}>
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[
+                    styles.categoryItem,
+                    isSmallScreen && styles.categoryItemHorizontal,
+                    selectedCategory?.id === category.id && styles.categoryItemActive,
+                  ]}
+                  onPress={() => setSelectedCategory(category)}
+                >
+                  <View style={styles.categoryItemLeft}>
+                    <Text
+                      style={[
+                        styles.categoryItemName,
+                        selectedCategory?.id === category.id && styles.categoryItemNameActive,
+                      ]}
+                      numberOfLines={isSmallScreen ? 1 : 2}
+                    >
+                      {i18n.language === 'tr' ? category.name : (category.name_en || category.name)}
+                    </Text>
+                  </View>
+                  {!isSmallScreen && (
+                    <View style={styles.categoryItemActions}>
+                      <TouchableOpacity
+                        onPress={() => openCategoryModal(category)}
+                        style={styles.iconButton}
+                      >
+                        <Ionicons name="pencil" size={18} color={
+                          selectedCategory?.id === category.id ? '#FFF' : Colors.primary
+                        } />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteCategory(category)}
+                        style={styles.iconButton}
+                      >
+                        <Ionicons name="trash" size={18} color={
+                          selectedCategory?.id === category.id ? '#FFF' : '#DC3545'
+                        } />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
           </ScrollView>
         </View>
 
         {/* Sağ taraf - Seçenekler (Right side - Options) */}
-        <View style={styles.rightPanel}>
+        <View style={[styles.rightPanel, isSmallScreen && styles.rightPanelVertical]}>
           <View style={styles.panelHeader}>
-            <Text style={styles.panelTitle}>
-              {i18n.language === 'tr' ? 'Seçenekler' : 'Options'}
-            </Text>
+            <View style={styles.panelTitleContainer}>
+              <Text style={styles.panelTitle}>
+                {i18n.language === 'tr' ? 'Seçenekler' : 'Options'}
+              </Text>
+              {selectedCategory && (
+                <View style={styles.optionBadge}>
+                  <Text style={styles.optionBadgeText}>{options.length}</Text>
+                </View>
+              )}
+            </View>
             {selectedCategory && (
               <TouchableOpacity
                 onPress={() => openOptionModal()}
                 style={styles.addOptionButton}
               >
-                <Ionicons name="add-circle" size={20} color={Colors.primary} />
-                <Text style={styles.addOptionButtonText}>
-                  {i18n.language === 'tr' ? 'Ekle' : 'Add'}
-                </Text>
+                <Ionicons name="add-circle" size={24} color={Colors.primary} />
+                {!isSmallScreen && (
+                  <Text style={styles.addOptionButtonText}>
+                    {i18n.language === 'tr' ? 'Ekle' : 'Add'}
+                  </Text>
+                )}
               </TouchableOpacity>
             )}
           </View>
@@ -694,6 +728,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
   },
+  contentVertical: {
+    flexDirection: 'column',
+  },
   leftPanel: {
     width: '35%',
     backgroundColor: Colors.white,
@@ -701,21 +738,73 @@ const styles = StyleSheet.create({
     borderRightColor: Colors.border,
     padding: Spacing.md,
   },
+  leftPanelVertical: {
+    width: '100%',
+    borderRightWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    paddingBottom: Spacing.md,
+    maxHeight: 120,
+  },
   rightPanel: {
     flex: 1,
     padding: Spacing.md,
+  },
+  rightPanelVertical: {
+    flex: 1,
+    paddingTop: Spacing.md,
   },
   panelTitle: {
     fontSize: FontSizes.lg,
     fontWeight: 'bold',
     color: Colors.text,
-    marginBottom: Spacing.md,
+  },
+  panelTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   panelHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.md,
+  },
+  categoryBadge: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryBadgeText: {
+    color: '#FFF',
+    fontSize: FontSizes.sm,
+    fontWeight: 'bold',
+  },
+  optionBadge: {
+    backgroundColor: Colors.secondary,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionBadgeText: {
+    color: '#FFF',
+    fontSize: FontSizes.sm,
+    fontWeight: 'bold',
+  },
+  categoryScrollHorizontal: {
+    flexGrow: 0,
+  },
+  categoryRowContainer: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingRight: Spacing.md,
   },
   categoryItem: {
     flexDirection: 'row',
@@ -725,6 +814,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.sm,
+  },
+  categoryItemHorizontal: {
+    marginBottom: 0,
+    marginRight: Spacing.sm,
+    minWidth: 140,
+    maxWidth: 180,
   },
   categoryItemActive: {
     backgroundColor: Colors.primary,
