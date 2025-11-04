@@ -321,6 +321,7 @@ const AdminProductCustomization = ({ route, navigation }: any) => {
             </View>
           )}
         </View>
+      </View>
     </View>
   );
 };
