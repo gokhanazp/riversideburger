@@ -62,7 +62,29 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
   const loadCustomizations = async () => {
     try {
       setLoadingCustomizations(true);
-      const data = await customizationService.getProductCustomizations(item.id);
+
+      // Yeni sistem: Ürün bazlı spesifik seçenekleri getir
+      const specificOptions = await customizationService.getProductSpecificOptions(item.id);
+
+      // Kategorilere göre grupla (Group by categories)
+      const grouped: { [key: string]: CategoryWithOptions } = {};
+
+      specificOptions.forEach((opt: any) => {
+        const categoryId = opt.option.category.id;
+
+        if (!grouped[categoryId]) {
+          grouped[categoryId] = {
+            category: opt.option.category,
+            options: [],
+            is_required: opt.is_required,
+            max_selections: undefined,
+          };
+        }
+
+        grouped[categoryId].options.push(opt.option);
+      });
+
+      const data = Object.values(grouped);
       setCustomizations(data);
     } catch (error) {
       console.error('Error loading customizations:', error);

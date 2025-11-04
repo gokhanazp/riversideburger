@@ -264,6 +264,7 @@ const AdminProductCustomization = ({ route, navigation }: any) => {
                 <FlatList
                   data={categoryOptions}
                   keyExtractor={(item) => item.id}
+                  extraData={productOptions}
                   renderItem={({ item }) => {
                     const isAdded = isOptionAdded(item.id);
                     return (
