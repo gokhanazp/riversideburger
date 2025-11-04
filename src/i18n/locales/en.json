@@ -559,7 +559,10 @@
       "errorSaving": "Error saving category",
       "errorDeleting": "Error deleting category",
       "errorLoading": "Error loading categories",
-      "fillAllFields": "Please fill all fields"
+      "fillAllFields": "Please fill all fields",
+      "categoryActivated": "Category activated",
+      "categoryDeactivated": "Category deactivated",
+      "errorToggling": "Failed to change status"
     },
     "orders": {
       "title": "Order Management",

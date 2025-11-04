@@ -24,7 +24,7 @@ import IconPicker from '../../components/IconPicker';
 const AdminCategories = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { i18n } = useTranslation(); // Mevcut dili almak için (Get current language)
+  const { t, i18n } = useTranslation(); // Mevcut dili almak için (Get current language)
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCategory, setEditingCategory] = useState<MenuCategory | null>(null);
@@ -63,8 +63,8 @@ const AdminCategories = () => {
       console.error('Error loading categories:', error);
       Toast.show({
         type: 'error',
-        text1: i18n.language === 'tr' ? '❌ Hata' : '❌ Error',
-        text2: i18n.language === 'tr' ? 'Kategoriler yüklenemedi' : 'Failed to load categories',
+        text1: t('admin.error'),
+        text2: t('admin.categories.errorLoading'),
       });
     } finally {
       setLoading(false);
@@ -103,8 +103,8 @@ const AdminCategories = () => {
     if (!formData.name_tr.trim() || !formData.name_en.trim()) {
       Toast.show({
         type: 'error',
-        text1: i18n.language === 'tr' ? '⚠️ Uyarı' : '⚠️ Warning',
-        text2: i18n.language === 'tr' ? 'Lütfen tüm alanları doldurun' : 'Please fill all fields',
+        text1: t('admin.error'),
+        text2: t('admin.categories.fillAllFields'),
       });
       return;
     }
@@ -128,8 +128,8 @@ const AdminCategories = () => {
 
         Toast.show({
           type: 'success',
-          text1: i18n.language === 'tr' ? '✅ Başarılı' : '✅ Success',
-          text2: i18n.language === 'tr' ? 'Kategori güncellendi' : 'Category updated',
+          text1: t('admin.categories.success'),
+          text2: t('admin.categories.categoryUpdated'),
         });
       } else {
         // Yeni ekle (Insert new)
@@ -141,8 +141,8 @@ const AdminCategories = () => {
 
         Toast.show({
           type: 'success',
-          text1: i18n.language === 'tr' ? '✅ Başarılı' : '✅ Success',
-          text2: i18n.language === 'tr' ? 'Kategori eklendi' : 'Category added',
+          text1: t('admin.categories.success'),
+          text2: t('admin.categories.categoryAdded'),
         });
       }
 
@@ -152,8 +152,8 @@ const AdminCategories = () => {
       console.error('Error saving category:', error);
       Toast.show({
         type: 'error',
-        text1: i18n.language === 'tr' ? '❌ Hata' : '❌ Error',
-        text2: i18n.language === 'tr' ? 'Kategori kaydedilemedi' : 'Failed to save category',
+        text1: t('admin.error'),
+        text2: t('admin.categories.errorSaving'),
       });
     }
   };
@@ -162,14 +162,12 @@ const AdminCategories = () => {
   const handleDeleteCategory = (category: MenuCategory) => {
     const categoryName = getCategoryName(category);
     Alert.alert(
-      i18n.language === 'tr' ? 'Kategoriyi Sil' : 'Delete Category',
-      i18n.language === 'tr'
-        ? `"${categoryName}" kategorisini silmek istediğinize emin misiniz?`
-        : `Are you sure you want to delete "${categoryName}" category?`,
+      t('admin.categories.deleteCategory'),
+      t('admin.categories.deleteConfirm'),
       [
-        { text: i18n.language === 'tr' ? 'İptal' : 'Cancel', style: 'cancel' },
+        { text: t('admin.categories.cancel'), style: 'cancel' },
         {
-          text: i18n.language === 'tr' ? 'Sil' : 'Delete',
+          text: t('admin.categories.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -182,8 +180,8 @@ const AdminCategories = () => {
 
               Toast.show({
                 type: 'success',
-                text1: i18n.language === 'tr' ? '✅ Başarılı' : '✅ Success',
-                text2: i18n.language === 'tr' ? 'Kategori silindi' : 'Category deleted',
+                text1: t('admin.categories.success'),
+                text2: t('admin.categories.categoryDeleted'),
               });
 
               loadCategories();
@@ -191,8 +189,8 @@ const AdminCategories = () => {
               console.error('Error deleting category:', error);
               Toast.show({
                 type: 'error',
-                text1: i18n.language === 'tr' ? '❌ Hata' : '❌ Error',
-                text2: i18n.language === 'tr' ? 'Kategori silinemedi' : 'Failed to delete category',
+                text1: t('admin.error'),
+                text2: t('admin.categories.errorDeleting'),
               });
             }
           },
@@ -213,10 +211,10 @@ const AdminCategories = () => {
 
       Toast.show({
         type: 'success',
-        text1: i18n.language === 'tr' ? '✅ Başarılı' : '✅ Success',
+        text1: t('admin.categories.success'),
         text2: category.is_active
-          ? (i18n.language === 'tr' ? 'Kategori pasif edildi' : 'Category deactivated')
-          : (i18n.language === 'tr' ? 'Kategori aktif edildi' : 'Category activated'),
+          ? t('admin.categories.categoryDeactivated')
+          : t('admin.categories.categoryActivated'),
       });
 
       loadCategories();
@@ -224,8 +222,8 @@ const AdminCategories = () => {
       console.error('Error toggling category:', error);
       Toast.show({
         type: 'error',
-        text1: i18n.language === 'tr' ? '❌ Hata' : '❌ Error',
-        text2: i18n.language === 'tr' ? 'Durum değiştirilemedi' : 'Failed to change status',
+        text1: t('admin.error'),
+        text2: t('admin.categories.errorToggling'),
       });
     }
   };

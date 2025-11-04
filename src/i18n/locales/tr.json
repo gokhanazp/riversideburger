@@ -559,7 +559,10 @@
       "errorSaving": "Kategori kaydedilirken hata oluştu",
       "errorDeleting": "Kategori silinirken hata oluştu",
       "errorLoading": "Kategoriler yüklenirken hata oluştu",
-      "fillAllFields": "Lütfen tüm alanları doldurun"
+      "fillAllFields": "Lütfen tüm alanları doldurun",
+      "categoryActivated": "Kategori aktif edildi",
+      "categoryDeactivated": "Kategori pasif edildi",
+      "errorToggling": "Durum değiştirilemedi"
     },
     "orders": {
       "title": "Sipariş Yönetimi",
