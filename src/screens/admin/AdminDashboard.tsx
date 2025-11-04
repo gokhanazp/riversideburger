@@ -316,7 +316,7 @@ const AdminDashboard = ({ navigation }: any) => {
           />
           <MenuCard
             iconName="settings-outline"
-            title={t('admin.settings')}
+            title={t('admin.settingsMenu')}
             subtitle={t('admin.settingsSubtitle')}
             color="#28A745"
             onPress={() => navigation.navigate('AdminSettings')}
