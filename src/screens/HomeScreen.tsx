@@ -11,7 +11,7 @@ import { supabase } from '../lib/supabase';
 import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
 import Toast from 'react-native-toast-message';
-import { formatPrice } from '../services/currencyService';
+import { formatProductPrice } from '../services/currencyService';
 
 // Ürün tipi (Product type)
 interface Product {
@@ -19,6 +19,7 @@ interface Product {
   name: string;
   description: string;
   price: number;
+  currency?: 'TRY' | 'CAD'; // Para birimi (Currency)
   category: string;
   image_url: string;
   stock_status: 'in_stock' | 'out_of_stock';
@@ -84,6 +85,7 @@ const HomeScreen = ({ navigation }: any) => {
       name: product.name,
       description: product.description,
       price: product.price,
+      currency: product.currency || 'TRY', // Para birimi (Currency)
       category: product.category,
       image: product.image_url,
       rating: 4.5, // Varsayılan rating (Default rating)
@@ -99,6 +101,7 @@ const HomeScreen = ({ navigation }: any) => {
       id: product.id,
       name: product.name,
       price: product.price,
+      currency: product.currency || 'TRY', // Para birimi (Currency)
       image: product.image_url,
       quantity: 1,
     });
@@ -271,7 +274,9 @@ const HomeScreen = ({ navigation }: any) => {
 
                       {/* Fiyat ve Sepete Ekle (Price and Add to Cart) */}
                       <View style={styles.productFooter}>
-                        <Text style={styles.productPrice}>{formatPrice(product.price)}</Text>
+                        <Text style={styles.productPrice}>
+                          {formatProductPrice(product.price, product.currency || 'TRY')}
+                        </Text>
                         <TouchableOpacity
                           style={styles.addToCartButton}
                           onPress={() => handleAddToCart(product)}

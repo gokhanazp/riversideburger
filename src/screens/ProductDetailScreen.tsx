@@ -29,7 +29,7 @@ import { customizationService } from '../services/customizationService';
 import { CategoryWithOptions, SelectedCustomization } from '../types/customization';
 import { getProductReviews, getProductRating } from '../services/reviewService';
 import { Review, ProductRating } from '../types/database.types';
-import { formatPrice } from '../services/currencyService';
+import { formatProductPrice } from '../services/currencyService';
 
 const { width } = Dimensions.get('window');
 
@@ -157,6 +157,8 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
   };
 
   // Toplam fiyat hesapla (Calculate total price)
+  // Not: Fiyatlar ürünün kendi para biriminde hesaplanır, gösterim sırasında dönüştürülür
+  // (Note: Prices are calculated in product's own currency, converted during display)
   const calculateTotalPrice = () => {
     const basePrice = item.price * quantity;
     const extraPrice = calculateExtraPrice() * quantity;
@@ -250,7 +252,9 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
                 <Text style={styles.preparationTime}>⏱️ {item.preparationTime} {t('product.minutes')}</Text>
               )}
             </View>
-            <Text style={styles.price}>{formatPrice(item.price)}</Text>
+            <Text style={styles.price}>
+              {formatProductPrice(item.price, item.currency || 'TRY')}
+            </Text>
           </View>
 
           {/* Açıklama (Description) */}
@@ -370,7 +374,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
                                     isSelected && styles.optionPriceSelected,
                                   ]}
                                 >
-                                  +{formatPrice(option.price)}
+                                  +{formatProductPrice(option.price, item.currency || 'TRY')}
                                 </Text>
                               )}
                             </View>
@@ -491,7 +495,9 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
         {/* Toplam (Total) */}
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>{t('cart.total')}</Text>
-          <Text style={styles.totalPrice}>{formatPrice(calculateTotalPrice())}</Text>
+          <Text style={styles.totalPrice}>
+            {formatProductPrice(calculateTotalPrice(), item.currency || 'TRY')}
+          </Text>
         </View>
 
         {/* Sepete Ekle Butonu (Add to Cart Button) */}

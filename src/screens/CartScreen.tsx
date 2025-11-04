@@ -23,7 +23,7 @@ import { createOrder } from '../services/orderService';
 import { getUserPoints, pointsToTL } from '../services/pointsService';
 import { getDefaultAddress, getUserAddresses } from '../services/addressService';
 import { Address } from '../types/database.types';
-import { formatPrice } from '../services/currencyService';
+import { formatProductPrice } from '../services/currencyService';
 
 // Sepet ekranı (Cart screen)
 const CartScreen = ({ navigation }: any) => {
@@ -277,7 +277,7 @@ const CartScreen = ({ navigation }: any) => {
             {item.customizations.map((custom, idx) => (
               <Text key={idx} style={styles.customizationText}>
                 • {custom.option_name}
-                {custom.option_price > 0 && ` (+${formatPrice(custom.option_price)})`}
+                {custom.option_price > 0 && ` (+${formatProductPrice(custom.option_price, item.currency || 'TRY')})`}
               </Text>
             ))}
           </View>
@@ -290,7 +290,9 @@ const CartScreen = ({ navigation }: any) => {
           </Text>
         )}
 
-        <Text style={styles.cartPrice}>{formatPrice(item.price)}</Text>
+        <Text style={styles.cartPrice}>
+          {formatProductPrice(item.price, item.currency || 'TRY')}
+        </Text>
         <View style={styles.quantityContainer}>
           {/* Azalt butonu (Decrease button) */}
           <TouchableOpacity
@@ -405,11 +407,15 @@ const CartScreen = ({ navigation }: any) => {
 
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>{t('cart.subtotal')}:</Text>
-              <Text style={styles.summaryValue}>{formatPrice(getTotalPrice())}</Text>
+              <Text style={styles.summaryValue}>
+                {formatProductPrice(getTotalPrice(), 'TRY')}
+              </Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>{t('cart.deliveryFee')}:</Text>
-              <Text style={styles.summaryValue}>{formatPrice(0)}</Text>
+              <Text style={styles.summaryValue}>
+                {formatProductPrice(0, 'TRY')}
+              </Text>
             </View>
 
             {/* Puan Kullanma Bölümü (Points Usage Section) */}
@@ -450,7 +456,9 @@ const CartScreen = ({ navigation }: any) => {
                     {pointsToUse > 0 && (
                       <View style={styles.pointsDiscountRow}>
                         <Text style={styles.pointsDiscountLabel}>{t('cart.discount')}:</Text>
-                        <Text style={styles.pointsDiscountValue}>-{formatPrice(pointsToUse)}</Text>
+                        <Text style={styles.pointsDiscountValue}>
+                          -{formatProductPrice(pointsToUse, 'TRY')}
+                        </Text>
                       </View>
                     )}
                   </>
@@ -466,9 +474,13 @@ const CartScreen = ({ navigation }: any) => {
               <Text style={styles.totalLabel}>{t('cart.total')}:</Text>
               <View style={styles.totalPriceContainer}>
                 {pointsToUse > 0 && (
-                  <Text style={styles.originalPrice}>{formatPrice(getTotalPrice())}</Text>
+                  <Text style={styles.originalPrice}>
+                    {formatProductPrice(getTotalPrice(), 'TRY')}
+                  </Text>
                 )}
-                <Text style={styles.totalValue}>{formatPrice(getFinalPrice())}</Text>
+                <Text style={styles.totalValue}>
+                  {formatProductPrice(getFinalPrice(), 'TRY')}
+                </Text>
               </View>
             </View>
 
@@ -501,8 +513,8 @@ const CartScreen = ({ navigation }: any) => {
         title={t('cart.confirmOrder')}
         message={
           pointsToUse > 0
-            ? `${t('cart.subtotal')}: ${formatPrice(getTotalPrice())}\n${t('cart.discount')}: -${formatPrice(pointsToUse)}\n\n${t('cart.finalTotal')}: ${formatPrice(getFinalPrice())}\n\n${t('cart.confirmOrderDesc')}`
-            : `${t('cart.total')}: ${formatPrice(getTotalPrice())}\n\n${t('cart.confirmOrderDesc')}`
+            ? `${t('cart.subtotal')}: ${formatProductPrice(getTotalPrice(), 'TRY')}\n${t('cart.discount')}: -${formatProductPrice(pointsToUse, 'TRY')}\n\n${t('cart.finalTotal')}: ${formatProductPrice(getFinalPrice(), 'TRY')}\n\n${t('cart.confirmOrderDesc')}`
+            : `${t('cart.total')}: ${formatProductPrice(getTotalPrice(), 'TRY')}\n\n${t('cart.confirmOrderDesc')}`
         }
         confirmText={t('cart.confirm')}
         cancelText={t('cart.cancel')}
