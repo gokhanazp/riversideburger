@@ -279,12 +279,6 @@ const ProfileScreen = ({ navigation }: any) => {
             <Text style={styles.sectionTitle}>{t('profile.settingsSection')}</Text>
             <View style={styles.card}>
               <MenuItem
-                iconName="settings-outline"
-                title={t('profile.languageCurrency')}
-                subtitle={t('profile.languageCurrencySubtitle')}
-                onPress={() => navigation.navigate('Settings')}
-              />
-              <MenuItem
                 iconName="notifications-outline"
                 title={t('profile.notifications')}
                 subtitle={t('profile.notificationsSubtitle')}
