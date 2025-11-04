@@ -1,4 +1,4 @@
-import { supabase } from '../../config/supabase';
+import { supabase } from '../lib/supabase';
 
 // Uygulama ayarları tipleri (App settings types)
 export type AppCountry = 'turkey' | 'canada';
