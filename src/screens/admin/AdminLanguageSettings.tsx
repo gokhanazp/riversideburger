@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
 import Toast from 'react-native-toast-message';
 import {
@@ -21,6 +22,7 @@ import {
 // Dil ve Para Birimi Yönetimi Ekranı (Language and Currency Management Screen)
 const AdminLanguageSettings = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<AppCountry>('canada');
@@ -39,8 +41,8 @@ const AdminLanguageSettings = ({ navigation }: any) => {
       console.error('Error loading settings:', error);
       Toast.show({
         type: 'error',
-        text1: '❌ Hata',
-        text2: 'Ayarlar yüklenemedi',
+        text1: t('admin.error'),
+        text2: t('admin.languageSettings.errorLoading'),
       });
     } finally {
       setLoading(false);
@@ -58,22 +60,26 @@ const AdminLanguageSettings = ({ navigation }: any) => {
         const countryInfo = COUNTRIES[country];
         Toast.show({
           type: 'success',
-          text1: '✅ Başarılı',
-          text2: `Ülke: ${countryInfo.name} | Dil: ${countryInfo.language.toUpperCase()} | Para: ${countryInfo.currency}`,
+          text1: t('admin.languageSettings.success'),
+          text2: `${t('admin.languageSettings.settingsUpdated', {
+            country: countryInfo.name,
+            language: countryInfo.language.toUpperCase(),
+            currency: countryInfo.currency
+          })}`,
         });
       } else {
         Toast.show({
           type: 'error',
-          text1: '❌ Hata',
-          text2: 'Ayarlar güncellenemedi',
+          text1: t('admin.error'),
+          text2: t('admin.languageSettings.errorUpdating'),
         });
       }
     } catch (error) {
       console.error('Error updating country:', error);
       Toast.show({
         type: 'error',
-        text1: '❌ Hata',
-        text2: 'Bir hata oluştu',
+        text1: t('admin.error'),
+        text2: t('admin.languageSettings.errorGeneral'),
       });
     } finally {
       setSaving(false);
@@ -84,7 +90,7 @@ const AdminLanguageSettings = ({ navigation }: any) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Ayarlar yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('admin.languageSettings.loading')}</Text>
       </View>
     );
   }

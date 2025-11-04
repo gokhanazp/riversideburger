@@ -745,6 +745,15 @@
       "errorRequired": "Lütfen başlık ve resim URL'si girin",
       "loading": "Yükleniyor...",
       "noBanners": "Henüz banner yok"
+    },
+    "languageSettings": {
+      "title": "Dil ve Para Birimi",
+      "success": "Başarılı",
+      "settingsUpdated": "Ülke: {country} | Dil: {language} | Para: {currency}",
+      "errorLoading": "Ayarlar yüklenemedi",
+      "errorUpdating": "Ayarlar güncellenemedi",
+      "errorGeneral": "Bir hata oluştu",
+      "loading": "Ayarlar yükleniyor..."
     }
   },
   "favorites": {

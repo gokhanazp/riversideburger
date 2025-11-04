@@ -745,6 +745,15 @@
       "errorRequired": "Please enter title and image URL",
       "loading": "Loading...",
       "noBanners": "No banners yet"
+    },
+    "languageSettings": {
+      "title": "Language & Currency",
+      "success": "Success",
+      "settingsUpdated": "Country: {country} | Language: {language} | Currency: {currency}",
+      "errorLoading": "Failed to load settings",
+      "errorUpdating": "Failed to update settings",
+      "errorGeneral": "An error occurred",
+      "loading": "Loading settings..."
     }
   },
   "favorites": {
