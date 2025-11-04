@@ -264,6 +264,13 @@ const AdminDashboard = ({ navigation }: any) => {
             onPress={() => navigation.navigate('AdminProducts')}
           />
           <MenuCard
+            iconName="albums-outline"
+            title="Kategoriler"
+            subtitle="Menü kategorileri"
+            color="#28A745"
+            onPress={() => navigation.navigate('AdminCategories')}
+          />
+          <MenuCard
             iconName="people-outline"
             title="Kullanıcılar"
             subtitle="Kullanıcı listesi"

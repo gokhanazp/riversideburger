@@ -1,4 +1,16 @@
-// Menü kategorileri için tip tanımı (Menu category type definition)
+// Menü kategorisi için tip tanımı (Menu category type definition)
+export interface MenuCategory {
+  id: string;
+  name_tr: string;
+  name_en: string;
+  icon: string;
+  display_order: number;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Eski kategori tipi - geriye dönük uyumluluk için (Old category type - for backward compatibility)
 export type CategoryType = 'pizza' | 'burger' | 'pasta' | 'salad' | 'dessert' | 'drink';
 
 // Menü öğesi için tip tanımı (Menu item type definition)
@@ -8,6 +20,7 @@ export interface MenuItem {
   description: string;
   price: number; // Fiyat - ülke seçimine göre sembol eklenir (Price - symbol added based on country selection)
   category: CategoryType;
+  category_id?: string; // Yeni: Dinamik kategori ID (New: Dynamic category ID)
   image: string;
   available: boolean;
   preparationTime?: number; // dakika cinsinden (in minutes)
