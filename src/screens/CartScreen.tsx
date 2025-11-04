@@ -277,7 +277,7 @@ const CartScreen = ({ navigation }: any) => {
             {item.customizations.map((custom, idx) => (
               <Text key={idx} style={styles.customizationText}>
                 • {custom.option_name}
-                {custom.option_price > 0 && ` (+₺${custom.option_price.toFixed(2)})`}
+                {custom.option_price > 0 && ` (+${formatPrice(custom.option_price)})`}
               </Text>
             ))}
           </View>
@@ -290,7 +290,7 @@ const CartScreen = ({ navigation }: any) => {
           </Text>
         )}
 
-        <Text style={styles.cartPrice}>₺{item.price.toFixed(2)}</Text>
+        <Text style={styles.cartPrice}>{formatPrice(item.price)}</Text>
         <View style={styles.quantityContainer}>
           {/* Azalt butonu (Decrease button) */}
           <TouchableOpacity
@@ -317,7 +317,7 @@ const CartScreen = ({ navigation }: any) => {
         onPress={() => handleRemoveItem(item.id, item.name)}
         activeOpacity={0.7}
       >
-        <Text style={styles.deleteButtonText}>🗑️</Text>
+        <Ionicons name="trash-outline" size={22} color="#FF3B30" />
       </TouchableOpacity>
     </View>
   );
@@ -695,9 +695,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.sm,
-  },
-  deleteButtonText: {
-    fontSize: 24,
+    backgroundColor: '#FFF5F5',
+    borderRadius: 8,
+    width: 40,
+    height: 40,
   },
   emptyContainer: {
     flex: 1,
