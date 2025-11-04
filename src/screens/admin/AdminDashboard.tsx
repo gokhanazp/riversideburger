@@ -9,12 +9,14 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
 import Toast from 'react-native-toast-message';
 
 // Admin Dashboard Ekranı (Admin Dashboard Screen)
 const AdminDashboard = ({ navigation }: any) => {
+  const { t, i18n } = useTranslation();
   // State'ler (States)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -95,8 +97,8 @@ const AdminDashboard = ({ navigation }: any) => {
       console.error('Error fetching stats:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'İstatistikler yüklenirken bir hata oluştu',
+        text1: t('admin.error'),
+        text2: t('admin.errorLoadingStats'),
       });
     } finally {
       setLoading(false);
@@ -168,7 +170,7 @@ const AdminDashboard = ({ navigation }: any) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('admin.loading')}</Text>
       </View>
     );
   }
@@ -183,8 +185,8 @@ const AdminDashboard = ({ navigation }: any) => {
       {/* Başlık (Header) */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Admin Dashboard</Text>
-          <Text style={styles.headerSubtitle}>Riverside Burgers Yönetim Paneli</Text>
+          <Text style={styles.headerTitle}>{t('admin.dashboardTitle')}</Text>
+          <Text style={styles.headerSubtitle}>{t('admin.dashboardSubtitle')}</Text>
         </View>
         <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
           <Ionicons name="refresh" size={24} color={Colors.primary} />
@@ -193,51 +195,51 @@ const AdminDashboard = ({ navigation }: any) => {
 
       {/* İstatistikler (Statistics) */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📊 İstatistikler</Text>
+        <Text style={styles.sectionTitle}>{t('admin.statisticsTitle')}</Text>
         <View style={styles.statsGrid}>
           <StatCard
             iconName="receipt"
-            title="Toplam Sipariş"
+            title={t('admin.totalOrders')}
             value={stats.totalOrders}
             color="#E63946"
             onPress={() => navigation.navigate('AdminOrders')}
           />
           <StatCard
             iconName="time"
-            title="Bekleyen Sipariş"
+            title={t('admin.pendingOrders')}
             value={stats.pendingOrders}
             color="#FF6B35"
             onPress={() => navigation.navigate('AdminOrders', { filter: 'pending' })}
           />
           <StatCard
             iconName="cash"
-            title="Toplam Gelir"
+            title={t('admin.totalRevenue')}
             value={`₺${stats.totalRevenue.toFixed(2)}`}
             color="#28A745"
           />
           <StatCard
             iconName="calendar"
-            title="Bugünkü Sipariş"
+            title={t('admin.todayOrders')}
             value={stats.todayOrders}
             color="#007BFF"
           />
           <StatCard
             iconName="people"
-            title="Toplam Kullanıcı"
+            title={t('admin.totalUsers')}
             value={stats.totalUsers}
             color="#6F42C1"
             onPress={() => navigation.navigate('AdminUsers')}
           />
           <StatCard
             iconName="fast-food"
-            title="Toplam Ürün"
+            title={t('admin.totalProducts')}
             value={stats.totalProducts}
             color="#FD7E14"
             onPress={() => navigation.navigate('AdminProducts')}
           />
           <StatCard
             iconName="star"
-            title="Bekleyen Yorum"
+            title={t('admin.pendingReviews')}
             value={stats.pendingReviews}
             color="#FFD700"
             onPress={() => navigation.navigate('AdminReviews')}
@@ -247,75 +249,75 @@ const AdminDashboard = ({ navigation }: any) => {
 
       {/* Hızlı Erişim Menüsü (Quick Access Menu) */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>⚡ Hızlı Erişim</Text>
+        <Text style={styles.sectionTitle}>{t('admin.quickActions')}</Text>
         <View style={styles.menuGrid}>
           <MenuCard
             iconName="receipt-outline"
-            title="Siparişler"
-            subtitle="Sipariş yönetimi"
+            title={t('admin.manageOrders')}
+            subtitle={t('admin.manageOrdersSubtitle')}
             color="#E63946"
             onPress={() => navigation.navigate('AdminOrders')}
           />
           <MenuCard
             iconName="fast-food-outline"
-            title="Ürünler"
-            subtitle="Ürün yönetimi"
+            title={t('admin.manageProducts')}
+            subtitle={t('admin.manageProductsSubtitle')}
             color="#FF6B35"
             onPress={() => navigation.navigate('AdminProducts')}
           />
           <MenuCard
             iconName="albums-outline"
-            title="Kategoriler"
-            subtitle="Menü kategorileri"
+            title={t('admin.manageCategories')}
+            subtitle={t('admin.manageCategoriesSubtitle')}
             color="#28A745"
             onPress={() => navigation.navigate('AdminCategories')}
           />
           <MenuCard
             iconName="restaurant-outline"
-            title="Ekstra Malzemeler"
-            subtitle="Özelleştirme seçenekleri"
+            title={t('admin.extraIngredients')}
+            subtitle={t('admin.extraIngredientsSubtitle')}
             color="#9C27B0"
             onPress={() => navigation.navigate('AdminProductOptions')}
           />
           <MenuCard
             iconName="people-outline"
-            title="Kullanıcılar"
-            subtitle="Kullanıcı listesi"
+            title={t('admin.manageUsers')}
+            subtitle={t('admin.manageUsersSubtitle')}
             color="#6F42C1"
             onPress={() => navigation.navigate('AdminUsers')}
           />
           <MenuCard
             iconName="images-outline"
-            title="Banner'lar"
-            subtitle="Slider yönetimi"
+            title={t('admin.banners')}
+            subtitle={t('admin.bannersSubtitle')}
             color="#007BFF"
             onPress={() => navigation.navigate('AdminBanners')}
           />
           <MenuCard
             iconName="notifications-outline"
-            title="Bildirimler"
-            subtitle="Bildirim gönder"
+            title={t('admin.notifications')}
+            subtitle={t('admin.notificationsSubtitle')}
             color="#FD7E14"
             onPress={() => navigation.navigate('AdminNotifications')}
           />
           <MenuCard
             iconName="star-outline"
-            title="Yorumlar"
-            subtitle="Yorum yönetimi"
+            title={t('admin.manageReviews')}
+            subtitle={t('admin.manageReviewsSubtitle')}
             color="#FFD700"
             onPress={() => navigation.navigate('AdminReviews')}
           />
           <MenuCard
             iconName="language-outline"
-            title="Dil ve Para Birimi"
-            subtitle="Ülke ayarları"
+            title={t('admin.languageSettings')}
+            subtitle={t('admin.languageSettingsSubtitle')}
             color="#17A2B8"
             onPress={() => navigation.navigate('AdminLanguageSettings')}
           />
           <MenuCard
             iconName="settings-outline"
-            title="Ayarlar"
-            subtitle="Sistem ayarları"
+            title={t('admin.settings')}
+            subtitle={t('admin.settingsSubtitle')}
             color="#28A745"
             onPress={() => navigation.navigate('AdminSettings')}
           />
