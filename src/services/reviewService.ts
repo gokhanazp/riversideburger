@@ -273,13 +273,17 @@ export async function getPendingReviews(): Promise<Review[]> {
  */
 export async function approveReview(reviewId: string): Promise<void> {
   try {
+    console.log('🔍 Approving review:', reviewId);
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError || !user) {
+      console.error('❌ User error:', userError);
       throw new Error('Kullanıcı oturumu bulunamadı');
     }
 
-    const { error } = await supabase
+    console.log('👤 Current user:', user.id);
+
+    const { data, error } = await supabase
       .from('reviews')
       .update({
         is_approved: true,
@@ -287,14 +291,18 @@ export async function approveReview(reviewId: string): Promise<void> {
         approved_by: user.id,
         approved_at: new Date().toISOString(),
       })
-      .eq('id', reviewId);
+      .eq('id', reviewId)
+      .select();
 
     if (error) {
-      console.error('Approve review error:', error);
-      throw new Error('Değerlendirme onaylanamadı');
+      console.error('❌ Approve review error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      throw new Error('Değerlendirme onaylanamadı: ' + error.message);
     }
+
+    console.log('✅ Review approved successfully:', data);
   } catch (error: any) {
-    console.error('Approve review error:', error);
+    console.error('❌ Approve review error:', error);
     throw error;
   }
 }
