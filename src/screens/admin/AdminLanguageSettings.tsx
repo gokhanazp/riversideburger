@@ -102,7 +102,7 @@ const AdminLanguageSettings = ({ navigation }: any) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Dil ve Para Birimi</Text>
+        <Text style={styles.headerTitle}>{t('admin.languageSettings.headerTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -111,13 +111,12 @@ const AdminLanguageSettings = ({ navigation }: any) => {
         <View style={styles.infoCard}>
           <Ionicons name="information-circle" size={24} color={Colors.primary} />
           <Text style={styles.infoText}>
-            Uygulamanın hangi ülkede kullanılacağını seçin. Seçtiğiniz ülkeye göre dil ve para
-            birimi otomatik olarak ayarlanır.
+            {t('admin.languageSettings.infoText')}
           </Text>
         </View>
 
         {/* Ülke Seçimi (Country Selection) */}
-        <Text style={styles.sectionTitle}>Ülke Seçimi</Text>
+        <Text style={styles.sectionTitle}>{t('admin.languageSettings.sectionTitle')}</Text>
 
         {/* Türkiye */}
         <TouchableOpacity
@@ -134,7 +133,7 @@ const AdminLanguageSettings = ({ navigation }: any) => {
             <View>
               <Text style={styles.countryName}>{COUNTRIES.turkey.name}</Text>
               <Text style={styles.countryDetails}>
-                Dil: Türkçe | Para: ₺ TRY
+                {t('admin.languageSettings.turkeyLanguage')}
               </Text>
             </View>
           </View>
@@ -158,7 +157,7 @@ const AdminLanguageSettings = ({ navigation }: any) => {
             <View>
               <Text style={styles.countryName}>{COUNTRIES.canada.name}</Text>
               <Text style={styles.countryDetails}>
-                Dil: English | Para: $ CAD
+                {t('admin.languageSettings.canadaLanguage')}
               </Text>
             </View>
           </View>
@@ -169,23 +168,23 @@ const AdminLanguageSettings = ({ navigation }: any) => {
 
         {/* Mevcut Ayarlar (Current Settings) */}
         <View style={styles.currentSettingsCard}>
-          <Text style={styles.currentSettingsTitle}>Mevcut Ayarlar</Text>
+          <Text style={styles.currentSettingsTitle}>{t('admin.languageSettings.currentSettingsTitle')}</Text>
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Ülke:</Text>
+            <Text style={styles.settingLabel}>{t('admin.languageSettings.labelCountry')}</Text>
             <Text style={styles.settingValue}>
               {COUNTRIES[selectedCountry].flag} {COUNTRIES[selectedCountry].name}
             </Text>
           </View>
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Dil:</Text>
+            <Text style={styles.settingLabel}>{t('admin.languageSettings.labelLanguage')}</Text>
             <Text style={styles.settingValue}>
-              {COUNTRIES[selectedCountry].language === 'tr' ? 'Türkçe' : 'English'}
+              {COUNTRIES[selectedCountry].language === 'tr' ? t('admin.languageSettings.languageTurkish') : t('admin.languageSettings.languageEnglish')}
             </Text>
           </View>
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Para Birimi:</Text>
+            <Text style={styles.settingLabel}>{t('admin.languageSettings.labelCurrency')}</Text>
             <Text style={styles.settingValue}>
-              {COUNTRIES[selectedCountry].currency === 'TRY' ? '₺ TRY' : '$ CAD'}
+              {COUNTRIES[selectedCountry].currency === 'TRY' ? t('admin.languageSettings.currencyTRY') : t('admin.languageSettings.currencyCAD')}
             </Text>
           </View>
         </View>
@@ -194,8 +193,7 @@ const AdminLanguageSettings = ({ navigation }: any) => {
         <View style={styles.noteCard}>
           <Ionicons name="alert-circle-outline" size={20} color="#FF9800" />
           <Text style={styles.noteText}>
-            Müşteriler dil ve para birimi seçemez. Tüm kullanıcılar admin'in seçtiği ayarları
-            görür.
+            {t('admin.languageSettings.noteText')}
           </Text>
         </View>
       </ScrollView>

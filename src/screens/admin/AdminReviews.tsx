@@ -172,7 +172,7 @@ const AdminReviews = () => {
       return (
         <View style={[styles.statusBadge, styles.approvedBadge]}>
           <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
-          <Text style={styles.approvedText}>Onaylandı</Text>
+          <Text style={styles.approvedText}>{t('admin.reviews.statusApproved')}</Text>
         </View>
       );
     }
@@ -180,14 +180,14 @@ const AdminReviews = () => {
       return (
         <View style={[styles.statusBadge, styles.rejectedBadge]}>
           <Ionicons name="close-circle" size={14} color="#F44336" />
-          <Text style={styles.rejectedText}>Reddedildi</Text>
+          <Text style={styles.rejectedText}>{t('admin.reviews.statusRejected')}</Text>
         </View>
       );
     }
     return (
       <View style={[styles.statusBadge, styles.pendingBadge]}>
         <Ionicons name="time-outline" size={14} color="#FF9800" />
-        <Text style={styles.pendingText}>Bekliyor</Text>
+        <Text style={styles.pendingText}>{t('admin.reviews.statusPending')}</Text>
       </View>
     );
   };
@@ -222,11 +222,11 @@ const AdminReviews = () => {
       <View style={styles.ratingSection}>
         {renderStars(item.rating)}
         <Text style={styles.ratingText}>
-          {item.rating === 1 && '😞 Çok Kötü'}
-          {item.rating === 2 && '😕 Kötü'}
-          {item.rating === 3 && '😐 Orta'}
-          {item.rating === 4 && '😊 İyi'}
-          {item.rating === 5 && '😍 Mükemmel'}
+          {item.rating === 1 && t('admin.reviews.rating1')}
+          {item.rating === 2 && t('admin.reviews.rating2')}
+          {item.rating === 3 && t('admin.reviews.rating3')}
+          {item.rating === 4 && t('admin.reviews.rating4')}
+          {item.rating === 5 && t('admin.reviews.rating5')}
         </Text>
       </View>
 
@@ -240,7 +240,7 @@ const AdminReviews = () => {
       {/* Red Nedeni (Rejection Reason) */}
       {item.is_rejected && item.rejection_reason && (
         <View style={styles.rejectionReasonBox}>
-          <Text style={styles.rejectionReasonLabel}>Red Nedeni:</Text>
+          <Text style={styles.rejectionReasonLabel}>{t('admin.reviews.rejectionReasonLabel')}</Text>
           <Text style={styles.rejectionReasonText}>{item.rejection_reason}</Text>
         </View>
       )}
@@ -253,14 +253,14 @@ const AdminReviews = () => {
             onPress={() => handleApprove(item.id)}
           >
             <Ionicons name="checkmark-circle" size={20} color="#FFF" />
-            <Text style={styles.actionButtonText}>Onayla</Text>
+            <Text style={styles.actionButtonText}>{t('admin.reviews.buttonApprove')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, styles.rejectButton]}
             onPress={() => handleRejectPress(item.id)}
           >
             <Ionicons name="close-circle" size={20} color="#FFF" />
-            <Text style={styles.actionButtonText}>Reddet</Text>
+            <Text style={styles.actionButtonText}>{t('admin.reviews.buttonReject')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -274,7 +274,7 @@ const AdminReviews = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Yorum Yönetimi</Text>
+        <Text style={styles.headerTitle}>{t('admin.reviews.headerTitle')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -285,7 +285,7 @@ const AdminReviews = () => {
           onPress={() => setFilter('pending')}
         >
           <Text style={[styles.filterText, filter === 'pending' && styles.filterTextActive]}>
-            Bekleyen
+            {t('admin.reviews.filterPending')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -293,7 +293,7 @@ const AdminReviews = () => {
           onPress={() => setFilter('approved')}
         >
           <Text style={[styles.filterText, filter === 'approved' && styles.filterTextActive]}>
-            Onaylanan
+            {t('admin.reviews.filterApproved')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -301,7 +301,7 @@ const AdminReviews = () => {
           onPress={() => setFilter('rejected')}
         >
           <Text style={[styles.filterText, filter === 'rejected' && styles.filterTextActive]}>
-            Reddedilen
+            {t('admin.reviews.filterRejected')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -309,7 +309,7 @@ const AdminReviews = () => {
           onPress={() => setFilter('all')}
         >
           <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
-            Tümü
+            {t('admin.reviews.filterAll')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -323,12 +323,12 @@ const AdminReviews = () => {
       ) : reviews.length === 0 ? (
         <View style={styles.centerContainer}>
           <Ionicons name="chatbubbles-outline" size={80} color="#CCC" />
-          <Text style={styles.emptyTitle}>Yorum Yok</Text>
+          <Text style={styles.emptyTitle}>{t('admin.reviews.emptyTitle')}</Text>
           <Text style={styles.emptyText}>
-            {filter === 'pending' && 'Bekleyen yorum bulunmuyor'}
-            {filter === 'approved' && 'Onaylanmış yorum bulunmuyor'}
-            {filter === 'rejected' && 'Reddedilmiş yorum bulunmuyor'}
-            {filter === 'all' && 'Henüz hiç yorum yapılmamış'}
+            {filter === 'pending' && t('admin.reviews.emptyPending')}
+            {filter === 'approved' && t('admin.reviews.emptyApproved')}
+            {filter === 'rejected' && t('admin.reviews.emptyRejected')}
+            {filter === 'all' && t('admin.reviews.emptyAll')}
           </Text>
         </View>
       ) : (
@@ -352,13 +352,13 @@ const AdminReviews = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Yorumu Reddet</Text>
+            <Text style={styles.modalTitle}>{t('admin.reviews.modalTitle')}</Text>
             <Text style={styles.modalDescription}>
-              Lütfen red nedenini belirtin:
+              {t('admin.reviews.modalDescription')}
             </Text>
             <TextInput
               style={styles.modalInput}
-              placeholder="Red nedeni..."
+              placeholder={t('admin.reviews.modalPlaceholder')}
               placeholderTextColor="#999"
               multiline
               numberOfLines={4}
@@ -372,13 +372,13 @@ const AdminReviews = () => {
                 style={[styles.modalButton, styles.modalCancelButton]}
                 onPress={() => setRejectModalVisible(false)}
               >
-                <Text style={styles.modalCancelText}>İptal</Text>
+                <Text style={styles.modalCancelText}>{t('admin.reviews.modalCancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.modalConfirmButton]}
                 onPress={handleRejectConfirm}
               >
-                <Text style={styles.modalConfirmText}>Reddet</Text>
+                <Text style={styles.modalConfirmText}>{t('admin.reviews.modalConfirm')}</Text>
               </TouchableOpacity>
             </View>
           </View>
