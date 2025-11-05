@@ -225,11 +225,11 @@ const AdminSettings = ({ navigation }: any) => {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Puan Sistemi (Points System) */}
-        <Text style={styles.sectionTitle}>⭐ Puan Sistemi</Text>
+        <Text style={styles.sectionTitle}>{t('admin.settings.sectionPointsSystem')}</Text>
         <SettingCard
           icon="star"
-          title="Puan Kazanma Yüzdesi"
-          description="Müşterilerin siparişlerden kazanacağı puan yüzdesi"
+          title={t('admin.settings.pointsEarningPercentage')}
+          description={t('admin.settings.pointsEarningDesc')}
         >
           <View style={styles.inputRow}>
             <TextInput
@@ -245,16 +245,16 @@ const AdminSettings = ({ navigation }: any) => {
             <Text style={styles.inputSuffix}>%</Text>
           </View>
           <Text style={styles.helperText}>
-            Örnek: %5 ile ₺100 siparişten 5 puan kazanılır
+            {t('admin.settings.pointsExample')}
           </Text>
         </SettingCard>
 
         {/* Sipariş Ayarları (Order Settings) */}
-        <Text style={styles.sectionTitle}>🛒 Sipariş Ayarları</Text>
+        <Text style={styles.sectionTitle}>{t('admin.settings.sectionOrderSettings')}</Text>
         <SettingCard
           icon="cart"
-          title="Minimum Sipariş Tutarı"
-          description="Sipariş verilebilmesi için gereken minimum tutar"
+          title={t('admin.settings.minOrderTitle')}
+          description={t('admin.settings.minOrderDesc')}
         >
           <View style={styles.inputRow}>
             <Text style={styles.inputPrefix}>₺</Text>
@@ -272,11 +272,11 @@ const AdminSettings = ({ navigation }: any) => {
         </SettingCard>
 
         {/* Teslimat Ayarları (Delivery Settings) */}
-        <Text style={styles.sectionTitle}>🚚 Teslimat Ayarları</Text>
+        <Text style={styles.sectionTitle}>{t('admin.settings.sectionDeliverySettings')}</Text>
         <SettingCard
           icon="bicycle"
-          title="Teslimat Ücreti"
-          description="Standart teslimat ücreti"
+          title={t('admin.settings.deliveryFeeTitle')}
+          description={t('admin.settings.deliveryFeeDescription')}
         >
           <View style={styles.inputRow}>
             <Text style={styles.inputPrefix}>₺</Text>
@@ -295,8 +295,8 @@ const AdminSettings = ({ navigation }: any) => {
 
         <SettingCard
           icon="gift"
-          title="Ücretsiz Teslimat Eşiği"
-          description="Bu tutarın üzerindeki siparişlerde teslimat ücretsiz"
+          title={t('admin.settings.freeDeliveryTitle')}
+          description={t('admin.settings.freeDeliveryDesc')}
         >
           <View style={styles.inputRow}>
             <Text style={styles.inputPrefix}>₺</Text>
@@ -314,15 +314,15 @@ const AdminSettings = ({ navigation }: any) => {
         </SettingCard>
 
         {/* Restoran Durumu (Restaurant Status) */}
-        <Text style={styles.sectionTitle}>🏪 Restoran Durumu</Text>
+        <Text style={styles.sectionTitle}>{t('admin.settings.sectionRestaurantStatus')}</Text>
         <SettingCard
           icon="storefront"
-          title="Restoran Açık/Kapalı"
-          description="Restoran kapalıysa müşteriler sipariş veremez"
+          title={t('admin.settings.restaurantStatusTitle')}
+          description={t('admin.settings.restaurantStatusDesc')}
         >
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>
-              {settings.is_open ? '🟢 Açık' : '🔴 Kapalı'}
+              {settings.is_open ? t('admin.settings.statusOpen') : t('admin.settings.statusClosed')}
             </Text>
             <Switch
               value={settings.is_open}
@@ -358,10 +358,10 @@ const AdminSettings = ({ navigation }: any) => {
       {/* Kaydetme Onay Modal (Save Confirmation Modal) */}
       <ConfirmModal
         visible={showSaveModal}
-        title="Ayarları Kaydet"
-        message="Yaptığınız değişiklikleri kaydetmek istediğinize emin misiniz?"
-        confirmText="Kaydet"
-        cancelText="İptal"
+        title={t('admin.settings.modalTitle')}
+        message={t('admin.settings.modalMessage')}
+        confirmText={t('admin.settings.modalConfirm')}
+        cancelText={t('admin.settings.modalCancel')}
         onConfirm={handleSaveSettings}
         onCancel={() => setShowSaveModal(false)}
         type="success"
