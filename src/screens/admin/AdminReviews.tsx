@@ -92,42 +92,28 @@ const AdminReviews = () => {
 
   const handleApprove = async (reviewId: string) => {
     console.log('🔘 handleApprove called with reviewId:', reviewId);
-    Alert.alert(
-      t('admin.reviews.approveTitle'),
-      t('admin.reviews.approveConfirm'),
-      [
-        {
-          text: t('admin.categories.cancel'),
-          style: 'cancel',
-          onPress: () => console.log('❌ Approval cancelled')
-        },
-        {
-          text: t('admin.reviews.approve'),
-          style: 'default',
-          onPress: async () => {
-            console.log('✅ Approval confirmed, calling approveReview...');
-            try {
-              await approveReview(reviewId);
-              console.log('✅ approveReview completed successfully');
-              Toast.show({
-                type: 'success',
-                text1: t('admin.reviews.success'),
-                text2: t('admin.reviews.reviewApproved'),
-              });
-              console.log('🔄 Fetching reviews...');
-              fetchReviews();
-            } catch (error: any) {
-              console.error('❌ Error in handleApprove:', error);
-              Toast.show({
-                type: 'error',
-                text1: t('admin.error'),
-                text2: error.message || t('admin.reviews.errorApproving'),
-              });
-            }
-          },
-        },
-      ]
-    );
+
+    // Geçici olarak Alert'i kaldırıp direkt onaylama yapıyoruz (Temporarily removing Alert for testing)
+    console.log('✅ Starting approval process...');
+    try {
+      await approveReview(reviewId);
+      console.log('✅ approveReview completed successfully');
+      Toast.show({
+        type: 'success',
+        text1: t('admin.reviews.success'),
+        text2: t('admin.reviews.reviewApproved'),
+      });
+      console.log('🔄 Fetching reviews...');
+      await fetchReviews();
+      console.log('✅ Reviews refreshed');
+    } catch (error: any) {
+      console.error('❌ Error in handleApprove:', error);
+      Toast.show({
+        type: 'error',
+        text1: t('admin.error'),
+        text2: error.message || t('admin.reviews.errorApproving'),
+      });
+    }
   };
 
   const handleRejectPress = (reviewId: string) => {
