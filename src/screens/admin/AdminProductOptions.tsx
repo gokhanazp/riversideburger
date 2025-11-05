@@ -173,13 +173,22 @@ const AdminProductOptions = () => {
 
   // Kategori kaydet (Save category)
   const handleSaveCategory = async () => {
-    if (!categoryForm.name.trim()) {
+    // Validasyon - sadece mevcut dilin alanını kontrol et (Validation - check only current language field)
+    const currentLanguageField = i18n.language === 'tr' ? categoryForm.name : categoryForm.name_en;
+    if (!currentLanguageField.trim()) {
       Toast.show({
         type: 'error',
         text1: i18n.language === 'tr' ? '❌ Hata' : '❌ Error',
         text2: i18n.language === 'tr' ? 'Kategori adı gerekli' : 'Category name is required',
       });
       return;
+    }
+
+    // Diğer dil alanı boşsa, mevcut dil değerini kopyala (If other language field is empty, copy current language value)
+    if (i18n.language === 'tr' && !categoryForm.name_en.trim()) {
+      categoryForm.name_en = categoryForm.name;
+    } else if (i18n.language === 'en' && !categoryForm.name.trim()) {
+      categoryForm.name = categoryForm.name_en;
     }
 
     try {
@@ -237,13 +246,22 @@ const AdminProductOptions = () => {
 
   // Seçenek kaydet (Save option)
   const handleSaveOption = async () => {
-    if (!optionForm.name.trim()) {
+    // Validasyon - sadece mevcut dilin alanını kontrol et (Validation - check only current language field)
+    const currentLanguageField = i18n.language === 'tr' ? optionForm.name : optionForm.name_en;
+    if (!currentLanguageField.trim()) {
       Toast.show({
         type: 'error',
         text1: i18n.language === 'tr' ? '❌ Hata' : '❌ Error',
         text2: i18n.language === 'tr' ? 'Seçenek adı gerekli' : 'Option name is required',
       });
       return;
+    }
+
+    // Diğer dil alanı boşsa, mevcut dil değerini kopyala (If other language field is empty, copy current language value)
+    if (i18n.language === 'tr' && !optionForm.name_en.trim()) {
+      optionForm.name_en = optionForm.name;
+    } else if (i18n.language === 'en' && !optionForm.name.trim()) {
+      optionForm.name = optionForm.name_en;
     }
 
     if (!selectedCategory) return;
@@ -534,25 +552,28 @@ const AdminProductOptions = () => {
                 : (i18n.language === 'tr' ? 'Yeni Kategori' : 'New Category')}
             </Text>
 
-            <Text style={styles.inputLabel}>
-              {i18n.language === 'tr' ? 'Kategori Adı (Türkçe) *' : 'Category Name (Turkish) *'}
-            </Text>
-            <TextInput
-              style={styles.input}
-              value={categoryForm.name}
-              onChangeText={(text) => setCategoryForm({ ...categoryForm, name: text })}
-              placeholder={i18n.language === 'tr' ? 'Örn: Ekstra Malzemeler' : 'E.g: Extra Ingredients'}
-            />
-
-            <Text style={styles.inputLabel}>
-              {i18n.language === 'tr' ? 'Kategori Adı (İngilizce)' : 'Category Name (English)'}
-            </Text>
-            <TextInput
-              style={styles.input}
-              value={categoryForm.name_en}
-              onChangeText={(text) => setCategoryForm({ ...categoryForm, name_en: text })}
-              placeholder="E.g: Extra Ingredients"
-            />
+            {/* Sadece mevcut dile göre kategori adı alanını göster (Show only current language category name field) */}
+            {i18n.language === 'tr' ? (
+              <>
+                <Text style={styles.inputLabel}>Kategori Adı (Türkçe) *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={categoryForm.name}
+                  onChangeText={(text) => setCategoryForm({ ...categoryForm, name: text })}
+                  placeholder="Örn: Ekstra Malzemeler"
+                />
+              </>
+            ) : (
+              <>
+                <Text style={styles.inputLabel}>Category Name (English) *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={categoryForm.name_en}
+                  onChangeText={(text) => setCategoryForm({ ...categoryForm, name_en: text })}
+                  placeholder="E.g: Extra Ingredients"
+                />
+              </>
+            )}
 
             <Text style={styles.inputLabel}>
               {i18n.language === 'tr' ? 'Açıklama' : 'Description'}
@@ -604,25 +625,28 @@ const AdminProductOptions = () => {
                   : (i18n.language === 'tr' ? 'Yeni Seçenek' : 'New Option')}
               </Text>
 
-              <Text style={styles.inputLabel}>
-                {i18n.language === 'tr' ? 'Seçenek Adı (Türkçe) *' : 'Option Name (Turkish) *'}
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={optionForm.name}
-                onChangeText={(text) => setOptionForm({ ...optionForm, name: text })}
-                placeholder={i18n.language === 'tr' ? 'Örn: Ekstra Peynir' : 'E.g: Extra Cheese'}
-              />
-
-              <Text style={styles.inputLabel}>
-                {i18n.language === 'tr' ? 'Seçenek Adı (İngilizce)' : 'Option Name (English)'}
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={optionForm.name_en}
-                onChangeText={(text) => setOptionForm({ ...optionForm, name_en: text })}
-                placeholder="E.g: Extra Cheese"
-              />
+              {/* Sadece mevcut dile göre seçenek adı alanını göster (Show only current language option name field) */}
+              {i18n.language === 'tr' ? (
+                <>
+                  <Text style={styles.inputLabel}>Seçenek Adı (Türkçe) *</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={optionForm.name}
+                    onChangeText={(text) => setOptionForm({ ...optionForm, name: text })}
+                    placeholder="Örn: Ekstra Peynir"
+                  />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.inputLabel}>Option Name (English) *</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={optionForm.name_en}
+                    onChangeText={(text) => setOptionForm({ ...optionForm, name_en: text })}
+                    placeholder="E.g: Extra Cheese"
+                  />
+                </>
+              )}
 
               <Text style={styles.inputLabel}>
                 {i18n.language === 'tr' ? 'Açıklama' : 'Description'}
