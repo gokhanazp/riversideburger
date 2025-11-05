@@ -491,7 +491,9 @@ const AdminProducts = ({ navigation }: any) => {
             activeOpacity={0.7}
           >
             <Ionicons name="create" size={18} color={Colors.primary} />
-            <Text style={[styles.actionButtonText, { color: Colors.primary }]}>Düzenle</Text>
+            <Text style={[styles.actionButtonText, { color: Colors.primary }]}>
+              {t('admin.products.editButton')}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -503,7 +505,9 @@ const AdminProducts = ({ navigation }: any) => {
             activeOpacity={0.7}
           >
             <Ionicons name="trash" size={18} color="#DC3545" />
-            <Text style={[styles.actionButtonText, { color: '#DC3545' }]}>Sil</Text>
+            <Text style={[styles.actionButtonText, { color: '#DC3545' }]}>
+              {t('admin.products.deleteButton')}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -514,7 +518,9 @@ const AdminProducts = ({ navigation }: any) => {
           activeOpacity={0.7}
         >
           <Ionicons name="options" size={18} color="#FF6B35" />
-          <Text style={styles.customizeButtonText}>Özelleştirme Ayarları</Text>
+          <Text style={styles.customizeButtonText}>
+            {t('admin.products.customizationButton')}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

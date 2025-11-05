@@ -569,7 +569,10 @@
       "deleteTitle": "Ürünü Sil",
       "deleteMessage": "ürününü silmek istediğinize emin misiniz?",
       "deleteConfirmButton": "Sil",
-      "deleteCancelButton": "İptal"
+      "deleteCancelButton": "İptal",
+      "editButton": "Düzenle",
+      "deleteButton": "Sil",
+      "customizationButton": "Özelleştirme Ayarları"
     },
     "categories": {
       "title": "Kategori Yönetimi",

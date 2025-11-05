@@ -569,7 +569,10 @@
       "deleteTitle": "Delete Product",
       "deleteMessage": "Are you sure you want to delete this product?",
       "deleteConfirmButton": "Delete",
-      "deleteCancelButton": "Cancel"
+      "deleteCancelButton": "Cancel",
+      "editButton": "Edit",
+      "deleteButton": "Delete",
+      "customizationButton": "Customization Settings"
     },
     "categories": {
       "title": "Category Management",
