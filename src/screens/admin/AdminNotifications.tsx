@@ -163,22 +163,22 @@ const AdminNotifications = ({ navigation }: any) => {
   const quickTemplates = [
     {
       type: 'promotion' as NotificationType,
-      title: '🎉 Özel İndirim!',
-      body: 'Bugün tüm ürünlerde %20 indirim! Kaçırmayın!',
+      title: t('admin.notifications.template1Title'),
+      body: t('admin.notifications.template1Body'),
       icon: 'pricetag',
       color: '#FF6B35',
     },
     {
       type: 'general' as NotificationType,
-      title: '🍔 Yeni Menü!',
-      body: 'Yeni burger menümüz çıktı! Hemen deneyin!',
+      title: t('admin.notifications.template2Title'),
+      body: t('admin.notifications.template2Body'),
       icon: 'fast-food',
       color: '#E63946',
     },
     {
       type: 'general' as NotificationType,
-      title: '⏰ Açılış Saatleri',
-      body: 'Hafta sonu özel saatlerimiz: 10:00 - 23:00',
+      title: t('admin.notifications.template3Title'),
+      body: t('admin.notifications.template3Body'),
       icon: 'time',
       color: '#007BFF',
     },
@@ -203,7 +203,7 @@ const AdminNotifications = ({ navigation }: any) => {
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       {/* Hızlı Şablonlar (Quick Templates) */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>⚡ Hızlı Şablonlar</Text>
+        <Text style={styles.sectionTitle}>{t('admin.notifications.quickTemplates')}</Text>
         <View style={styles.templatesContainer}>
           {quickTemplates.map((template, index) => (
             <TouchableOpacity
@@ -224,10 +224,10 @@ const AdminNotifications = ({ navigation }: any) => {
 
       {/* Bildirim Formu (Notification Form) */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📝 Bildirim Oluştur</Text>
+        <Text style={styles.sectionTitle}>{t('admin.notifications.createNotification')}</Text>
 
         {/* Bildirim Tipi (Notification Type) */}
-        <Text style={styles.label}>Bildirim Tipi</Text>
+        <Text style={styles.label}>{t('admin.notifications.notificationType')}</Text>
         <View style={styles.typeContainer}>
           {(['general', 'promotion', 'order_status', 'points_earned'] as NotificationType[]).map((type) => (
             <TouchableOpacity
@@ -236,17 +236,17 @@ const AdminNotifications = ({ navigation }: any) => {
               onPress={() => setNotificationType(type)}
             >
               <Text style={[styles.typeButtonText, notificationType === type && styles.typeButtonTextActive]}>
-                {type === 'general' && '📢 Genel'}
-                {type === 'promotion' && '🏷️ Kampanya'}
-                {type === 'order_status' && '🧾 Sipariş'}
-                {type === 'points_earned' && '🎁 Puan'}
+                {type === 'general' && t('admin.notifications.typeGeneral')}
+                {type === 'promotion' && t('admin.notifications.typePromotion')}
+                {type === 'order_status' && t('admin.notifications.typeOrderStatus')}
+                {type === 'points_earned' && t('admin.notifications.typePointsEarned')}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Başlık (Title) */}
-        <Text style={styles.label}>Başlık</Text>
+        <Text style={styles.label}>{t('admin.notifications.labelTitle')}</Text>
         <TextInput
           style={styles.input}
           placeholder={t('admin.notifications.notificationTitlePlaceholder')}
@@ -256,7 +256,7 @@ const AdminNotifications = ({ navigation }: any) => {
         />
 
         {/* İçerik (Body) */}
-        <Text style={styles.label}>İçerik</Text>
+        <Text style={styles.label}>{t('admin.notifications.labelBody')}</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
           placeholder={t('admin.notifications.notificationBodyPlaceholder')}
@@ -271,10 +271,10 @@ const AdminNotifications = ({ navigation }: any) => {
       {/* Kullanıcı Seçimi (User Selection) */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>👥 Alıcılar ({selectedUsers.length}/{users.length})</Text>
+          <Text style={styles.sectionTitle}>{t('admin.notifications.recipients')} ({selectedUsers.length}/{users.length})</Text>
           <TouchableOpacity onPress={toggleAllUsers} style={styles.selectAllButton}>
             <Text style={styles.selectAllText}>
-              {selectedUsers.length === users.length ? 'Tümünü Kaldır' : 'Tümünü Seç'}
+              {selectedUsers.length === users.length ? t('admin.notifications.deselectAllButton') : t('admin.notifications.selectAllButton')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -293,7 +293,7 @@ const AdminNotifications = ({ navigation }: any) => {
                 color={selectedUsers.includes(user.id) ? Colors.primary : Colors.textSecondary}
               />
               <View style={styles.userDetails}>
-                <Text style={styles.userName}>{user.full_name || 'İsimsiz Kullanıcı'}</Text>
+                <Text style={styles.userName}>{user.full_name || t('admin.notifications.unnamedUser')}</Text>
                 <Text style={styles.userEmail}>{user.email}</Text>
               </View>
             </View>
@@ -313,7 +313,7 @@ const AdminNotifications = ({ navigation }: any) => {
         ) : (
           <>
             <Ionicons name="send" size={20} color="#FFF" />
-            <Text style={styles.sendButtonText}>Bildirim Gönder</Text>
+            <Text style={styles.sendButtonText}>{t('admin.notifications.sendButton')}</Text>
           </>
         )}
       </TouchableOpacity>
