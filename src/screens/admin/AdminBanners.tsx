@@ -336,7 +336,7 @@ const AdminBanners = ({ navigation }: any) => {
   const BannerCard = ({ banner }: { banner: Banner }) => (
     <View style={styles.bannerCard}>
       <Image source={{ uri: banner.image_url }} style={styles.bannerImage} resizeMode="cover" />
-      
+
       <View style={styles.bannerOverlay}>
         <View style={styles.bannerHeader}>
           <View style={styles.orderBadge}>
@@ -344,11 +344,11 @@ const AdminBanners = ({ navigation }: any) => {
           </View>
           {banner.is_active ? (
             <View style={styles.activeBadge}>
-              <Text style={styles.activeBadgeText}>🟢 Aktif</Text>
+              <Text style={styles.activeBadgeText}>{t('admin.banners.statusActive')}</Text>
             </View>
           ) : (
             <View style={styles.inactiveBadge}>
-              <Text style={styles.inactiveBadgeText}>⚫ Pasif</Text>
+              <Text style={styles.inactiveBadgeText}>{t('admin.banners.statusInactive')}</Text>
             </View>
           )}
         </View>
@@ -365,7 +365,7 @@ const AdminBanners = ({ navigation }: any) => {
         >
           <Ionicons name={banner.is_active ? 'eye-off' : 'eye'} size={18} color={Colors.white} />
           <Text style={styles.actionButtonText}>
-            {banner.is_active ? 'Pasif Yap' : 'Aktif Yap'}
+            {banner.is_active ? t('admin.banners.buttonDeactivate') : t('admin.banners.buttonActivate')}
           </Text>
         </TouchableOpacity>
 
@@ -375,7 +375,7 @@ const AdminBanners = ({ navigation }: any) => {
           activeOpacity={0.7}
         >
           <Ionicons name="create" size={18} color={Colors.white} />
-          <Text style={styles.actionButtonText}>Düzenle</Text>
+          <Text style={styles.actionButtonText}>{t('admin.banners.buttonEdit')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -387,7 +387,7 @@ const AdminBanners = ({ navigation }: any) => {
           activeOpacity={0.7}
         >
           <Ionicons name="trash" size={18} color={Colors.white} />
-          <Text style={styles.actionButtonText}>Sil</Text>
+          <Text style={styles.actionButtonText}>{t('admin.banners.buttonDelete')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -406,7 +406,7 @@ const AdminBanners = ({ navigation }: any) => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Banner Yönetimi</Text>
+        <Text style={styles.headerTitle}>{t('admin.banners.headerTitle')}</Text>
         <TouchableOpacity style={styles.addButton} onPress={handleAddBanner} activeOpacity={0.7}>
           <Ionicons name="add" size={24} color={Colors.white} />
         </TouchableOpacity>
@@ -422,9 +422,9 @@ const AdminBanners = ({ navigation }: any) => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="images-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>Banner bulunamadı</Text>
+            <Text style={styles.emptyText}>{t('admin.banners.emptyText')}</Text>
             <TouchableOpacity style={styles.emptyButton} onPress={handleAddBanner}>
-              <Text style={styles.emptyButtonText}>İlk Banner'ı Ekle</Text>
+              <Text style={styles.emptyButtonText}>{t('admin.banners.emptyButton')}</Text>
             </TouchableOpacity>
           </View>
         }
@@ -437,7 +437,7 @@ const AdminBanners = ({ navigation }: any) => {
             <View style={styles.editModal}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
-                  {selectedBanner ? 'Banner Düzenle' : 'Yeni Banner Ekle'}
+                  {selectedBanner ? t('admin.banners.modalTitleEdit') : t('admin.banners.modalTitleAdd')}
                 </Text>
                 <TouchableOpacity onPress={() => setShowEditModal(false)}>
                   <Ionicons name="close" size={24} color="#333" />
@@ -446,7 +446,7 @@ const AdminBanners = ({ navigation }: any) => {
 
               <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
                 {/* Başlık (Title) */}
-                <Text style={styles.label}>Başlık *</Text>
+                <Text style={styles.label}>{t('admin.banners.labelTitle')}</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.title}
@@ -456,7 +456,7 @@ const AdminBanners = ({ navigation }: any) => {
                 />
 
                 {/* Alt Başlık (Subtitle) */}
-                <Text style={styles.label}>Alt Başlık</Text>
+                <Text style={styles.label}>{t('admin.banners.labelSubtitle')}</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.subtitle}
@@ -466,7 +466,7 @@ const AdminBanners = ({ navigation }: any) => {
                 />
 
                 {/* Resim Yükleme (Image Upload) */}
-                <Text style={styles.label}>Banner Resmi *</Text>
+                <Text style={styles.label}>{t('admin.banners.labelImage')}</Text>
 
                 {/* Web için file input (File input for web) */}
                 {Platform.OS === 'web' && (
@@ -495,7 +495,7 @@ const AdminBanners = ({ navigation }: any) => {
                     <>
                       <Ionicons name="cloud-upload" size={24} color={Colors.white} />
                       <Text style={styles.uploadButtonText}>
-                        {formData.image_url ? 'Resmi Değiştir' : 'Resim Yükle'}
+                        {formData.image_url ? t('admin.banners.changeImage') : t('admin.banners.uploadImage')}
                       </Text>
                     </>
                   )}
@@ -503,10 +503,10 @@ const AdminBanners = ({ navigation }: any) => {
 
                 {/* Bilgi mesajı (Info message) */}
                 <Text style={styles.uploadInfo}>
-                  📸 Maksimum 5MB, JPEG/PNG/WebP formatında
+                  {t('admin.banners.uploadInfo1')}
                 </Text>
                 <Text style={styles.uploadInfo}>
-                  🎨 Resim otomatik olarak 1920x1080 boyutuna küçültülecek
+                  {t('admin.banners.uploadInfo2')}
                 </Text>
 
                 {/* Resim Önizleme (Image Preview) */}
@@ -528,7 +528,7 @@ const AdminBanners = ({ navigation }: any) => {
                 )}
 
                 {/* Manuel URL girişi (Manual URL input) - Opsiyonel */}
-                <Text style={styles.label}>veya Manuel URL Gir</Text>
+                <Text style={styles.label}>{t('admin.banners.manualUrl')}</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.image_url}
@@ -539,7 +539,7 @@ const AdminBanners = ({ navigation }: any) => {
                 />
 
                 {/* Buton Metni (Button Text) */}
-                <Text style={styles.label}>Buton Metni</Text>
+                <Text style={styles.label}>{t('admin.banners.labelButtonText')}</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.button_text}
@@ -549,7 +549,7 @@ const AdminBanners = ({ navigation }: any) => {
                 />
 
                 {/* Sıra (Order) */}
-                <Text style={styles.label}>Sıra</Text>
+                <Text style={styles.label}>{t('admin.banners.labelOrder')}</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.order_index.toString()}
@@ -561,7 +561,7 @@ const AdminBanners = ({ navigation }: any) => {
 
                 {/* Aktif/Pasif (Active/Inactive) */}
                 <View style={styles.switchContainer}>
-                  <Text style={styles.label}>Aktif</Text>
+                  <Text style={styles.label}>{t('admin.banners.labelActive')}</Text>
                   <Switch
                     value={formData.is_active}
                     onValueChange={(value) => setFormData({ ...formData, is_active: value })}
@@ -574,7 +574,7 @@ const AdminBanners = ({ navigation }: any) => {
                 <TouchableOpacity style={styles.saveButton} onPress={handleSaveBanner} activeOpacity={0.8}>
                   <Ionicons name="checkmark-circle" size={24} color={Colors.white} />
                   <Text style={styles.saveButtonText}>
-                    {selectedBanner ? 'Güncelle' : 'Ekle'}
+                    {selectedBanner ? t('admin.banners.buttonUpdate') : t('admin.banners.buttonAdd')}
                   </Text>
                 </TouchableOpacity>
 
@@ -588,10 +588,10 @@ const AdminBanners = ({ navigation }: any) => {
       {/* Silme Onay Modal (Delete Confirmation Modal) */}
       <ConfirmModal
         visible={showDeleteModal}
-        title="Banner Sil"
-        message={`"${selectedBanner?.title}" banner'ını silmek istediğinize emin misiniz?`}
-        confirmText="Sil"
-        cancelText="İptal"
+        title={t('admin.banners.deleteTitle')}
+        message={`"${selectedBanner?.title}" ${t('admin.banners.deleteMessage')}`}
+        confirmText={t('admin.banners.deleteConfirm')}
+        cancelText={t('admin.banners.deleteCancel')}
         onConfirm={handleDeleteBanner}
         onCancel={() => {
           setShowDeleteModal(false);
