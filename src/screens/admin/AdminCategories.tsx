@@ -99,14 +99,22 @@ const AdminCategories = () => {
 
   // Kategori kaydet (Save category)
   const handleSaveCategory = async () => {
-    // Validasyon (Validation)
-    if (!formData.name_tr.trim() || !formData.name_en.trim()) {
+    // Validasyon - sadece mevcut dilin alanını kontrol et (Validation - check only current language field)
+    const currentLanguageField = i18n.language === 'tr' ? formData.name_tr : formData.name_en;
+    if (!currentLanguageField.trim()) {
       Toast.show({
         type: 'error',
         text1: t('admin.error'),
         text2: t('admin.categories.fillAllFields'),
       });
       return;
+    }
+
+    // Diğer dil alanı boşsa, mevcut dil değerini kopyala (If other language field is empty, copy current language value)
+    if (i18n.language === 'tr' && !formData.name_en.trim()) {
+      formData.name_en = formData.name_tr;
+    } else if (i18n.language === 'en' && !formData.name_tr.trim()) {
+      formData.name_tr = formData.name_en;
     }
 
     try {
@@ -273,9 +281,6 @@ const AdminCategories = () => {
                 ]}>
                   {getCategoryName(category)}
                 </Text>
-                <Text style={styles.categorySubtitle}>
-                  {i18n.language === 'tr' ? category.name_en : category.name_tr}
-                </Text>
                 <Text style={styles.categoryOrder}>
                   {i18n.language === 'tr' ? 'Sıra' : 'Order'}: {category.display_order}
                 </Text>
@@ -336,25 +341,28 @@ const AdminCategories = () => {
             </Text>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>
-                {i18n.language === 'tr' ? 'Türkçe İsim' : 'Turkish Name'}
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={formData.name_tr}
-                onChangeText={(text) => setFormData({ ...formData, name_tr: text })}
-                placeholder={i18n.language === 'tr' ? 'Örn: Burgerler' : 'Ex: Burgerler'}
-              />
-
-              <Text style={styles.inputLabel}>
-                {i18n.language === 'tr' ? 'İngilizce İsim' : 'English Name'}
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={formData.name_en}
-                onChangeText={(text) => setFormData({ ...formData, name_en: text })}
-                placeholder={i18n.language === 'tr' ? 'Örn: Burgers' : 'Ex: Burgers'}
-              />
+              {/* Sadece mevcut dile göre isim alanını göster (Show only current language name field) */}
+              {i18n.language === 'tr' ? (
+                <>
+                  <Text style={styles.inputLabel}>Kategori İsmi (Türkçe)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={formData.name_tr}
+                    onChangeText={(text) => setFormData({ ...formData, name_tr: text })}
+                    placeholder="Örn: Burgerler"
+                  />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.inputLabel}>Category Name (English)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={formData.name_en}
+                    onChangeText={(text) => setFormData({ ...formData, name_en: text })}
+                    placeholder="Ex: Burgers"
+                  />
+                </>
+              )}
 
               <IconPicker
                 label="Icon"
