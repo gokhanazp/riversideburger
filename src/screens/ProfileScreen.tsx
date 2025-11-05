@@ -270,6 +270,12 @@ const ProfileScreen = ({ navigation }: any) => {
                   subtitle={t('profile.pointsHistorySubtitle')}
                   onPress={() => navigation.navigate('PointsHistory')}
                 />
+                <MenuItem
+                  iconName="chatbox-ellipses-outline"
+                  title={t('profile.restaurantReview')}
+                  subtitle={t('profile.restaurantReviewSubtitle')}
+                  onPress={() => navigation.navigate('RestaurantReview')}
+                />
               </View>
             </View>
           )}

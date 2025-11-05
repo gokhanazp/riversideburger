@@ -79,6 +79,7 @@
     "deliveryPartners": "Teslimat Ortaklarımız",
     "customerReviews": "Müşteri Yorumları",
     "customerReviewsSubtitle": "Müşterilerimizin bizim hakkımızda söyledikleri",
+    "noReviews": "Henüz restoran yorumu yok",
     "categories": "Kategoriler",
     "popularItems": "Popüler Ürünler",
     "specialOffers": "Özel Teklifler",
@@ -272,6 +273,8 @@
     "orderHistorySubtitle": "Geçmiş siparişlerinizi görün",
     "pointsHistory": "Puan Geçmişi",
     "pointsHistorySubtitle": "Kazandığınız ve kullandığınız puanlar",
+    "restaurantReview": "Restoran Hakkında Yorum",
+    "restaurantReviewSubtitle": "Deneyiminizi bizimle paylaşın",
     "settingsSection": "Ayarlar",
     "languageCurrency": "Dil ve Para Birimi",
     "languageCurrencySubtitle": "Language & Currency",
@@ -398,6 +401,20 @@
     "typeUsed": "Puan Kullanıldı",
     "typeExpired": "Puan Süresi Doldu",
     "typeAdjustment": "Puan Düzeltmesi"
+  },
+  "restaurantReview": {
+    "title": "Restoran Hakkında Yorum",
+    "subtitle": "Deneyiminizi bizimle paylaşın",
+    "ratingLabel": "Restoranımızı Değerlendirin",
+    "commentLabel": "Yorumunuz (Opsiyonel)",
+    "commentPlaceholder": "Restoranımız hakkındaki düşüncelerinizi paylaşın...",
+    "infoText": "Yorumunuz admin onayından sonra anasayfada görüntülenecektir. Her kullanıcı sadece bir kez restoran yorumu yapabilir.",
+    "submitButton": "Yorumu Gönder",
+    "pleaseRate": "Lütfen restoranımızı değerlendirin",
+    "successTitle": "✅ Teşekkürler!",
+    "successMessage": "Yorumunuz başarıyla gönderildi. Admin onayından sonra yayınlanacaktır.",
+    "errorSubmit": "Yorum gönderilirken bir hata oluştu",
+    "alreadyReviewed": "Daha önce restoran hakkında yorum yaptınız"
   },
   "notifications": {
     "unreadCount": "{{count}} okunmamış bildirim",
@@ -740,7 +757,8 @@
       "modalDescription": "Lütfen red nedenini belirtin:",
       "modalPlaceholder": "Red nedeni...",
       "modalCancel": "İptal",
-      "modalConfirm": "Reddet"
+      "modalConfirm": "Reddet",
+      "restaurantReview": "Restoran Yorumu"
     },
     "settings": {
       "title": "Ayarlar",

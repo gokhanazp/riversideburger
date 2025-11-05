@@ -194,27 +194,54 @@ const AdminReviews = () => {
 
   const renderReviewItem = ({ item }: { item: Review }) => (
     <View style={styles.reviewCard}>
-      {/* Header - Ürün ve Kullanıcı Bilgisi */}
+      {/* Header - Ürün veya Restoran ve Kullanıcı Bilgisi */}
       <View style={styles.reviewHeader}>
-        <Image
-          source={{ uri: item.product?.image_url }}
-          style={styles.productImage}
-        />
-        <View style={styles.headerInfo}>
-          <Text style={styles.productName}>{item.product?.name}</Text>
-          <Text style={styles.userName}>
-            {item.user?.full_name || item.user?.email}
-          </Text>
-          <Text style={styles.dateText}>
-            {new Date(item.created_at).toLocaleDateString('tr-TR', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </Text>
-        </View>
+        {item.product_id ? (
+          // Ürün yorumu (Product review)
+          <>
+            <Image
+              source={{ uri: item.product?.image_url }}
+              style={styles.productImage}
+            />
+            <View style={styles.headerInfo}>
+              <Text style={styles.productName}>{item.product?.name}</Text>
+              <Text style={styles.userName}>
+                {item.user?.full_name || item.user?.email}
+              </Text>
+              <Text style={styles.dateText}>
+                {new Date(item.created_at).toLocaleDateString('tr-TR', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+            </View>
+          </>
+        ) : (
+          // Restoran yorumu (Restaurant review)
+          <>
+            <View style={styles.restaurantIconContainer}>
+              <Ionicons name="restaurant" size={32} color={Colors.primary} />
+            </View>
+            <View style={styles.headerInfo}>
+              <Text style={styles.productName}>{t('admin.reviews.restaurantReview')}</Text>
+              <Text style={styles.userName}>
+                {item.user?.full_name || item.user?.email}
+              </Text>
+              <Text style={styles.dateText}>
+                {new Date(item.created_at).toLocaleDateString('tr-TR', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+            </View>
+          </>
+        )}
         {renderStatusBadge(item)}
       </View>
 
@@ -482,6 +509,15 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 8,
     backgroundColor: '#F0F0F0',
+  },
+  restaurantIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: Colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
   },
   headerInfo: {
     flex: 1,

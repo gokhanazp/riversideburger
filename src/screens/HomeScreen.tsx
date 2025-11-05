@@ -13,7 +13,8 @@ import { useFavoritesStore } from '../store/favoritesStore';
 import Toast from 'react-native-toast-message';
 import { formatPrice } from '../services/currencyService';
 import { getCategories } from '../services/productService';
-import { Category } from '../types/database.types';
+import { Category, Review } from '../types/database.types';
+import { getRestaurantReviews } from '../services/reviewService';
 
 // Ürün tipi (Product type)
 interface Product {
@@ -37,15 +38,18 @@ const HomeScreen = ({ navigation }: any) => {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [restaurantReviews, setRestaurantReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   // Store'lar (Stores)
   const { addItem } = useCartStore();
   const { favorites, toggleFavorite } = useFavoritesStore();
 
-  // Sayfa yüklendiğinde öne çıkan ürünleri ve kategorileri getir (Fetch featured products and categories on page load)
+  // Sayfa yüklendiğinde öne çıkan ürünleri, kategorileri ve restoran yorumlarını getir (Fetch featured products, categories and restaurant reviews on page load)
   useEffect(() => {
     fetchFeaturedProducts();
     fetchCategories();
+    fetchRestaurantReviews();
   }, []);
 
   // Öne çıkan ürünleri getir (Fetch featured products)
@@ -88,6 +92,21 @@ const HomeScreen = ({ navigation }: any) => {
       console.error('❌ Error fetching categories:', error);
     } finally {
       setLoadingCategories(false);
+    }
+  };
+
+  // Restoran yorumlarını getir (Fetch restaurant reviews)
+  const fetchRestaurantReviews = async () => {
+    try {
+      setLoadingReviews(true);
+      console.log('🔍 Fetching restaurant reviews for HomeScreen...');
+      const data = await getRestaurantReviews();
+      console.log('✅ Restaurant reviews fetched:', data.length);
+      setRestaurantReviews(data.slice(0, 5)); // İlk 5 yorumu göster (Show first 5 reviews)
+    } catch (error: any) {
+      console.error('❌ Error fetching restaurant reviews:', error);
+    } finally {
+      setLoadingReviews(false);
     }
   };
 
@@ -380,7 +399,7 @@ const HomeScreen = ({ navigation }: any) => {
         </Animated.View>
       </View>
 
-      {/* Müşteri Yorumları bölümü (Customer Reviews section) - Yeniden tasarlandı */}
+      {/* Müşteri Yorumları bölümü (Customer Reviews section) - Gerçek restoran yorumları */}
       <View style={styles.section}>
         <Animated.Text
           entering={FadeInDown.delay(700).duration(600)}
@@ -394,80 +413,66 @@ const HomeScreen = ({ navigation }: any) => {
         >
           {t('home.customerReviewsSubtitle')}
         </Animated.Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.reviewsScrollContent}
-        >
-          <Animated.View entering={FadeInDown.delay(800).duration(600)} style={styles.reviewCard}>
-            <View style={styles.reviewQuoteIcon}>
-              <Ionicons name="chatbox-ellipses" size={32} color={Colors.primary} />
-            </View>
-            <View style={styles.starsContainer}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Ionicons key={star} name="star" size={18} color={Colors.accent} />
-              ))}
-            </View>
-            <Text style={styles.reviewText}>
-              "Harika burgerler! Özellikle Riverside Classic'i denemenizi tavsiye ederim. Taze malzemeler ve lezzetli soslar."
-            </Text>
-            <View style={styles.reviewFooter}>
-              <View style={styles.reviewAvatar}>
-                <Ionicons name="person" size={20} color={Colors.white} />
-              </View>
-              <View>
-                <Text style={styles.reviewName}>Ahmet Y.</Text>
-                <Text style={styles.reviewDate}>2 gün önce</Text>
-              </View>
-            </View>
-          </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(850).duration(600)} style={styles.reviewCard}>
-            <View style={styles.reviewQuoteIcon}>
-              <Ionicons name="chatbox-ellipses" size={32} color={Colors.primary} />
-            </View>
-            <View style={styles.starsContainer}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Ionicons key={star} name="star" size={18} color={Colors.accent} />
-              ))}
-            </View>
-            <Text style={styles.reviewText}>
-              "Teslimat çok hızlı geldi ve burgerler sıcacıktı. Kesinlikle tekrar sipariş vereceğim!"
-            </Text>
-            <View style={styles.reviewFooter}>
-              <View style={styles.reviewAvatar}>
-                <Ionicons name="person" size={20} color={Colors.white} />
-              </View>
-              <View>
-                <Text style={styles.reviewName}>Zeynep K.</Text>
-                <Text style={styles.reviewDate}>5 gün önce</Text>
-              </View>
-            </View>
+        {loadingReviews ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+        ) : restaurantReviews.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.reviewsScrollContent}
+          >
+            {restaurantReviews.map((review, index) => (
+              <Animated.View
+                key={review.id}
+                entering={FadeInDown.delay(800 + index * 50).duration(600)}
+                style={styles.reviewCard}
+              >
+                <View style={styles.reviewQuoteIcon}>
+                  <Ionicons name="chatbox-ellipses" size={32} color={Colors.primary} />
+                </View>
+                <View style={styles.starsContainer}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Ionicons
+                      key={star}
+                      name={star <= review.rating ? 'star' : 'star-outline'}
+                      size={18}
+                      color={Colors.accent}
+                    />
+                  ))}
+                </View>
+                {review.comment && (
+                  <Text style={styles.reviewText} numberOfLines={4}>
+                    "{review.comment}"
+                  </Text>
+                )}
+                <View style={styles.reviewFooter}>
+                  <View style={styles.reviewAvatar}>
+                    <Ionicons name="person" size={20} color={Colors.white} />
+                  </View>
+                  <View>
+                    <Text style={styles.reviewName}>
+                      {review.user?.full_name || t('common.user')}
+                    </Text>
+                    <Text style={styles.reviewDate}>
+                      {new Date(review.created_at).toLocaleDateString(i18n.language === 'tr' ? 'tr-TR' : 'en-CA')}
+                    </Text>
+                  </View>
+                </View>
+              </Animated.View>
+            ))}
+          </ScrollView>
+        ) : (
+          <Animated.View
+            entering={FadeInDown.delay(800).duration(600)}
+            style={styles.emptyReviewsContainer}
+          >
+            <Ionicons name="chatbox-ellipses-outline" size={48} color="#CCC" />
+            <Text style={styles.emptyReviewsText}>{t('home.noReviews')}</Text>
           </Animated.View>
-
-          <Animated.View entering={FadeInDown.delay(900).duration(600)} style={styles.reviewCard}>
-            <View style={styles.reviewQuoteIcon}>
-              <Ionicons name="chatbox-ellipses" size={32} color={Colors.primary} />
-            </View>
-            <View style={styles.starsContainer}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Ionicons key={star} name="star" size={18} color={Colors.accent} />
-              ))}
-            </View>
-            <Text style={styles.reviewText}>
-              "Toronto'daki en iyi burger! Double Riverside'ı mutlaka deneyin. Fiyat performans açısından da çok iyi."
-            </Text>
-            <View style={styles.reviewFooter}>
-              <View style={styles.reviewAvatar}>
-                <Ionicons name="person" size={20} color={Colors.white} />
-              </View>
-              <View>
-                <Text style={styles.reviewName}>Mehmet S.</Text>
-                <Text style={styles.reviewDate}>1 hafta önce</Text>
-              </View>
-            </View>
-          </Animated.View>
-        </ScrollView>
+        )}
       </View>
 
       {/* Özellikler bölümü (Features section) - Yeniden tasarlandı */}
@@ -826,6 +831,22 @@ const styles = StyleSheet.create({
     color: Colors.text,
     lineHeight: 22,
     fontStyle: 'italic',
+  },
+  emptyReviewsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xxl,
+  },
+  emptyReviewsText: {
+    fontSize: FontSizes.md,
+    color: '#999',
+    marginTop: Spacing.md,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    paddingVertical: Spacing.xxl,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   // Öne Çıkan Ürünler stilleri (Featured Products styles)
   sectionHeader: {

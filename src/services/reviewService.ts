@@ -372,3 +372,120 @@ export async function getAllReviews(status: 'all' | 'pending' | 'approved' | 're
   }
 }
 
+/**
+ * Restoran hakkında yorum oluştur (Create restaurant review)
+ * @param rating - Puan (1-5)
+ * @param comment - Yorum metni (Comment text)
+ */
+export async function createRestaurantReview(
+  rating: number,
+  comment?: string
+): Promise<Review> {
+  try {
+    // Kullanıcı ID'sini al (Get user ID)
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      throw new Error('Kullanıcı oturumu bulunamadı');
+    }
+
+    // Kullanıcının daha önce restoran yorumu yapıp yapmadığını kontrol et
+    // (Check if user has already reviewed the restaurant)
+    const { data: existingReview } = await supabase
+      .from('reviews')
+      .select('id')
+      .eq('user_id', user.id)
+      .is('product_id', null)
+      .single();
+
+    if (existingReview) {
+      throw new Error('Daha önce restoran hakkında yorum yaptınız');
+    }
+
+    // Restoran yorumu oluştur (Create restaurant review)
+    const { data, error } = await supabase
+      .from('reviews')
+      .insert({
+        user_id: user.id,
+        product_id: null, // Restoran yorumu için null
+        order_id: null, // Restoran yorumu için null
+        rating,
+        comment: comment || null,
+        images: [],
+        is_approved: false, // Admin onayı bekliyor (Waiting for admin approval)
+        is_rejected: false,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Restaurant review creation error:', error);
+      throw new Error('Restoran yorumu oluşturulamadı: ' + error.message);
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Create restaurant review error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Onaylanmış restoran yorumlarını getir (Get approved restaurant reviews)
+ */
+export async function getRestaurantReviews(): Promise<Review[]> {
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select(`
+        *,
+        user:users!reviews_user_id_fkey(id, full_name)
+      `)
+      .is('product_id', null) // Sadece restoran yorumları (Only restaurant reviews)
+      .eq('is_approved', true)
+      .eq('is_rejected', false)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Get restaurant reviews error:', error);
+      throw new Error('Restoran yorumları getirilemedi');
+    }
+
+    return data || [];
+  } catch (error: any) {
+    console.error('Get restaurant reviews error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Kullanıcının restoran yorumu olup olmadığını kontrol et
+ * (Check if user has restaurant review)
+ */
+export async function hasUserReviewedRestaurant(): Promise<boolean> {
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return false;
+    }
+
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('id')
+      .eq('user_id', user.id)
+      .is('product_id', null)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.error('Check restaurant review error:', error);
+      return false;
+    }
+
+    return !!data;
+  } catch (error: any) {
+    console.error('Has user reviewed restaurant error:', error);
+    return false;
+  }
+}
+

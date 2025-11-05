@@ -198,11 +198,13 @@ export interface Database {
 }
 
 // Review (Değerlendirme/Yorum)
+// Hem ürün yorumları hem de restoran yorumları için kullanılır
+// (Used for both product reviews and restaurant reviews)
 export interface Review {
   id: string;
-  order_id: string;
+  order_id?: string; // Ürün yorumları için gerekli, restoran yorumları için opsiyonel (Required for product reviews, optional for restaurant reviews)
   user_id: string;
-  product_id: string;
+  product_id?: string; // Ürün yorumu ise dolu, restoran yorumu ise null (Filled for product review, null for restaurant review)
   rating: number; // 1-5 arası (Between 1-5)
   comment?: string; // Yorum metni (Comment text)
   images?: string[]; // Fotoğraf URL'leri (Image URLs)

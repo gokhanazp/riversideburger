@@ -79,6 +79,7 @@
     "deliveryPartners": "Delivery Partners",
     "customerReviews": "Customer Reviews",
     "customerReviewsSubtitle": "What our customers say about us",
+    "noReviews": "No restaurant reviews yet",
     "categories": "Categories",
     "popularItems": "Popular Items",
     "specialOffers": "Special Offers",
@@ -272,6 +273,8 @@
     "orderHistorySubtitle": "View your past orders",
     "pointsHistory": "Points History",
     "pointsHistorySubtitle": "Points earned and used",
+    "restaurantReview": "Review Restaurant",
+    "restaurantReviewSubtitle": "Share your experience with us",
     "settingsSection": "Settings",
     "languageCurrency": "Language & Currency",
     "languageCurrencySubtitle": "Language & Currency",
@@ -398,6 +401,20 @@
     "typeUsed": "Points Used",
     "typeExpired": "Points Expired",
     "typeAdjustment": "Points Adjustment"
+  },
+  "restaurantReview": {
+    "title": "Review Restaurant",
+    "subtitle": "Share your experience with us",
+    "ratingLabel": "Rate Our Restaurant",
+    "commentLabel": "Your Comment (Optional)",
+    "commentPlaceholder": "Share your thoughts about our restaurant...",
+    "infoText": "Your review will be displayed on the homepage after admin approval. Each user can review the restaurant only once.",
+    "submitButton": "Submit Review",
+    "pleaseRate": "Please rate our restaurant",
+    "successTitle": "✅ Thank You!",
+    "successMessage": "Your review has been submitted successfully. It will be published after admin approval.",
+    "errorSubmit": "An error occurred while submitting review",
+    "alreadyReviewed": "You have already reviewed the restaurant"
   },
   "notifications": {
     "unreadCount": "{{count}} unread notification",
@@ -740,7 +757,8 @@
       "modalDescription": "Please specify the rejection reason:",
       "modalPlaceholder": "Rejection reason...",
       "modalCancel": "Cancel",
-      "modalConfirm": "Reject"
+      "modalConfirm": "Reject",
+      "restaurantReview": "Restaurant Review"
     },
     "settings": {
       "title": "Settings",

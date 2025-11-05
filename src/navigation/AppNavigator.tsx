@@ -27,6 +27,7 @@ import AddressListScreen from '../screens/AddressListScreen';
 import AddressEditScreen from '../screens/AddressEditScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ReviewOrderScreen from '../screens/ReviewOrderScreen';
+import RestaurantReviewScreen from '../screens/RestaurantReviewScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
 // Admin ekranları (Admin screens)
@@ -435,6 +436,14 @@ const AppNavigator = () => {
               fontSize: 18,
             },
           })}
+        />
+
+        <Stack.Screen
+          name="RestaurantReview"
+          component={RestaurantReviewScreen}
+          options={{
+            headerShown: false,
+          }}
         />
 
         {/* Admin Ekranları (Admin Screens) */}
