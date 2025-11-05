@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -28,8 +28,15 @@ interface Settings {
 }
 
 // Admin Ayarlar Ekranı (Admin Settings Screen)
-const AdminSettings = () => {
-  const { t } = useTranslation();
+const AdminSettings = ({ navigation }: any) => {
+  const { t, i18n } = useTranslation();
+
+  // Sayfa başlığını ayarla (Set page title)
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t('admin.screenTitles.systemSettings'),
+    });
+  }, [navigation, t, i18n.language]);
   // State'ler (States)
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

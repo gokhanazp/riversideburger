@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -41,6 +41,13 @@ interface Product {
 // Admin Ürünler Ekranı (Admin Products Screen)
 const AdminProducts = ({ navigation }: any) => {
   const { t, i18n } = useTranslation();
+
+  // Sayfa başlığını ayarla (Set page title)
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t('admin.screenTitles.productManagement'),
+    });
+  }, [navigation, t, i18n.language]);
 
   // State'ler (States)
   const [loading, setLoading] = useState(true);

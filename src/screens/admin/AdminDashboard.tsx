@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,13 @@ const AdminDashboard = ({ navigation }: any) => {
     todayOrders: 0,
     pendingReviews: 0, // Bekleyen yorumlar (Pending reviews)
   });
+
+  // Sayfa başlığını ayarla (Set page title)
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t('admin.screenTitles.adminDashboard'),
+    });
+  }, [navigation, t, i18n.language]);
 
   // Sayfa yüklendiğinde istatistikleri getir (Fetch stats on page load)
   useEffect(() => {

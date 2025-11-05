@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -34,8 +34,15 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
 
 // Admin Siparişler Ekranı (Admin Orders Screen)
 const AdminOrders = ({ navigation, route }: any) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const filterParam = route?.params?.filter;
+
+  // Sayfa başlığını ayarla (Set page title)
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t('admin.screenTitles.orderManagement'),
+    });
+  }, [navigation, t, i18n.language]);
 
   // Sipariş durumu isimleri (Order status names) - Çeviri ile
   const STATUS_NAMES: Record<OrderStatus, string> = {

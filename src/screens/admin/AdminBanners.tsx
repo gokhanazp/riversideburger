@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -37,8 +37,8 @@ interface Banner {
 }
 
 // Admin Banner Yönetimi Ekranı (Admin Banners Management Screen)
-const AdminBanners = () => {
-  const { t } = useTranslation();
+const AdminBanners = ({ navigation }: any) => {
+  const { t, i18n } = useTranslation();
   // State'ler (States)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,6 +60,13 @@ const AdminBanners = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sayfa başlığını ayarla (Set page title)
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t('admin.screenTitles.bannerManagement'),
+    });
+  }, [navigation, t, i18n.language]);
 
   // Sayfa yüklendiğinde banner'ları getir (Fetch banners on page load)
   useEffect(() => {

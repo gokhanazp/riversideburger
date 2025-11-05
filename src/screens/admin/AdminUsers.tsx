@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -18,8 +18,8 @@ import { User } from '../../types/database.types';
 import Toast from 'react-native-toast-message';
 
 // Admin Kullanıcılar Ekranı (Admin Users Screen)
-const AdminUsers = () => {
-  const { t } = useTranslation();
+const AdminUsers = ({ navigation }: any) => {
+  const { t, i18n } = useTranslation();
   // State'ler (States)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -27,6 +27,13 @@ const AdminUsers = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [filterRole, setFilterRole] = useState<'all' | 'customer' | 'admin'>('all');
+
+  // Sayfa başlığını ayarla (Set page title)
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t('admin.screenTitles.userManagement'),
+    });
+  }, [navigation, t, i18n.language]);
 
   // Sayfa yüklendiğinde kullanıcıları getir (Fetch users on page load)
   useEffect(() => {
@@ -191,9 +198,9 @@ const AdminUsers = () => {
     <View style={styles.container}>
       {/* Filtreler (Filters) */}
       <View style={styles.filtersContainer}>
-        <FilterButton role="all" label="Tümü" />
-        <FilterButton role="customer" label="Müşteriler" />
-        <FilterButton role="admin" label="Adminler" />
+        <FilterButton role="all" label={t('admin.users.filterAll')} />
+        <FilterButton role="customer" label={t('admin.users.filterCustomers')} />
+        <FilterButton role="admin" label={t('admin.users.filterAdmins')} />
       </View>
 
       {/* Kullanıcı listesi (Users list) */}

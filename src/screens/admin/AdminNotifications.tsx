@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ type NotificationType = 'general' | 'promotion' | 'order_status' | 'points_earne
 
 // Admin Notifications Ekranı (Admin Notifications Screen)
 const AdminNotifications = ({ navigation }: any) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   // State'ler (States)
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
@@ -30,6 +30,13 @@ const AdminNotifications = ({ navigation }: any) => {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [sendingNotification, setSendingNotification] = useState(false);
+
+  // Sayfa başlığını ayarla (Set page title)
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t('admin.screenTitles.sendNotification'),
+    });
+  }, [navigation, t, i18n.language]);
 
   // Kullanıcıları getir (Fetch users)
   useEffect(() => {

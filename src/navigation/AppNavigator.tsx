@@ -442,7 +442,6 @@ const AppNavigator = () => {
           name="AdminDashboard"
           component={AdminDashboard}
           options={{
-            title: '👨‍💼 Admin Dashboard',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
@@ -463,7 +462,6 @@ const AppNavigator = () => {
           name="AdminOrders"
           component={AdminOrders}
           options={{
-            title: '📋 Sipariş Yönetimi',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
@@ -484,7 +482,6 @@ const AppNavigator = () => {
           name="AdminProducts"
           component={AdminProducts}
           options={{
-            title: '🍔 Ürün Yönetimi',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
@@ -547,7 +544,6 @@ const AppNavigator = () => {
           name="AdminSettings"
           component={AdminSettings}
           options={{
-            title: '⚙️ Sistem Ayarları',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
@@ -568,7 +564,6 @@ const AppNavigator = () => {
           name="AdminBanners"
           component={AdminBanners}
           options={{
-            title: '🖼️ Banner Yönetimi',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
@@ -589,7 +584,6 @@ const AppNavigator = () => {
           name="AdminNotifications"
           component={AdminNotifications}
           options={{
-            title: '🔔 Bildirim Gönder',
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
