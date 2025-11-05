@@ -49,16 +49,13 @@ const AdminReviews = () => {
 
   const fetchReviews = async () => {
     try {
-      console.log('🔄 fetchReviews called with filter:', filter);
       setLoading(true);
       let data: Review[];
 
       if (filter === 'pending') {
         data = await getPendingReviews();
-        console.log('📋 Pending reviews fetched:', data.length);
       } else if (filter === 'all') {
         data = await getAllReviews();
-        console.log('📋 All reviews fetched:', data.length);
       } else {
         // approved veya rejected için filtreleme
         const allData = await getAllReviews();
@@ -67,13 +64,11 @@ const AdminReviews = () => {
           if (filter === 'rejected') return review.is_rejected;
           return true;
         });
-        console.log(`📋 ${filter} reviews filtered:`, data.length);
       }
 
-      console.log('📊 Setting reviews state with', data.length, 'items');
       setReviews(data);
     } catch (error: any) {
-      console.error('❌ Fetch reviews error:', error);
+      console.error('Fetch reviews error:', error);
       Toast.show({
         type: 'error',
         text1: t('admin.error'),
@@ -91,23 +86,33 @@ const AdminReviews = () => {
   };
 
   const handleApprove = async (reviewId: string) => {
-    console.log('🔘 handleApprove called with reviewId:', reviewId);
+    Alert.alert(
+      t('admin.reviews.approveTitle'),
+      t('admin.reviews.approveConfirm'),
+      [
+        {
+          text: t('admin.categories.cancel'),
+          style: 'cancel'
+        },
+        {
+          text: t('admin.reviews.approve'),
+          onPress: () => performApproval(reviewId),
+        },
+      ]
+    );
+  };
 
-    // Geçici olarak Alert'i kaldırıp direkt onaylama yapıyoruz (Temporarily removing Alert for testing)
-    console.log('✅ Starting approval process...');
+  const performApproval = async (reviewId: string) => {
     try {
       await approveReview(reviewId);
-      console.log('✅ approveReview completed successfully');
       Toast.show({
         type: 'success',
         text1: t('admin.reviews.success'),
         text2: t('admin.reviews.reviewApproved'),
       });
-      console.log('🔄 Fetching reviews...');
       await fetchReviews();
-      console.log('✅ Reviews refreshed');
     } catch (error: any) {
-      console.error('❌ Error in handleApprove:', error);
+      console.error('Error in performApproval:', error);
       Toast.show({
         type: 'error',
         text1: t('admin.error'),
