@@ -86,17 +86,22 @@ const AdminReviews = () => {
   };
 
   const handleApprove = async (reviewId: string) => {
+    console.log('🔘 handleApprove called, showing Alert...');
     Alert.alert(
       t('admin.reviews.approveTitle'),
       t('admin.reviews.approveConfirm'),
       [
         {
-          text: t('admin.categories.cancel'),
-          style: 'cancel'
+          text: t('admin.reviews.approve'),
+          onPress: () => {
+            console.log('✅ Approve button pressed in Alert');
+            performApproval(reviewId);
+          },
         },
         {
-          text: t('admin.reviews.approve'),
-          onPress: () => performApproval(reviewId),
+          text: t('admin.categories.cancel'),
+          style: 'cancel',
+          onPress: () => console.log('❌ Cancel button pressed in Alert')
         },
       ]
     );
@@ -288,7 +293,10 @@ const AdminReviews = () => {
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={[styles.actionButton, styles.approveButton]}
-            onPress={() => handleApprove(item.id)}
+            onPress={() => {
+              console.log('🔘 Approve button clicked for review:', item.id);
+              handleApprove(item.id);
+            }}
           >
             <Ionicons name="checkmark-circle" size={20} color="#FFF" />
             <Text style={styles.actionButtonText}>{t('admin.reviews.buttonApprove')}</Text>
