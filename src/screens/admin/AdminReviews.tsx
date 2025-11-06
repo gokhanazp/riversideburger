@@ -104,15 +104,21 @@ const AdminReviews = () => {
 
   const performApproval = async (reviewId: string) => {
     try {
+      console.log('🔄 Starting approval for review:', reviewId);
       await approveReview(reviewId);
+      console.log('✅ Approval successful, showing toast...');
       Toast.show({
         type: 'success',
         text1: t('admin.reviews.success'),
         text2: t('admin.reviews.reviewApproved'),
       });
+      console.log('🔄 Refreshing reviews list...');
       await fetchReviews();
+      console.log('✅ Reviews list refreshed');
     } catch (error: any) {
-      console.error('Error in performApproval:', error);
+      console.error('❌ Error in performApproval:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
       Toast.show({
         type: 'error',
         text1: t('admin.error'),

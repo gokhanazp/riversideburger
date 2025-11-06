@@ -273,13 +273,18 @@ export async function getPendingReviews(): Promise<Review[]> {
  */
 export async function approveReview(reviewId: string): Promise<void> {
   try {
+    console.log('📝 approveReview called with ID:', reviewId);
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
     if (userError || !user) {
+      console.error('❌ User auth error:', userError);
       throw new Error('Kullanıcı oturumu bulunamadı');
     }
 
-    const { error } = await supabase
+    console.log('👤 User ID:', user.id);
+    console.log('📤 Sending update to Supabase...');
+
+    const { data, error } = await supabase
       .from('reviews')
       .update({
         is_approved: true,
@@ -287,14 +292,22 @@ export async function approveReview(reviewId: string): Promise<void> {
         approved_by: user.id,
         approved_at: new Date().toISOString(),
       })
-      .eq('id', reviewId);
+      .eq('id', reviewId)
+      .select();
 
     if (error) {
-      console.error('Approve review error:', error);
+      console.error('❌ Supabase update error:', error);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error details:', error.details);
+      console.error('❌ Error hint:', error.hint);
       throw new Error('Değerlendirme onaylanamadı: ' + error.message);
     }
+
+    console.log('✅ Supabase update successful');
+    console.log('✅ Updated data:', data);
   } catch (error: any) {
-    console.error('Approve review error:', error);
+    console.error('❌ Approve review error:', error);
     throw error;
   }
 }
