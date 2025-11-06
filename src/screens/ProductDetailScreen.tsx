@@ -103,18 +103,14 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
   const loadReviews = async () => {
     try {
       setLoadingReviews(true);
-      console.log('🔍 Loading reviews for product:', item.id);
       const [reviewsData, ratingData] = await Promise.all([
         getProductReviews(item.id),
         getProductRating(item.id),
       ]);
-      console.log('✅ Reviews loaded:', reviewsData.length, 'reviews');
-      console.log('✅ Rating data:', ratingData);
-      console.log('👤 First review user data:', reviewsData[0]?.user);
       setReviews(reviewsData);
       setRating(ratingData);
     } catch (error) {
-      console.error('❌ Error loading reviews:', error);
+      console.error('Error loading reviews:', error);
     } finally {
       setLoadingReviews(false);
     }
@@ -460,7 +456,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
                 <View key={review.id} style={styles.reviewCard}>
                   <View style={styles.reviewHeader}>
                     <Text style={styles.reviewUserName}>
-                      {review.user?.full_name || t('common.user')}
+                      {review.user?.full_name}
                     </Text>
                     <View style={styles.reviewStars}>
                       {[1, 2, 3, 4, 5].map((star) => (
