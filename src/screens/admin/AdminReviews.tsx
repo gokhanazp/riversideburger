@@ -85,26 +85,30 @@ const AdminReviews = () => {
     fetchReviews();
   };
 
-  const handleApprove = async (reviewId: string) => {
+  const handleApprove = (reviewId: string) => {
     console.log('🔘 handleApprove called, showing Alert...');
-    Alert.alert(
-      t('admin.reviews.approveTitle'),
-      t('admin.reviews.approveConfirm'),
-      [
-        {
-          text: t('admin.reviews.approve'),
-          onPress: () => {
-            console.log('✅ Approve button pressed in Alert');
-            performApproval(reviewId);
+
+    setTimeout(() => {
+      Alert.alert(
+        t('admin.reviews.approveTitle'),
+        t('admin.reviews.approveConfirm'),
+        [
+          {
+            text: t('admin.categories.cancel'),
+            style: 'cancel',
+            onPress: () => console.log('❌ Cancel button pressed in Alert')
           },
-        },
-        {
-          text: t('admin.categories.cancel'),
-          style: 'cancel',
-          onPress: () => console.log('❌ Cancel button pressed in Alert')
-        },
-      ]
-    );
+          {
+            text: t('admin.reviews.approve'),
+            onPress: () => {
+              console.log('✅ Approve button pressed in Alert');
+              performApproval(reviewId);
+            },
+          },
+        ],
+        { cancelable: false }
+      );
+    }, 100);
   };
 
   const performApproval = async (reviewId: string) => {
