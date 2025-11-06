@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
-  Alert,
   TextInput,
   Modal,
 } from 'react-native';
@@ -42,6 +41,10 @@ const AdminReviews = () => {
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+
+  // Onaylama modal state
+  const [approveModalVisible, setApproveModalVisible] = useState(false);
+  const [approveReviewId, setApproveReviewId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReviews();
@@ -86,48 +89,29 @@ const AdminReviews = () => {
   };
 
   const handleApprove = (reviewId: string) => {
-    console.log('🔘 handleApprove called, showing Alert...');
-
-    setTimeout(() => {
-      Alert.alert(
-        t('admin.reviews.approveTitle'),
-        t('admin.reviews.approveConfirm'),
-        [
-          {
-            text: t('admin.categories.cancel'),
-            style: 'cancel',
-            onPress: () => console.log('❌ Cancel button pressed in Alert')
-          },
-          {
-            text: t('admin.reviews.approve'),
-            onPress: () => {
-              console.log('✅ Approve button pressed in Alert');
-              performApproval(reviewId);
-            },
-          },
-        ],
-        { cancelable: false }
-      );
-    }, 100);
+    setApproveReviewId(reviewId);
+    setApproveModalVisible(true);
   };
 
-  const performApproval = async (reviewId: string) => {
+  const handleApproveConfirm = async () => {
+    if (!approveReviewId) return;
+
     try {
-      console.log('🔄 Starting approval for review:', reviewId);
-      await approveReview(reviewId);
+      console.log('🔄 Starting approval for review:', approveReviewId);
+      await approveReview(approveReviewId);
       console.log('✅ Approval successful, showing toast...');
       Toast.show({
         type: 'success',
         text1: t('admin.reviews.success'),
         text2: t('admin.reviews.reviewApproved'),
       });
+      setApproveModalVisible(false);
+      setApproveReviewId(null);
       console.log('🔄 Refreshing reviews list...');
       await fetchReviews();
       console.log('✅ Reviews list refreshed');
     } catch (error: any) {
-      console.error('❌ Error in performApproval:', error);
-      console.error('❌ Error message:', error.message);
-      console.error('❌ Error stack:', error.stack);
+      console.error('❌ Error in handleApproveConfirm:', error);
       Toast.show({
         type: 'error',
         text1: t('admin.error'),
@@ -297,10 +281,7 @@ const AdminReviews = () => {
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={[styles.actionButton, styles.approveButton]}
-            onPress={() => {
-              console.log('🔘 Approve button clicked for review:', item.id);
-              handleApprove(item.id);
-            }}
+            onPress={() => handleApprove(item.id)}
           >
             <Ionicons name="checkmark-circle" size={20} color="#FFF" />
             <Text style={styles.actionButtonText}>{t('admin.reviews.buttonApprove')}</Text>
@@ -392,6 +373,37 @@ const AdminReviews = () => {
           }
         />
       )}
+
+      {/* Onaylama Modal (Approval Modal) */}
+      <Modal
+        visible={approveModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setApproveModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{t('admin.reviews.approveTitle')}</Text>
+            <Text style={styles.modalDescription}>
+              {t('admin.reviews.approveConfirm')}
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setApproveModalVisible(false)}
+              >
+                <Text style={styles.modalCancelText}>{t('admin.categories.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalConfirmButton]}
+                onPress={handleApproveConfirm}
+              >
+                <Text style={styles.modalConfirmText}>{t('admin.reviews.approve')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Reddetme Modal (Rejection Modal) */}
       <Modal
