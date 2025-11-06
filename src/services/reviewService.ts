@@ -487,6 +487,7 @@ export async function hasUserReviewedRestaurant(): Promise<boolean> {
     console.error('Has user reviewed restaurant error:', error);
     return false;
   }
+}
 
 /**
  * Ürün için onaylanmış yorum sayısını getir (Get approved review count for product)
@@ -511,6 +512,5 @@ export async function getProductReviewCount(productId: string): Promise<number> 
     console.error('Get product review count error:', error);
     return 0;
   }
-}
 }
 
