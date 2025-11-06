@@ -273,18 +273,13 @@ export async function getPendingReviews(): Promise<Review[]> {
  */
 export async function approveReview(reviewId: string): Promise<void> {
   try {
-    console.log('📝 approveReview called with ID:', reviewId);
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      console.error('❌ User auth error:', userError);
       throw new Error('Kullanıcı oturumu bulunamadı');
     }
 
-    console.log('👤 User ID:', user.id);
-    console.log('📤 Sending update to Supabase...');
-
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('reviews')
       .update({
         is_approved: true,
@@ -292,22 +287,14 @@ export async function approveReview(reviewId: string): Promise<void> {
         approved_by: user.id,
         approved_at: new Date().toISOString(),
       })
-      .eq('id', reviewId)
-      .select();
+      .eq('id', reviewId);
 
     if (error) {
-      console.error('❌ Supabase update error:', error);
-      console.error('❌ Error code:', error.code);
-      console.error('❌ Error message:', error.message);
-      console.error('❌ Error details:', error.details);
-      console.error('❌ Error hint:', error.hint);
+      console.error('Approve review error:', error);
       throw new Error('Değerlendirme onaylanamadı: ' + error.message);
     }
-
-    console.log('✅ Supabase update successful');
-    console.log('✅ Updated data:', data);
   } catch (error: any) {
-    console.error('❌ Approve review error:', error);
+    console.error('Approve review error:', error);
     throw error;
   }
 }
@@ -500,5 +487,30 @@ export async function hasUserReviewedRestaurant(): Promise<boolean> {
     console.error('Has user reviewed restaurant error:', error);
     return false;
   }
+
+/**
+ * Ürün için onaylanmış yorum sayısını getir (Get approved review count for product)
+ * @param productId - Ürün ID (Product ID)
+ */
+export async function getProductReviewCount(productId: string): Promise<number> {
+  try {
+    const { count, error } = await supabase
+      .from('reviews')
+      .select('*', { count: 'exact', head: true })
+      .eq('product_id', productId)
+      .eq('is_approved', true)
+      .eq('is_rejected', false);
+
+    if (error) {
+      console.error('Get product review count error:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (error: any) {
+    console.error('Get product review count error:', error);
+    return 0;
+  }
+}
 }
 

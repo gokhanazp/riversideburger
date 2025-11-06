@@ -97,9 +97,7 @@ const AdminReviews = () => {
     if (!approveReviewId) return;
 
     try {
-      console.log('🔄 Starting approval for review:', approveReviewId);
       await approveReview(approveReviewId);
-      console.log('✅ Approval successful, showing toast...');
       Toast.show({
         type: 'success',
         text1: t('admin.reviews.success'),
@@ -107,11 +105,9 @@ const AdminReviews = () => {
       });
       setApproveModalVisible(false);
       setApproveReviewId(null);
-      console.log('🔄 Refreshing reviews list...');
       await fetchReviews();
-      console.log('✅ Reviews list refreshed');
     } catch (error: any) {
-      console.error('❌ Error in handleApproveConfirm:', error);
+      console.error('Error in handleApproveConfirm:', error);
       Toast.show({
         type: 'error',
         text1: t('admin.error'),

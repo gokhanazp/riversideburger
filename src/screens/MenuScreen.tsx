@@ -31,6 +31,7 @@ import { useFavoritesStore } from '../store/favoritesStore';
 import { getProducts, getCategories } from '../services/productService';
 import { Product, Category } from '../types/database.types';
 import { formatPrice } from '../services/currencyService';
+import { getProductReviewCount } from '../services/reviewService';
 
 // Menü ekranı (Menu screen)
 const MenuScreen = ({ navigation, route }: any) => {
@@ -41,6 +42,7 @@ const MenuScreen = ({ navigation, route }: any) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [reviewCounts, setReviewCounts] = useState<{ [key: string]: number }>({});
   const addItem = useCartStore((state) => state.addItem);
   const { toggleFavorite, isFavorite } = useFavoritesStore();
 
@@ -59,6 +61,9 @@ const MenuScreen = ({ navigation, route }: any) => {
       ]);
       setProducts(productsData);
       setCategories(categoriesData);
+
+      // Yorum sayılarını yükle (Load review counts)
+      loadReviewCounts(productsData);
     } catch (error) {
       console.error('Error loading data:', error);
       Toast.show({
@@ -68,6 +73,22 @@ const MenuScreen = ({ navigation, route }: any) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Yorum sayılarını yükle (Load review counts)
+  const loadReviewCounts = async (productsData: Product[]) => {
+    try {
+      const counts: { [key: string]: number } = {};
+      await Promise.all(
+        productsData.map(async (product) => {
+          const count = await getProductReviewCount(product.id);
+          counts[product.id] = count;
+        })
+      );
+      setReviewCounts(counts);
+    } catch (error) {
+      console.error('Error loading review counts:', error);
     }
   };
 
@@ -260,6 +281,17 @@ const MenuScreen = ({ navigation, route }: any) => {
             <Text style={styles.menuDescription} numberOfLines={2}>
               {item.description || ''}
             </Text>
+
+            {/* Yorum sayısı (Review count) */}
+            {reviewCounts[item.id] > 0 && (
+              <View style={styles.reviewCountContainer}>
+                <Ionicons name="star" size={14} color="#FFB800" />
+                <Text style={styles.reviewCountText}>
+                  {reviewCounts[item.id]} {t('product.reviews')}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.menuFooter}>
               <View>
                 <Text style={styles.menuPrice}>
@@ -482,8 +514,19 @@ const styles = StyleSheet.create({
   menuDescription: {
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
     lineHeight: 20,
+  },
+  reviewCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  reviewCountText: {
+    fontSize: FontSizes.xs,
+    color: Colors.textSecondary,
+    marginLeft: 4,
+    fontWeight: '500',
   },
   menuFooter: {
     flexDirection: 'row',
