@@ -110,6 +110,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
       ]);
       console.log('✅ Reviews loaded:', reviewsData.length, 'reviews');
       console.log('✅ Rating data:', ratingData);
+      console.log('👤 First review user data:', reviewsData[0]?.user);
       setReviews(reviewsData);
       setRating(ratingData);
     } catch (error) {

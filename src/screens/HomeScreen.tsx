@@ -102,6 +102,7 @@ const HomeScreen = ({ navigation }: any) => {
       console.log('🔍 Fetching restaurant reviews for HomeScreen...');
       const data = await getRestaurantReviews();
       console.log('✅ Restaurant reviews fetched:', data.length);
+      console.log('👤 First review user data:', data[0]?.user);
       setRestaurantReviews(data.slice(0, 5)); // İlk 5 yorumu göster (Show first 5 reviews)
     } catch (error: any) {
       console.error('❌ Error fetching restaurant reviews:', error);
