@@ -113,7 +113,18 @@ export const signOut = async () => {
 // Mevcut kullanıcıyı al (Get current user)
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+    // Refresh token hatası varsa session'ı temizle (Clear session if refresh token error)
+    if (authError) {
+      console.error('Auth error:', authError);
+      if (authError.message?.includes('refresh_token_not_found') ||
+          authError.message?.includes('Invalid Refresh Token')) {
+        console.log('🔄 Invalid session detected, clearing...');
+        await supabase.auth.signOut();
+        return null;
+      }
+    }
 
     if (!authUser) return null;
 
@@ -154,6 +165,12 @@ export const getCurrentUser = async (): Promise<User | null> => {
     return userData;
   } catch (error: any) {
     console.error('Get current user error:', error);
+    // Refresh token hatası varsa session'ı temizle (Clear session if refresh token error)
+    if (error.message?.includes('refresh_token_not_found') ||
+        error.message?.includes('Invalid Refresh Token')) {
+      console.log('🔄 Invalid session detected in catch, clearing...');
+      await supabase.auth.signOut();
+    }
     return null;
   }
 };
@@ -161,43 +178,54 @@ export const getCurrentUser = async (): Promise<User | null> => {
 // Session değişikliklerini dinle (Listen to auth changes)
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return supabase.auth.onAuthStateChange(async (event, session) => {
+    // Token expire olduğunda otomatik logout (Auto logout on token expiry)
+    if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
+      console.log('🔄 Auth event:', event);
+    }
+
     if (session?.user) {
-      // Kullanıcı bilgilerini users tablosundan al (Get user info from users table)
-      const { data: dbUser, error: dbError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+      try {
+        // Kullanıcı bilgilerini users tablosundan al (Get user info from users table)
+        const { data: dbUser, error: dbError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
-      if (dbError) {
-        console.error('Database user fetch error:', dbError);
-        // Fallback to metadata if database fetch fails
+        if (dbError) {
+          console.error('Database user fetch error:', dbError);
+          // Fallback to metadata if database fetch fails
+          const userData: User = {
+            id: session.user.id,
+            email: session.user.email || '',
+            role: (session.user.user_metadata?.role as UserRole) || 'customer',
+            full_name: session.user.user_metadata?.full_name || '',
+            phone: session.user.user_metadata?.phone || '',
+            points: 0,
+            created_at: session.user.created_at,
+          };
+          callback(userData);
+          return;
+        }
+
+        // Database'den gelen kullanıcı bilgilerini kullan (Use user info from database)
         const userData: User = {
-          id: session.user.id,
-          email: session.user.email || '',
-          role: (session.user.user_metadata?.role as UserRole) || 'customer',
-          full_name: session.user.user_metadata?.full_name || '',
-          phone: session.user.user_metadata?.phone || '',
-          points: 0,
-          created_at: session.user.created_at,
+          id: dbUser.id,
+          email: dbUser.email,
+          role: dbUser.role as UserRole,
+          full_name: dbUser.full_name || '',
+          phone: dbUser.phone || '',
+          points: dbUser.points || 0,
+          created_at: dbUser.created_at,
+          updated_at: dbUser.updated_at,
         };
+
         callback(userData);
-        return;
+      } catch (error: any) {
+        console.error('Auth state change error:', error);
+        // Hata durumunda null döndür (Return null on error)
+        callback(null);
       }
-
-      // Database'den gelen kullanıcı bilgilerini kullan (Use user info from database)
-      const userData: User = {
-        id: dbUser.id,
-        email: dbUser.email,
-        role: dbUser.role as UserRole,
-        full_name: dbUser.full_name || '',
-        phone: dbUser.phone || '',
-        points: dbUser.points || 0,
-        created_at: dbUser.created_at,
-        updated_at: dbUser.updated_at,
-      };
-
-      callback(userData);
     } else {
       callback(null);
     }
