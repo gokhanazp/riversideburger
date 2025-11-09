@@ -40,3 +40,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Google Play Service Account
+google-service-account.json
+
+# Keystores
+*.keystore
+*.jks
