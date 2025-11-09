@@ -35,19 +35,12 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#E63946"
-        }
-      ]
-    ],
     "extra": {
       "eas": {
         "projectId": "8fe95f1d-8d84-4ccf-8b75-cdd48aceb0fd"
-      }
+      },
+      "supabaseUrl": "https://srcslhltajjvteqeptrt.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyY3NsaGx0YWpqdnRlcWVwdHJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4OTE1NjIsImV4cCI6MjA3NzQ2NzU2Mn0.FJs8OLIbJdP8vn2GXlNFkGrVeLlR6OhcmNTMW79uH9U"
     }
   }
 }
