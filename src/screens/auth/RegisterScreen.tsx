@@ -30,52 +30,78 @@ export default function RegisterScreen({ navigation }: any) {
 
   // Kayıt ol (Handle register)
   const handleRegister = async () => {
+    console.log('📝 Register button pressed');
+
     // Validasyon (Validation)
     if (!fullName || !email || !phone || !password || !confirmPassword) {
+      console.log('❌ Validation failed: Missing fields');
       Toast.show({
         type: 'error',
         text1: t('auth.error'),
         text2: t('auth.fillAllFields'),
+        position: 'top',
+        visibilityTime: 3000,
       });
       return;
     }
 
     if (password !== confirmPassword) {
+      console.log('❌ Validation failed: Password mismatch');
       Toast.show({
         type: 'error',
         text1: t('auth.error'),
         text2: t('auth.passwordMismatch'),
+        position: 'top',
+        visibilityTime: 3000,
       });
       return;
     }
 
     if (password.length < 6) {
+      console.log('❌ Validation failed: Password too short');
       Toast.show({
         type: 'error',
         text1: t('auth.error'),
         text2: t('auth.passwordTooShort'),
+        position: 'top',
+        visibilityTime: 3000,
       });
       return;
     }
 
     try {
       setIsLoading(true);
+      console.log('🚀 Calling register function...');
+
       await register(email.trim().toLowerCase(), password, fullName.trim(), phone.trim());
 
+      console.log('✅ Registration successful!');
+
+      // Başarılı kayıt mesajı (Success message)
       Toast.show({
         type: 'success',
-        text1: '✅ ' + t('auth.registerSuccess'),
-        text2: t('auth.welcome'),
+        text1: '🎉 ' + t('auth.registerSuccess'),
+        text2: '✅ ' + t('auth.welcome') + ' ' + fullName.split(' ')[0] + '!',
+        position: 'top',
+        visibilityTime: 4000,
       });
 
-      // Modal'ı kapat ve ana sayfaya dön (Close modal and go back)
-      navigation.goBack();
+      // Biraz bekle ve modal'ı kapat (Wait a bit and close modal)
+      setTimeout(() => {
+        console.log('🔙 Navigating back...');
+        navigation.goBack();
+      }, 1500);
+
     } catch (error: any) {
-      console.error('Register error:', error);
+      console.error('❌ Register error:', error);
+
+      // Hata mesajını göster (Show error message)
       Toast.show({
         type: 'error',
         text1: '❌ ' + t('auth.registerFailed'),
         text2: error.message || t('auth.error'),
+        position: 'top',
+        visibilityTime: 4000,
       });
     } finally {
       setIsLoading(false);

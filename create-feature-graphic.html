@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riverside Burgers - Feature Graphic Generator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        #canvas {
+            border: 2px solid #333;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            background: white;
+        }
+        
+        .download-btn {
+            margin-top: 20px;
+            padding: 15px 40px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: transform 0.2s;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            max-width: 600px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>🍔 Riverside Burgers Feature Graphic</h1>
+    <canvas id="canvas" width="1024" height="500"></canvas>
+    <button class="download-btn" onclick="downloadImage()">📥 Download Feature Graphic (1024x500)</button>
+    
+    <div class="info">
+        <p><strong>✅ Ready for Google Play Store!</strong></p>
+        <p>Size: 1024x500 pixels | Format: PNG</p>
+        <p>Click the button above to download and upload to Google Play Console</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Create gradient background
+        const gradient = ctx.createLinearGradient(0, 0, 1024, 500);
+        gradient.addColorStop(0, '#667eea');
+        gradient.addColorStop(1, '#764ba2');
+        
+        // Fill background
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 1024, 500);
+        
+        // Add overlay pattern
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        for (let i = 0; i < 20; i++) {
+            ctx.beginPath();
+            ctx.arc(Math.random() * 1024, Math.random() * 500, Math.random() * 100, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Add app name
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 80px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🍔 Riverside Burgers', 512, 200);
+        
+        // Add tagline
+        ctx.font = '36px Arial, sans-serif';
+        ctx.fillText('Order Delicious Burgers Fast & Easy', 512, 280);
+        
+        // Add features
+        ctx.font = '24px Arial, sans-serif';
+        ctx.fillText('🚀 Fast Delivery  •  🍔 Fresh Ingredients  •  ⭐ Quality Service', 512, 350);
+        
+        // Add decorative elements
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(200, 320);
+        ctx.lineTo(824, 320);
+        ctx.stroke();
+        
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'riverside-burgers-feature-graphic-1024x500.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>
+

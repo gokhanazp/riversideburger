@@ -10,11 +10,14 @@ export const signUp = async (
   role: UserRole = 'customer'
 ) => {
   try {
+    console.log('🔐 Starting signup process for:', email);
+
     // 1. Auth kullanıcısı oluştur (Create auth user with metadata)
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: undefined, // Email confirmation'ı devre dışı bırak (Disable email confirmation)
         data: {
           full_name: fullName,
           phone: phone,
@@ -23,26 +26,85 @@ export const signUp = async (
       }
     });
 
-    if (authError) throw authError;
-    if (!authData.user) throw new Error('Kullanıcı oluşturulamadı');
+    console.log('📧 Signup response:', {
+      user: authData.user?.id,
+      session: !!authData.session,
+      error: authError
+    });
+
+    if (authError) {
+      console.error('❌ Auth error:', authError);
+      throw authError;
+    }
+
+    if (!authData.user) {
+      console.error('❌ No user returned');
+      throw new Error('Kullanıcı oluşturulamadı');
+    }
+
+    // Email confirmation gerekiyorsa kullanıcıyı bilgilendir (Inform user if email confirmation required)
+    if (authData.user && !authData.session) {
+      console.log('📧 Email confirmation required');
+      throw new Error('Lütfen email adresinizi kontrol edin ve hesabınızı onaylayın');
+    }
 
     // Trigger otomatik users tablosuna ekleyecek
     // Biraz bekleyelim (Wait a bit for trigger to complete)
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('⏳ Waiting for database trigger...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // User bilgilerini al (Get user info)
-    const userData = {
-      id: authData.user.id,
-      email: authData.user.email || email,
-      role: role,
-      full_name: fullName,
-      phone: phone,
-      created_at: authData.user.created_at,
+    // Users tablosundan kullanıcı bilgilerini al (Get user info from users table)
+    console.log('📊 Fetching user from database...');
+    const { data: dbUser, error: dbError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (dbError) {
+      console.error('⚠️ Database fetch error:', dbError);
+      // Fallback to metadata if database fetch fails
+      const userData: User = {
+        id: authData.user.id,
+        email: authData.user.email || email,
+        role: role,
+        full_name: fullName,
+        phone: phone,
+        points: 0,
+        created_at: authData.user.created_at,
+      };
+      console.log('✅ Using metadata fallback');
+      return { user: userData, session: authData.session };
+    }
+
+    // Database'den gelen kullanıcı bilgilerini kullan (Use user info from database)
+    const userData: User = {
+      id: dbUser.id,
+      email: dbUser.email,
+      role: dbUser.role as UserRole,
+      full_name: dbUser.full_name || '',
+      phone: dbUser.phone || '',
+      points: dbUser.points || 0,
+      created_at: dbUser.created_at,
+      updated_at: dbUser.updated_at,
     };
 
-    return { user: userData as User, session: authData.session };
+    console.log('✅ Signup successful:', userData.email);
+    return { user: userData, session: authData.session };
   } catch (error: any) {
-    console.error('Sign up error:', error);
+    console.error('❌ Sign up error:', error);
+
+    // Kullanıcı dostu hata mesajları (User-friendly error messages)
+    if (error.message?.includes('already registered')) {
+      throw new Error('Bu email adresi zaten kayıtlı');
+    }
+    if (error.message?.includes('Invalid email')) {
+      throw new Error('Geçersiz email adresi');
+    }
+    if (error.message?.includes('Password')) {
+      throw new Error('Şifre en az 6 karakter olmalıdır');
+    }
+
     throw error;
   }
 };
@@ -50,15 +112,31 @@ export const signUp = async (
 // Giriş yapma (Sign in)
 export const signIn = async (email: string, password: string) => {
   try {
+    console.log('🔐 Starting login process for:', email);
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) throw error;
-    if (!data.user) throw new Error('Giriş başarısız');
+    console.log('📧 Login response:', {
+      user: data.user?.id,
+      session: !!data.session,
+      error: error
+    });
+
+    if (error) {
+      console.error('❌ Auth error:', error);
+      throw error;
+    }
+
+    if (!data.user) {
+      console.error('❌ No user returned');
+      throw new Error('Giriş başarısız');
+    }
 
     // Kullanıcı bilgilerini users tablosundan al (Get user info from users table)
+    console.log('📊 Fetching user from database...');
     const { data: dbUser, error: dbError } = await supabase
       .from('users')
       .select('*')
@@ -66,7 +144,7 @@ export const signIn = async (email: string, password: string) => {
       .single();
 
     if (dbError) {
-      console.error('Database user fetch error:', dbError);
+      console.error('⚠️ Database user fetch error:', dbError);
       // Fallback to metadata if database fetch fails
       const userData: User = {
         id: data.user.id,
@@ -77,6 +155,7 @@ export const signIn = async (email: string, password: string) => {
         points: 0,
         created_at: data.user.created_at,
       };
+      console.log('✅ Using metadata fallback');
       return { user: userData, session: data.session };
     }
 
@@ -92,9 +171,19 @@ export const signIn = async (email: string, password: string) => {
       updated_at: dbUser.updated_at,
     };
 
+    console.log('✅ Login successful:', userData.email);
     return { user: userData, session: data.session };
   } catch (error: any) {
-    console.error('Sign in error:', error);
+    console.error('❌ Sign in error:', error);
+
+    // Kullanıcı dostu hata mesajları (User-friendly error messages)
+    if (error.message?.includes('Invalid login credentials')) {
+      throw new Error('Email veya şifre hatalı');
+    }
+    if (error.message?.includes('Email not confirmed')) {
+      throw new Error('Lütfen email adresinizi onaylayın');
+    }
+
     throw error;
   }
 };
