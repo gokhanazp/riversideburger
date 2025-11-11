@@ -54,7 +54,14 @@
     "passwordMismatch": "Passwords do not match",
     "passwordTooShort": "Password must be at least 6 characters",
     "registerFailed": "Registration Failed",
-    "createAccount": "Create Account"
+    "createAccount": "Create Account",
+    "emailAlreadyRegistered": "This email is already registered",
+    "invalidEmail": "Invalid email address",
+    "passwordRequirement": "Password must be at least 6 characters",
+    "emailOrPasswordWrong": "Email or password is incorrect",
+    "pleaseConfirmEmail": "Please confirm your email address",
+    "accountCreated": "Account created successfully!",
+    "welcomeUser": "Welcome"
   },
   "navigation": {
     "home": "Home",

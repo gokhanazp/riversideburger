@@ -81,7 +81,7 @@ export default function RegisterScreen({ navigation }: any) {
       Toast.show({
         type: 'success',
         text1: '🎉 ' + t('auth.registerSuccess'),
-        text2: '✅ ' + t('auth.welcome') + ' ' + fullName.split(' ')[0] + '!',
+        text2: '✅ ' + t('auth.welcomeUser') + ' ' + fullName.split(' ')[0] + '!',
         position: 'top',
         visibilityTime: 4000,
       });

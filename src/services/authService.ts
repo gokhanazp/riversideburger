@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { User, UserRole } from '../types/database.types';
+import i18n from '../i18n';
 
 // Kayıt olma (Sign up)
 export const signUp = async (
@@ -39,13 +40,13 @@ export const signUp = async (
 
     if (!authData.user) {
       console.error('❌ No user returned');
-      throw new Error('Kullanıcı oluşturulamadı');
+      throw new Error(i18n.t('auth.registerFailed'));
     }
 
     // Email confirmation gerekiyorsa kullanıcıyı bilgilendir (Inform user if email confirmation required)
     if (authData.user && !authData.session) {
       console.log('📧 Email confirmation required');
-      throw new Error('Lütfen email adresinizi kontrol edin ve hesabınızı onaylayın');
+      throw new Error(i18n.t('auth.pleaseConfirmEmail'));
     }
 
     // Trigger otomatik users tablosuna ekleyecek
@@ -95,14 +96,14 @@ export const signUp = async (
     console.error('❌ Sign up error:', error);
 
     // Kullanıcı dostu hata mesajları (User-friendly error messages)
-    if (error.message?.includes('already registered')) {
-      throw new Error('Bu email adresi zaten kayıtlı');
+    if (error.message?.includes('already registered') || error.message?.includes('User already registered')) {
+      throw new Error(i18n.t('auth.emailAlreadyRegistered'));
     }
     if (error.message?.includes('Invalid email')) {
-      throw new Error('Geçersiz email adresi');
+      throw new Error(i18n.t('auth.invalidEmail'));
     }
     if (error.message?.includes('Password')) {
-      throw new Error('Şifre en az 6 karakter olmalıdır');
+      throw new Error(i18n.t('auth.passwordRequirement'));
     }
 
     throw error;
@@ -132,7 +133,7 @@ export const signIn = async (email: string, password: string) => {
 
     if (!data.user) {
       console.error('❌ No user returned');
-      throw new Error('Giriş başarısız');
+      throw new Error(i18n.t('auth.loginFailed'));
     }
 
     // Kullanıcı bilgilerini users tablosundan al (Get user info from users table)
@@ -178,10 +179,10 @@ export const signIn = async (email: string, password: string) => {
 
     // Kullanıcı dostu hata mesajları (User-friendly error messages)
     if (error.message?.includes('Invalid login credentials')) {
-      throw new Error('Email veya şifre hatalı');
+      throw new Error(i18n.t('auth.emailOrPasswordWrong'));
     }
     if (error.message?.includes('Email not confirmed')) {
-      throw new Error('Lütfen email adresinizi onaylayın');
+      throw new Error(i18n.t('auth.pleaseConfirmEmail'));
     }
 
     throw error;

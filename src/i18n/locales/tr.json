@@ -54,7 +54,14 @@
     "passwordMismatch": "Şifreler eşleşmiyor",
     "passwordTooShort": "Şifre en az 6 karakter olmalıdır",
     "registerFailed": "Kayıt Başarısız",
-    "createAccount": "Hesap Oluştur"
+    "createAccount": "Hesap Oluştur",
+    "emailAlreadyRegistered": "Bu email adresi zaten kayıtlı",
+    "invalidEmail": "Geçersiz email adresi",
+    "passwordRequirement": "Şifre en az 6 karakter olmalıdır",
+    "emailOrPasswordWrong": "Email veya şifre hatalı",
+    "pleaseConfirmEmail": "Lütfen email adresinizi onaylayın",
+    "accountCreated": "Hesap başarıyla oluşturuldu!",
+    "welcomeUser": "Hoş geldin"
   },
   "navigation": {
     "home": "Ana Sayfa",
