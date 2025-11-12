@@ -428,7 +428,8 @@ const AdminProductOptions = () => {
                         styles.categoryItemName,
                         selectedCategory?.id === category.id && styles.categoryItemNameActive,
                       ]}
-                      numberOfLines={isSmallScreen ? 1 : 2}
+                      numberOfLines={isSmallScreen ? 2 : 2}
+                      ellipsizeMode="tail"
                     >
                       {i18n.language === 'tr' ? category.name : (category.name_en || category.name)}
                     </Text>
@@ -824,11 +825,13 @@ const styles = StyleSheet.create({
   },
   categoryScrollHorizontal: {
     flexGrow: 0,
+    paddingVertical: Spacing.xs, // Üst ve alt padding (Top and bottom padding)
   },
   categoryRowContainer: {
     flexDirection: 'row',
     gap: Spacing.sm,
     paddingRight: Spacing.md,
+    paddingVertical: Spacing.xs, // Yazıların kesilmemesi için (To prevent text clipping)
   },
   categoryItem: {
     flexDirection: 'row',
@@ -844,17 +847,21 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
     minWidth: 140,
     maxWidth: 180,
+    paddingVertical: Spacing.md + 4, // Yazıların kesilmemesi için ekstra padding (Extra padding to prevent text clipping)
+    minHeight: 56, // Minimum yükseklik (Minimum height)
   },
   categoryItemActive: {
     backgroundColor: Colors.primary,
   },
   categoryItemLeft: {
     flex: 1,
+    paddingRight: Spacing.xs, // Sağ tarafta boşluk (Space on the right)
   },
   categoryItemName: {
     fontSize: FontSizes.md,
     fontWeight: '600',
     color: Colors.text,
+    lineHeight: FontSizes.md * 1.4, // Satır yüksekliği (Line height)
   },
   categoryItemNameActive: {
     color: '#FFF',
