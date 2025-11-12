@@ -61,7 +61,18 @@
     "emailOrPasswordWrong": "Email veya şifre hatalı",
     "pleaseConfirmEmail": "Lütfen email adresinizi onaylayın",
     "accountCreated": "Hesap başarıyla oluşturuldu!",
-    "welcomeUser": "Hoş geldin"
+    "welcomeUser": "Hoş geldin",
+    "forgotPasswordTitle": "Şifremi Unuttum",
+    "forgotPasswordSubtitle": "Email adresinize şifre sıfırlama linki göndereceğiz",
+    "forgotPasswordSubtitleSent": "Email adresinizi kontrol edin",
+    "sendButton": "Gönder",
+    "backToLogin": "Giriş Sayfasına Dön",
+    "emailSent": "Email Gönderildi",
+    "emailSentMessage": "Şifre sıfırlama linki email adresinize gönderildi",
+    "emailSentTitle": "Email Gönderildi!",
+    "emailSentText": "adresine şifre sıfırlama linki gönderdik. Lütfen email kutunuzu kontrol edin.",
+    "resendEmail": "Tekrar Gönder",
+    "enterEmail": "Lütfen email adresinizi girin"
   },
   "navigation": {
     "home": "Ana Sayfa",

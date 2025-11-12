@@ -11,10 +11,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { resetPassword } from '../../services/authService';
 import Toast from 'react-native-toast-message';
 
 export default function ForgotPasswordScreen({ navigation }: any) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -25,8 +27,8 @@ export default function ForgotPasswordScreen({ navigation }: any) {
     if (!email) {
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Lütfen email adresinizi girin',
+        text1: t('auth.error'),
+        text2: t('auth.enterEmail'),
       });
       return;
     }
@@ -34,19 +36,19 @@ export default function ForgotPasswordScreen({ navigation }: any) {
     try {
       setIsLoading(true);
       await resetPassword(email.trim().toLowerCase());
-      
+
       setEmailSent(true);
       Toast.show({
         type: 'success',
-        text1: 'Email Gönderildi',
-        text2: 'Şifre sıfırlama linki email adresinize gönderildi',
+        text1: t('auth.emailSent'),
+        text2: t('auth.emailSentMessage'),
       });
     } catch (error: any) {
       console.error('Reset password error:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Bir hata oluştu',
+        text1: t('auth.error'),
+        text2: error.message || t('errors.unknownError'),
       });
     } finally {
       setIsLoading(false);
@@ -70,16 +72,16 @@ export default function ForgotPasswordScreen({ navigation }: any) {
           >
             <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
-          
+
           <View style={styles.iconContainer}>
             <Ionicons name="lock-closed-outline" size={60} color="#E63946" />
           </View>
-          
-          <Text style={styles.title}>Şifremi Unuttum</Text>
+
+          <Text style={styles.title}>{t('auth.forgotPasswordTitle')}</Text>
           <Text style={styles.subtitle}>
             {emailSent
-              ? 'Email adresinizi kontrol edin'
-              : 'Email adresinize şifre sıfırlama linki göndereceğiz'}
+              ? t('auth.forgotPasswordSubtitleSent')
+              : t('auth.forgotPasswordSubtitle')}
           </Text>
         </View>
 
@@ -91,7 +93,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
               <Ionicons name="mail-outline" size={20} color="#6C757D" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Email"
+                placeholder={t('auth.email')}
                 placeholderTextColor="#ADB5BD"
                 value={email}
                 onChangeText={setEmail}
@@ -110,7 +112,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
               {isLoading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.sendButtonText}>Gönder</Text>
+                <Text style={styles.sendButtonText}>{t('auth.sendButton')}</Text>
               )}
             </TouchableOpacity>
 
@@ -120,7 +122,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
               style={styles.backToLogin}
             >
               <Ionicons name="arrow-back" size={16} color="#E63946" />
-              <Text style={styles.backToLoginText}>Giriş Sayfasına Dön</Text>
+              <Text style={styles.backToLoginText}>{t('auth.backToLogin')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -128,25 +130,24 @@ export default function ForgotPasswordScreen({ navigation }: any) {
             <View style={styles.successIcon}>
               <Ionicons name="checkmark-circle" size={80} color="#28A745" />
             </View>
-            
-            <Text style={styles.successTitle}>Email Gönderildi!</Text>
+
+            <Text style={styles.successTitle}>{t('auth.emailSentTitle')}</Text>
             <Text style={styles.successText}>
-              {email} adresine şifre sıfırlama linki gönderdik.
-              Lütfen email kutunuzu kontrol edin.
+              {email} {t('auth.emailSentText')}
             </Text>
 
             <TouchableOpacity
               style={styles.backButton2}
               onPress={() => navigation.navigate('Login')}
             >
-              <Text style={styles.backButton2Text}>Giriş Sayfasına Dön</Text>
+              <Text style={styles.backButton2Text}>{t('auth.backToLogin')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setEmailSent(false)}
               style={styles.resendLink}
             >
-              <Text style={styles.resendLinkText}>Tekrar Gönder</Text>
+              <Text style={styles.resendLinkText}>{t('auth.resendEmail')}</Text>
             </TouchableOpacity>
           </View>
         )}

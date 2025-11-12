@@ -61,7 +61,18 @@
     "emailOrPasswordWrong": "Email or password is incorrect",
     "pleaseConfirmEmail": "Please confirm your email address",
     "accountCreated": "Account created successfully!",
-    "welcomeUser": "Welcome"
+    "welcomeUser": "Welcome",
+    "forgotPasswordTitle": "Forgot Password",
+    "forgotPasswordSubtitle": "We will send a password reset link to your email address",
+    "forgotPasswordSubtitleSent": "Check your email",
+    "sendButton": "Send",
+    "backToLogin": "Back to Login",
+    "emailSent": "Email Sent",
+    "emailSentMessage": "Password reset link has been sent to your email",
+    "emailSentTitle": "Email Sent!",
+    "emailSentText": "We sent a password reset link to your email. Please check your inbox.",
+    "resendEmail": "Resend",
+    "enterEmail": "Please enter your email address"
   },
   "navigation": {
     "home": "Home",
