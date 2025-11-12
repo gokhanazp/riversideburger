@@ -5,7 +5,6 @@ import { PaperProvider } from 'react-native-paper';
 import { View, ActivityIndicator, Platform } from 'react-native';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 // Stripe sadece native platformlarda yükle (Load Stripe only on native platforms)
