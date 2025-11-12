@@ -175,12 +175,24 @@ const CartScreen = ({ navigation }: any) => {
     navigation.navigate('Login');
   };
 
-  // Sipariş onayı - Ödeme ekranına yönlendir (Checkout confirm - Navigate to payment screen)
+  // Sipariş onayı (Checkout confirm)
   const handleCheckoutConfirm = async () => {
     if (!user) return;
 
     try {
+      setIsCreatingOrder(true);
       setShowCheckoutModal(false);
+
+      // Sipariş verilerini hazırla (Prepare order data)
+      const orderItems = items.map(item => ({
+        product_id: item.id,
+        product_name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        subtotal: item.price * item.quantity,
+        customizations: item.customizations,
+        specialInstructions: item.specialInstructions,
+      }));
 
       // Adres bilgisini hazırla (Prepare address info)
       const fullAddress = selectedAddress
@@ -189,26 +201,60 @@ const CartScreen = ({ navigation }: any) => {
           }, ${selectedAddress.city}, ${selectedAddress.province} ${selectedAddress.postal_code}`
         : 'Adres belirtilmedi';
 
-      // Ödeme ekranına yönlendir (Navigate to payment screen)
-      navigation.navigate('Payment', {
-        totalAmount: getFinalPrice(), // İndirimli fiyat (Discounted price)
-        currency: 'CAD', // Para birimi (Currency)
-        deliveryAddress: fullAddress,
-        phone: selectedAddress?.phone || user.phone || 'Telefon belirtilmedi',
-        notes: pointsToUse > 0 ? `${pointsToUse.toFixed(2)} puan kullanıldı` : '',
-        pointsUsed: pointsToUse,
-        addressId: selectedAddress?.id || null,
+      console.log('📦 Creating order with data:', {
+        user_id: user.id,
+        total_amount: getFinalPrice(),
+        delivery_address: fullAddress,
+        phone: selectedAddress?.phone || user.phone,
+        items_count: orderItems.length,
+        points_used: pointsToUse,
       });
 
-    } catch (error: any) {
-      console.error('Error navigating to payment:', error);
+      // Siparişi oluştur (Create order)
+      const order = await createOrder({
+        user_id: user.id,
+        total_amount: getFinalPrice(), // İndirimli fiyat (Discounted price)
+        delivery_address: fullAddress,
+        phone: selectedAddress?.phone || user.phone || 'Telefon belirtilmedi',
+        notes: pointsToUse > 0 ? `${pointsToUse.toFixed(2)} puan kullanıldı` : '',
+        items: orderItems,
+        points_used: pointsToUse,
+        address_id: selectedAddress?.id,
+      });
+
+      console.log('✅ Order created successfully:', order.order_number);
+
+      // Sepeti ve puanları temizle (Clear cart and points)
+      clearCart();
+      handleClearPoints();
+
+      // Puanları yeniden yükle (Reload points)
+      await loadUserPoints();
+
       Toast.show({
-        type: 'error',
-        text1: t('cart.error'),
-        text2: error.message || t('cart.orderError'),
-        visibilityTime: 3000,
+        type: 'success',
+        text1: t('cart.orderReceived'),
+        text2: t('cart.orderNumber', { number: order.order_number }),
+        visibilityTime: 4000,
         topOffset: 60,
       });
+
+      // Sipariş geçmişine yönlendir (Navigate to order history)
+      setTimeout(() => {
+        navigation.navigate('OrderHistory');
+      }, 2000);
+
+    } catch (error: any) {
+      console.error('❌ Error creating order:', error);
+      Toast.show({
+        type: 'error',
+        text1: t('cart.orderFailed'),
+        text2: error.message || t('cart.orderError'),
+        visibilityTime: 4000,
+        topOffset: 60,
+      });
+    } finally {
+      setIsCreatingOrder(false);
     }
   };
 
