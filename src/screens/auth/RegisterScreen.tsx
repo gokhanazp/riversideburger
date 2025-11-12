@@ -39,8 +39,8 @@ export default function RegisterScreen({ navigation }: any) {
         type: 'error',
         text1: t('auth.error'),
         text2: t('auth.fillAllFields'),
-        position: 'top',
         visibilityTime: 3000,
+        topOffset: 60,
       });
       return;
     }
@@ -51,8 +51,8 @@ export default function RegisterScreen({ navigation }: any) {
         type: 'error',
         text1: t('auth.error'),
         text2: t('auth.passwordMismatch'),
-        position: 'top',
         visibilityTime: 3000,
+        topOffset: 60,
       });
       return;
     }
@@ -63,8 +63,8 @@ export default function RegisterScreen({ navigation }: any) {
         type: 'error',
         text1: t('auth.error'),
         text2: t('auth.passwordTooShort'),
-        position: 'top',
         visibilityTime: 3000,
+        topOffset: 60,
       });
       return;
     }
@@ -80,17 +80,17 @@ export default function RegisterScreen({ navigation }: any) {
       // Başarılı kayıt mesajı (Success message)
       Toast.show({
         type: 'success',
-        text1: '🎉 ' + t('auth.registerSuccess'),
-        text2: '✅ ' + t('auth.welcomeUser') + ' ' + fullName.split(' ')[0] + '!',
-        position: 'top',
-        visibilityTime: 4000,
+        text1: t('auth.registerSuccess'),
+        text2: t('auth.welcomeUser') + ' ' + fullName.split(' ')[0] + '!',
+        visibilityTime: 2000,
+        topOffset: 60,
       });
 
       // Biraz bekle ve modal'ı kapat (Wait a bit and close modal)
       setTimeout(() => {
         console.log('🔙 Navigating back...');
         navigation.goBack();
-      }, 1500);
+      }, 1000);
 
     } catch (error: any) {
       console.error('❌ Register error:', error);
@@ -98,10 +98,10 @@ export default function RegisterScreen({ navigation }: any) {
       // Hata mesajını göster (Show error message)
       Toast.show({
         type: 'error',
-        text1: '❌ ' + t('auth.registerFailed'),
+        text1: t('auth.registerFailed'),
         text2: error.message || t('auth.error'),
-        position: 'top',
-        visibilityTime: 4000,
+        visibilityTime: 3000,
+        topOffset: 60,
       });
     } finally {
       setIsLoading(false);

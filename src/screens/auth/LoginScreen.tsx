@@ -52,17 +52,17 @@ export default function LoginScreen({ navigation }: any) {
       // Başarılı giriş mesajı (Success message)
       Toast.show({
         type: 'success',
-        text1: '🎉 ' + t('auth.loginSuccess'),
-        text2: '✅ ' + t('auth.welcome'),
-        position: 'top',
-        visibilityTime: 4000,
+        text1: t('auth.loginSuccess'),
+        text2: t('auth.welcomeBack'),
+        visibilityTime: 2000,
+        topOffset: 60,
       });
 
       // Biraz bekle ve modal'ı kapat (Wait a bit and close modal)
       setTimeout(() => {
         console.log('🔙 Navigating back...');
         navigation.goBack();
-      }, 1500);
+      }, 1000);
 
     } catch (error: any) {
       console.error('❌ Login error:', error);
@@ -70,10 +70,10 @@ export default function LoginScreen({ navigation }: any) {
       // Hata mesajını göster (Show error message)
       Toast.show({
         type: 'error',
-        text1: '❌ ' + t('auth.loginFailed'),
+        text1: t('auth.loginFailed'),
         text2: error.message || t('auth.invalidCredentials'),
-        position: 'top',
-        visibilityTime: 4000,
+        visibilityTime: 3000,
+        topOffset: 60,
       });
     } finally {
       setIsLoading(false);
