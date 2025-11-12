@@ -26,6 +26,9 @@ export type RootStackParamList = {
   Notifications: undefined;
   Settings: undefined; // Ayarlar ekranı (Settings screen)
   ReviewOrder: { orderId: string }; // Sipariş değerlendirme ekranı (Review order screen)
+  RestaurantReview: undefined; // Restoran değerlendirme ekranı (Restaurant review screen)
+  HelpSupport: undefined; // Yardım ve destek ekranı (Help & Support screen)
+  PrivacyPolicy: undefined; // Gizlilik politikası ekranı (Privacy policy screen)
   // Admin ekranları (Admin screens)
   AdminDashboard: undefined;
   AdminOrders: { filter?: string } | undefined;

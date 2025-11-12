@@ -294,14 +294,17 @@ const ProfileScreen = ({ navigation }: any) => {
                 iconName="help-circle-outline"
                 title={t('profile.helpSupport')}
                 subtitle={t('profile.helpSupportSubtitle')}
+                onPress={() => navigation.navigate('HelpSupport')}
               />
               <MenuItem
                 iconName="shield-outline"
                 title={t('profile.privacyPolicy')}
+                onPress={() => navigation.navigate('PrivacyPolicy')}
               />
               <MenuItem
                 iconName="document-text-outline"
                 title={t('profile.termsOfService')}
+                onPress={() => navigation.navigate('PrivacyPolicy')}
               />
             </View>
           </View>

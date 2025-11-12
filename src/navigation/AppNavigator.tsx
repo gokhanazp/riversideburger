@@ -29,6 +29,8 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 import ReviewOrderScreen from '../screens/ReviewOrderScreen';
 import RestaurantReviewScreen from '../screens/RestaurantReviewScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import HelpSupportScreen from '../screens/HelpSupportScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 
 // Admin ekranları (Admin screens)
 import AdminDashboard from '../screens/admin/AdminDashboard';
@@ -441,6 +443,24 @@ const AppNavigator = () => {
         <Stack.Screen
           name="RestaurantReview"
           component={RestaurantReviewScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+
+        {/* Yardım ve Destek (Help & Support) */}
+        <Stack.Screen
+          name="HelpSupport"
+          component={HelpSupportScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+
+        {/* Gizlilik Politikası (Privacy Policy) */}
+        <Stack.Screen
+          name="PrivacyPolicy"
+          component={PrivacyPolicyScreen}
           options={{
             headerShown: false,
           }}
