@@ -48,6 +48,42 @@ export async function createReview(
       throw new Error('Değerlendirme oluşturulamadı: ' + error.message);
     }
 
+    // Admin kullanıcılarına push notification gönder (Send push notification to admins)
+    try {
+      // Kullanıcı ve ürün bilgilerini al (Get user and product info)
+      const { data: userData } = await supabase
+        .from('users')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      const { data: productData } = await supabase
+        .from('products')
+        .select('name')
+        .eq('id', productId)
+        .single();
+
+      const customerName = userData?.full_name || 'Müşteri';
+      const productName = productData?.name || 'Ürün';
+
+      // Push notification gönder (Send push notification)
+      const { sendPushNotificationToAdmins } = await import('./notificationService');
+      await sendPushNotificationToAdmins(
+        '⭐ Yeni Yorum!',
+        `${customerName} - ${productName} (${rating} yıldız)`,
+        {
+          reviewId: data.id,
+          productId: productId,
+          type: 'new_review_admin',
+        }
+      );
+
+      console.log('✅ Admin push notification gönderildi (yorum)');
+    } catch (notifError) {
+      // Bildirim hatası yorumu etkilemez (Notification error doesn't affect review)
+      console.error('⚠️ Admin bildirim hatası:', notifError);
+    }
+
     return data;
   } catch (error: any) {
     console.error('Create review error:', error);

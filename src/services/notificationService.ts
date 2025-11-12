@@ -202,6 +202,119 @@ export async function sendNewOrderNotificationToAdmin(orderId: string, customerN
 }
 
 /**
+ * Admin: Yeni yorum bildirimi (Admin: New review notification)
+ */
+export async function sendNewReviewNotificationToAdmin(
+  reviewId: string,
+  customerName: string,
+  productName: string,
+  rating: number
+) {
+  await sendLocalNotification(
+    '⭐ Yeni Yorum!',
+    `${customerName} - ${productName} (${rating} yıldız)`,
+    { reviewId, type: 'new_review_admin' },
+    'orders'
+  );
+}
+
+/**
+ * Push token'ı Supabase'e kaydet (Save push token to Supabase)
+ */
+export async function savePushToken(userId: string, token: string, deviceType: string) {
+  try {
+    const { error } = await import('../lib/supabase').then((m) =>
+      m.supabase.from('push_tokens').upsert(
+        {
+          user_id: userId,
+          token: token,
+          device_type: deviceType,
+          is_active: true,
+          last_used_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'token',
+        }
+      )
+    );
+
+    if (error) {
+      console.error('❌ Push token kaydetme hatası:', error);
+    } else {
+      console.log('✅ Push token kaydedildi:', token);
+    }
+  } catch (error) {
+    console.error('❌ Push token kaydetme hatası:', error);
+  }
+}
+
+/**
+ * Admin kullanıcılarına push notification gönder
+ * Send push notification to admin users
+ */
+export async function sendPushNotificationToAdmins(title: string, body: string, data?: any) {
+  try {
+    // Supabase'den admin kullanıcılarının push token'larını al
+    const { supabase } = await import('../lib/supabase');
+
+    // Admin kullanıcılarını bul
+    const { data: adminUsers, error: adminError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('role', 'admin');
+
+    if (adminError || !adminUsers || adminUsers.length === 0) {
+      console.log('⚠️ Admin kullanıcı bulunamadı');
+      return;
+    }
+
+    const adminIds = adminUsers.map((u) => u.id);
+
+    // Admin kullanıcılarının aktif push token'larını al
+    const { data: tokens, error: tokenError } = await supabase
+      .from('push_tokens')
+      .select('token')
+      .in('user_id', adminIds)
+      .eq('is_active', true);
+
+    if (tokenError || !tokens || tokens.length === 0) {
+      console.log('⚠️ Admin push token bulunamadı');
+      return;
+    }
+
+    // Expo Push Notification API'ye istek gönder
+    const messages = tokens.map((t) => ({
+      to: t.token,
+      sound: 'default',
+      title: title,
+      body: body,
+      data: data || {},
+      priority: 'high',
+      channelId: 'orders',
+    }));
+
+    console.log(`📤 ${messages.length} admin'e push notification gönderiliyor...`);
+
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(messages),
+    });
+
+    const result = await response.json();
+    console.log('✅ Push notification gönderildi:', result);
+
+    return result;
+  } catch (error) {
+    console.error('❌ Push notification gönderme hatası:', error);
+  }
+}
+
+/**
  * Zamanlanmış bildirim gönder (Send scheduled notification)
  */
 export async function scheduleNotification(

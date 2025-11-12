@@ -10,6 +10,7 @@ import {
   Modal,
   ScrollView,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
@@ -20,6 +21,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 import * as Print from 'expo-print';
 import { shareAsync } from 'expo-sharing';
 import { useTranslation } from 'react-i18next';
+import { sendLocalNotification } from '../../services/notificationService';
 
 // Sipariş durumu renkleri (Order status colors)
 const STATUS_COLORS: Record<OrderStatus, string> = {
@@ -68,6 +70,74 @@ const AdminOrders = ({ navigation, route }: any) => {
   useEffect(() => {
     fetchOrders();
   }, [filterStatus]);
+
+  // Real-time subscription: Yeni sipariş geldiğinde bildirim göster
+  // Real-time subscription: Show notification when new order arrives
+  useEffect(() => {
+    console.log('🔔 Setting up real-time order subscription...');
+
+    // Yeni siparişleri dinle (Subscribe to new orders)
+    const channel = supabase
+      .channel('admin-new-orders')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders',
+        },
+        async (payload) => {
+          console.log('🔔 New order received:', payload.new);
+
+          // Sipariş detaylarını al (Get order details)
+          const { data: orderData, error } = await supabase
+            .from('orders')
+            .select(`
+              *,
+              user:users(email, full_name, phone)
+            `)
+            .eq('id', payload.new.id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching new order:', error);
+            return;
+          }
+
+          // Yerel bildirim gönder (Send local notification) - Sadece mobil cihazlarda
+          if (Platform.OS !== 'web') {
+            const customerName = (orderData as any).user?.full_name || 'Müşteri';
+            const total = orderData.total_amount;
+
+            await sendLocalNotification(
+              '🔔 Yeni Sipariş!',
+              `${customerName} - ₺${total.toFixed(2)}`,
+              { orderId: orderData.id, type: 'new_order_admin' },
+              'orders'
+            );
+          }
+
+          // Toast göster (Show toast)
+          Toast.show({
+            type: 'success',
+            text1: '🔔 Yeni Sipariş!',
+            text2: `${(orderData as any).user?.full_name || 'Müşteri'} - ₺${orderData.total_amount.toFixed(2)}`,
+            visibilityTime: 5000,
+            autoHide: true,
+          });
+
+          // Listeyi yenile (Refresh list)
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
+    // Cleanup
+    return () => {
+      console.log('🔔 Cleaning up real-time order subscription...');
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Siparişleri getir (Fetch orders)
   const fetchOrders = async () => {

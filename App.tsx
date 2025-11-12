@@ -9,7 +9,11 @@ import './src/i18n'; // i18n'i başlat (Initialize i18n)
 import AppNavigator from './src/navigation/AppNavigator';
 import { toastConfig } from './src/components/ToastConfig';
 import { useAuthStore } from './src/store/authStore';
-import { registerForPushNotificationsAsync, clearBadgeCount } from './src/services/notificationService';
+import {
+  registerForPushNotificationsAsync,
+  clearBadgeCount,
+  savePushToken,
+} from './src/services/notificationService';
 import { getAppSettings } from './src/services/appSettingsService';
 import i18n from './src/i18n';
 
@@ -46,7 +50,13 @@ export default function App() {
     if (!user) return;
 
     // Push notification izni iste ve token al (Request push notification permission and get token)
-    registerForPushNotificationsAsync();
+    registerForPushNotificationsAsync().then((token) => {
+      if (token && user.id) {
+        // Token'ı Supabase'e kaydet (Save token to Supabase)
+        const deviceType = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
+        savePushToken(user.id, token, deviceType);
+      }
+    });
 
     // Bildirim geldiğinde (When notification is received)
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {

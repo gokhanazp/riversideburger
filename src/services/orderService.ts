@@ -141,6 +141,35 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
       await usePoints(user_id, orderData.id, points_used);
     }
 
+    // Admin kullanıcılarına push notification gönder (Send push notification to admins)
+    try {
+      // Müşteri bilgilerini al (Get customer info)
+      const { data: userData } = await supabase
+        .from('users')
+        .select('full_name')
+        .eq('id', user_id)
+        .single();
+
+      const customerName = userData?.full_name || 'Müşteri';
+
+      // Push notification gönder (Send push notification)
+      const { sendPushNotificationToAdmins } = await import('./notificationService');
+      await sendPushNotificationToAdmins(
+        '🔔 Yeni Sipariş!',
+        `${customerName} - ₺${total_amount.toFixed(2)}`,
+        {
+          orderId: orderData.id,
+          orderNumber: orderData.order_number,
+          type: 'new_order_admin',
+        }
+      );
+
+      console.log('✅ Admin push notification gönderildi');
+    } catch (notifError) {
+      // Bildirim hatası siparişi etkilemez (Notification error doesn't affect order)
+      console.error('⚠️ Admin bildirim hatası:', notifError);
+    }
+
     return orderData;
   } catch (error: any) {
     console.error('Create order error:', error);

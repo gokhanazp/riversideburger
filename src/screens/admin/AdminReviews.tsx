@@ -11,6 +11,7 @@ import {
   Image,
   TextInput,
   Modal,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -25,6 +26,8 @@ import {
   rejectReview,
 } from '../../services/reviewService';
 import { Review } from '../../types/database.types';
+import { supabase } from '../../lib/supabase';
+import { sendLocalNotification } from '../../services/notificationService';
 
 type FilterType = 'all' | 'pending' | 'approved' | 'rejected';
 
@@ -49,6 +52,76 @@ const AdminReviews = () => {
   useEffect(() => {
     fetchReviews();
   }, [filter]);
+
+  // Real-time subscription: Yeni yorum geldiğinde bildirim göster
+  // Real-time subscription: Show notification when new review arrives
+  useEffect(() => {
+    console.log('⭐ Setting up real-time review subscription...');
+
+    // Yeni yorumları dinle (Subscribe to new reviews)
+    const channel = supabase
+      .channel('admin-new-reviews')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'reviews',
+        },
+        async (payload) => {
+          console.log('⭐ New review received:', payload.new);
+
+          // Yorum detaylarını al (Get review details)
+          const { data: reviewData, error } = await supabase
+            .from('reviews')
+            .select(`
+              *,
+              user:users(full_name),
+              product:products(name)
+            `)
+            .eq('id', payload.new.id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching new review:', error);
+            return;
+          }
+
+          // Yerel bildirim gönder (Send local notification) - Sadece mobil cihazlarda
+          if (Platform.OS !== 'web') {
+            const customerName = (reviewData as any).user?.full_name || 'Müşteri';
+            const productName = (reviewData as any).product?.name || 'Ürün';
+            const rating = reviewData.rating;
+
+            await sendLocalNotification(
+              '⭐ Yeni Yorum!',
+              `${customerName} - ${productName} (${rating} yıldız)`,
+              { reviewId: reviewData.id, type: 'new_review_admin' },
+              'orders'
+            );
+          }
+
+          // Toast göster (Show toast)
+          Toast.show({
+            type: 'info',
+            text1: '⭐ Yeni Yorum!',
+            text2: `${(reviewData as any).user?.full_name || 'Müşteri'} - ${(reviewData as any).product?.name || 'Ürün'} (${reviewData.rating} yıldız)`,
+            visibilityTime: 5000,
+            autoHide: true,
+          });
+
+          // Listeyi yenile (Refresh list)
+          fetchReviews();
+        }
+      )
+      .subscribe();
+
+    // Cleanup
+    return () => {
+      console.log('⭐ Cleaning up real-time review subscription...');
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const fetchReviews = async () => {
     try {
