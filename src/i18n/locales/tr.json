@@ -989,6 +989,38 @@
     "requiredField": "Bu alan zorunludur",
     "invalidEmail": "Geçersiz e-posta adresi",
     "invalidPhone": "Geçersiz telefon numarası"
+  },
+  "payment": {
+    "title": "Ödeme",
+    "totalAmount": "Toplam Tutar",
+    "cardInformation": "Kart Bilgileri",
+    "cardNumber": "Kart Numarası",
+    "expiryDate": "Son Kullanma Tarihi",
+    "cvv": "CVV",
+    "pay": "Öde",
+    "processing": "İşleniyor...",
+    "success": "Ödeme Başarılı!",
+    "failed": "Ödeme Başarısız",
+    "error": "Hata",
+    "completeCardInfo": "Lütfen kart bilgilerini eksiksiz girin",
+    "initializationError": "Ödeme başlatılamadı",
+    "orderCreated": "Siparişiniz oluşturuldu: {{orderNumber}}",
+    "tryAgain": "Lütfen tekrar deneyin",
+    "securePayment": "Güvenli ödeme - Stripe tarafından korunmaktadır",
+    "paymentMethods": "Ödeme Yöntemleri",
+    "creditCard": "Kredi/Banka Kartı",
+    "applePay": "Apple Pay",
+    "googlePay": "Google Pay",
+    "cash": "Kapıda Nakit Ödeme",
+    "selectPaymentMethod": "Ödeme yöntemi seçin",
+    "paymentHistory": "Ödeme Geçmişi",
+    "noPayments": "Henüz ödeme kaydı yok",
+    "paymentStatus": "Ödeme Durumu",
+    "pending": "Bekliyor",
+    "succeeded": "Başarılı",
+    "failed": "Başarısız",
+    "refunded": "İade Edildi",
+    "cancelled": "İptal Edildi"
   }
 }
 

@@ -989,6 +989,38 @@
     "requiredField": "This field is required",
     "invalidEmail": "Invalid email address",
     "invalidPhone": "Invalid phone number"
+  },
+  "payment": {
+    "title": "Payment",
+    "totalAmount": "Total Amount",
+    "cardInformation": "Card Information",
+    "cardNumber": "Card Number",
+    "expiryDate": "Expiry Date",
+    "cvv": "CVV",
+    "pay": "Pay",
+    "processing": "Processing...",
+    "success": "Payment Successful!",
+    "failed": "Payment Failed",
+    "error": "Error",
+    "completeCardInfo": "Please complete card information",
+    "initializationError": "Failed to initialize payment",
+    "orderCreated": "Your order has been created: {{orderNumber}}",
+    "tryAgain": "Please try again",
+    "securePayment": "Secure payment - Protected by Stripe",
+    "paymentMethods": "Payment Methods",
+    "creditCard": "Credit/Debit Card",
+    "applePay": "Apple Pay",
+    "googlePay": "Google Pay",
+    "cash": "Cash on Delivery",
+    "selectPaymentMethod": "Select payment method",
+    "paymentHistory": "Payment History",
+    "noPayments": "No payment records yet",
+    "paymentStatus": "Payment Status",
+    "pending": "Pending",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "refunded": "Refunded",
+    "cancelled": "Cancelled"
   }
 }
 
