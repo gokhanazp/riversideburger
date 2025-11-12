@@ -8,10 +8,15 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 
 // Stripe sadece native platformlarda yükle (Load Stripe only on native platforms)
+// Web'de Stripe paketini hiç yükleme (Don't load Stripe package on web at all)
 let StripeProvider: any = null;
 if (Platform.OS !== 'web') {
-  const stripe = require('@stripe/stripe-react-native');
-  StripeProvider = stripe.StripeProvider;
+  try {
+    const stripe = require('@stripe/stripe-react-native');
+    StripeProvider = stripe.StripeProvider;
+  } catch (error) {
+    console.warn('Stripe could not be loaded:', error);
+  }
 }
 import './src/i18n'; // i18n'i başlat (Initialize i18n)
 import AppNavigator from './src/navigation/AppNavigator';
