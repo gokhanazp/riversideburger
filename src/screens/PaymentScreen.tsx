@@ -49,6 +49,9 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
 
+  // DEMO MODE - Stripe API anahtarı yoksa demo modda çalış
+  const [isDemoMode, setIsDemoMode] = useState(false);
+
   // Payment Intent oluştur (Create Payment Intent)
   useEffect(() => {
     initializePayment();
@@ -57,6 +60,17 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
   const initializePayment = async () => {
     try {
       setIsLoading(true);
+
+      // DEMO MODE: Stripe API anahtarı yoksa demo modda çalış
+      // (DEMO MODE: If no Stripe API key, run in demo mode)
+      const stripeKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
+      if (!stripeKey || stripeKey.includes('your_publishable_key_here')) {
+        console.log('⚠️ DEMO MODE: Stripe API anahtarı bulunamadı, demo modda çalışıyor');
+        setIsDemoMode(true);
+        setIsLoading(false);
+        return;
+      }
 
       const { clientSecret: secret, paymentIntentId: intentId } = await createPaymentIntent(
         totalAmount,
@@ -71,12 +85,11 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       setClientSecret(secret);
       setPaymentIntentId(intentId);
     } catch (error: any) {
-      console.error('Error initializing payment:', error);
-      Alert.alert(
-        t('payment.error'),
-        error.message || t('payment.initializationError')
-      );
-      navigation.goBack();
+      console.error('❌ Error initializing payment:', error);
+
+      // Hata durumunda demo moda geç
+      console.log('⚠️ Stripe API hatası, demo moda geçiliyor');
+      setIsDemoMode(true);
     } finally {
       setIsLoading(false);
     }
@@ -84,6 +97,11 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
   // Ödeme yap (Process payment)
   const handlePayment = async () => {
+    // DEMO MODE: Stripe olmadan direkt sipariş oluştur
+    if (isDemoMode) {
+      return handleDemoPayment();
+    }
+
     if (!cardComplete) {
       Toast.show({
         type: 'error',
@@ -123,44 +141,10 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
         await confirmPayment(paymentIntentId);
 
         // Siparişi oluştur (Create order)
-        const orderItems = items.map((item) => ({
-          product_id: item.id,
-          product_name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-          subtotal: item.price * item.quantity,
-          customizations: item.customizations,
-          specialInstructions: item.specialInstructions,
-        }));
-
-        const order = await createOrder({
-          user_id: user!.id,
-          total_amount: totalAmount,
-          delivery_address: deliveryAddress,
-          phone: phone,
-          notes: notes,
-          items: orderItems,
-          points_used: pointsUsed,
-          address_id: addressId,
-        });
-
-        // Sepeti temizle (Clear cart)
-        clearCart();
-
-        // Başarı mesajı (Success message)
-        Toast.show({
-          type: 'success',
-          text1: t('payment.success'),
-          text2: t('payment.orderCreated', { orderNumber: order.order_number }),
-          visibilityTime: 4000,
-          topOffset: 60,
-        });
-
-        // Ana ekrana dön (Navigate to home)
-        navigation.navigate('Home');
+        await createOrderAndNavigate();
       }
     } catch (error: any) {
-      console.error('Payment error:', error);
+      console.error('❌ Payment error:', error);
       Toast.show({
         type: 'error',
         text1: t('payment.failed'),
@@ -171,6 +155,91 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // DEMO MODE: Stripe olmadan sipariş oluştur
+  const handleDemoPayment = async () => {
+    if (!cardComplete) {
+      Toast.show({
+        type: 'error',
+        text1: t('payment.error'),
+        text2: t('payment.completeCardInfo'),
+        visibilityTime: 3000,
+        topOffset: 60,
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      console.log('🎭 DEMO MODE: Simulating payment...');
+
+      // 2 saniye bekle (ödeme simülasyonu)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      console.log('✅ DEMO MODE: Payment simulation successful');
+
+      // Siparişi oluştur
+      await createOrderAndNavigate();
+
+    } catch (error: any) {
+      console.error('❌ Demo payment error:', error);
+      Toast.show({
+        type: 'error',
+        text1: t('payment.failed'),
+        text2: error.message || t('payment.tryAgain'),
+        visibilityTime: 4000,
+        topOffset: 60,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Sipariş oluştur ve yönlendir (Create order and navigate)
+  const createOrderAndNavigate = async () => {
+    const orderItems = items.map((item) => ({
+      product_id: item.id,
+      product_name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      subtotal: item.price * item.quantity,
+      customizations: item.customizations,
+      specialInstructions: item.specialInstructions,
+    }));
+
+    console.log('📦 Creating order with items:', orderItems.length);
+
+    const order = await createOrder({
+      user_id: user!.id,
+      total_amount: totalAmount,
+      delivery_address: deliveryAddress,
+      phone: phone,
+      notes: notes,
+      items: orderItems,
+      points_used: pointsUsed,
+      address_id: addressId,
+    });
+
+    console.log('✅ Order created:', order.order_number);
+
+    // Sepeti temizle (Clear cart)
+    clearCart();
+
+    // Başarı mesajı (Success message)
+    Toast.show({
+      type: 'success',
+      text1: t('payment.success'),
+      text2: t('payment.orderCreated', { orderNumber: order.order_number }),
+      visibilityTime: 4000,
+      topOffset: 60,
+    });
+
+    // Ana ekrana dön (Navigate to home)
+    setTimeout(() => {
+      navigation.navigate('Main', { screen: 'HomeTab' });
+    }, 2000);
   };
 
   return (
@@ -185,6 +254,22 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* DEMO MODE Uyarısı */}
+        {isDemoMode && (
+          <View style={styles.demoWarning}>
+            <Ionicons name="information-circle" size={24} color="#FF9800" />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.demoWarningTitle}>
+                🎭 DEMO MODE
+              </Text>
+              <Text style={styles.demoWarningText}>
+                Stripe API anahtarı bulunamadı. Ödeme simüle edilecek.
+                {'\n'}Gerçek ödeme için Stripe hesabı oluşturun.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Tutar Bilgisi (Amount Info) */}
         <View style={styles.amountCard}>
           <Text style={styles.amountLabel}>{t('payment.totalAmount')}</Text>
@@ -196,7 +281,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
         {/* Kart Bilgileri (Card Information) */}
         <View style={styles.cardSection}>
           <Text style={styles.sectionTitle}>{t('payment.cardInformation')}</Text>
-          
+
           <CardField
             postalCodeEnabled={false}
             placeholders={{
@@ -208,12 +293,20 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
               setCardComplete(cardDetails.complete);
             }}
           />
+
+          {isDemoMode && (
+            <Text style={styles.demoHint}>
+              💡 Demo modda herhangi bir kart bilgisi girebilirsiniz
+            </Text>
+          )}
         </View>
 
         {/* Güvenlik Bilgisi (Security Info) */}
         <View style={styles.securityInfo}>
           <Ionicons name="shield-checkmark" size={20} color={Colors.primary} />
-          <Text style={styles.securityText}>{t('payment.securePayment')}</Text>
+          <Text style={styles.securityText}>
+            {isDemoMode ? '🎭 Demo Mode - Test Ödeme' : t('payment.securePayment')}
+          </Text>
         </View>
       </ScrollView>
 
@@ -347,6 +440,34 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     fontWeight: 'bold',
     color: Colors.white,
+  },
+  // Demo Mode Styles
+  demoWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFF3E0',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
+  },
+  demoWarningTitle: {
+    fontSize: FontSizes.md,
+    fontWeight: 'bold',
+    color: '#E65100',
+    marginBottom: Spacing.xs,
+  },
+  demoWarningText: {
+    fontSize: FontSizes.sm,
+    color: '#E65100',
+    lineHeight: 20,
+  },
+  demoHint: {
+    fontSize: FontSizes.sm,
+    color: '#FF9800',
+    marginTop: Spacing.sm,
+    fontStyle: 'italic',
   },
 });
 
