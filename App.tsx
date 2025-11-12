@@ -5,8 +5,15 @@ import { PaperProvider } from 'react-native-paper';
 import { View, ActivityIndicator, Platform } from 'react-native';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
-import { StripeProvider } from '@stripe/stripe-react-native';
+import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+
+// Stripe sadece native platformlarda yükle (Load Stripe only on native platforms)
+let StripeProvider: any = null;
+if (Platform.OS !== 'web') {
+  const stripe = require('@stripe/stripe-react-native');
+  StripeProvider = stripe.StripeProvider;
+}
 import './src/i18n'; // i18n'i başlat (Initialize i18n)
 import AppNavigator from './src/navigation/AppNavigator';
 import { toastConfig } from './src/components/ToastConfig';
@@ -107,19 +114,30 @@ export default function App() {
     );
   }
 
-  return (
-    <StripeProvider
-      publishableKey={STRIPE_PUBLISHABLE_KEY}
-      merchantIdentifier="merchant.com.riversideburgers" // Apple Pay için (For Apple Pay)
-    >
-      <SafeAreaProvider>
-        <PaperProvider>
-          <AppNavigator />
-          <StatusBar style="dark" />
-          {/* Toast bildirimleri - Riverside Burgers teması (Toast notifications - Riverside Burgers theme) */}
-          <Toast config={toastConfig} />
-        </PaperProvider>
-      </SafeAreaProvider>
-    </StripeProvider>
+  // Web'de Stripe olmadan render et (Render without Stripe on web)
+  const appContent = (
+    <SafeAreaProvider>
+      <PaperProvider>
+        <AppNavigator />
+        <StatusBar style="dark" />
+        {/* Toast bildirimleri - Riverside Burgers teması (Toast notifications - Riverside Burgers theme) */}
+        <Toast config={toastConfig} />
+      </PaperProvider>
+    </SafeAreaProvider>
   );
+
+  // Native platformlarda Stripe ile wrap et (Wrap with Stripe on native platforms)
+  if (Platform.OS !== 'web' && StripeProvider) {
+    return (
+      <StripeProvider
+        publishableKey={STRIPE_PUBLISHABLE_KEY}
+        merchantIdentifier="merchant.com.riversideburgers" // Apple Pay için (For Apple Pay)
+      >
+        {appContent}
+      </StripeProvider>
+    );
+  }
+
+  // Web'de Stripe olmadan (Without Stripe on web)
+  return appContent;
 }

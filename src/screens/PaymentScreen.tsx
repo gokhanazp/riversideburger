@@ -10,16 +10,25 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { CardField, useStripe } from '@stripe/stripe-react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 import { createPaymentIntent, confirmPayment } from '../services/stripeService';
 import { createOrder } from '../services/orderService';
 import { useCartStore } from '../store/cartStore';
 import Toast from 'react-native-toast-message';
+
+// Stripe sadece native platformlarda yükle (Load Stripe only on native platforms)
+let CardField: any = null;
+let useStripe: any = () => ({ confirmPayment: null });
+if (Platform.OS !== 'web') {
+  const stripe = require('@stripe/stripe-react-native');
+  CardField = stripe.CardField;
+  useStripe = stripe.useStripe;
+}
 
 interface PaymentScreenProps {
   navigation: any;
@@ -282,22 +291,35 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
         <View style={styles.cardSection}>
           <Text style={styles.sectionTitle}>{t('payment.cardInformation')}</Text>
 
-          <CardField
-            postalCodeEnabled={false}
-            placeholders={{
-              number: '4242 4242 4242 4242',
-            }}
-            cardStyle={styles.card}
-            style={styles.cardField}
-            onCardChange={(cardDetails) => {
-              setCardComplete(cardDetails.complete);
-            }}
-          />
+          {Platform.OS !== 'web' && CardField ? (
+            <>
+              <CardField
+                postalCodeEnabled={false}
+                placeholders={{
+                  number: '4242 4242 4242 4242',
+                }}
+                cardStyle={styles.card}
+                style={styles.cardField}
+                onCardChange={(cardDetails) => {
+                  setCardComplete(cardDetails.complete);
+                }}
+              />
 
-          {isDemoMode && (
-            <Text style={styles.demoHint}>
-              💡 Demo modda herhangi bir kart bilgisi girebilirsiniz
-            </Text>
+              {isDemoMode && (
+                <Text style={styles.demoHint}>
+                  💡 Demo modda herhangi bir kart bilgisi girebilirsiniz
+                </Text>
+              )}
+            </>
+          ) : (
+            <View style={styles.webCardPlaceholder}>
+              <Text style={styles.webCardText}>
+                💳 Kart bilgileri girişi sadece mobil uygulamada mevcuttur
+              </Text>
+              <Text style={styles.webCardSubtext}>
+                Lütfen iOS veya Android uygulamasını kullanın
+              </Text>
+            </View>
           )}
         </View>
 
@@ -467,6 +489,28 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: '#FF9800',
     marginTop: Spacing.sm,
+    fontStyle: 'italic',
+  },
+  // Web Placeholder Styles
+  webCardPlaceholder: {
+    backgroundColor: '#F5F5F5',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    borderStyle: 'dashed',
+  },
+  webCardText: {
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
+  },
+  webCardSubtext: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
     fontStyle: 'italic',
   },
 });
