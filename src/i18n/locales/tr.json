@@ -341,6 +341,7 @@
     "statusCancelled": "İptal Edildi"
   },
   "address": {
+    "title": "Adres",
     "loading": "Adresler yükleniyor...",
     "error": "Hata",
     "loadError": "Adresler yüklenemedi",
@@ -358,7 +359,16 @@
     "deleteMessage": "Bu adresi silmek istediğinizden emin misiniz?",
     "deleteConfirm": "Sil",
     "deleteCancel": "İptal",
-    "addNew": "Yeni Adres Ekle"
+    "addNew": "Yeni Adres Ekle",
+    "addressLine": "Adres",
+    "city": "Şehir",
+    "district": "İlçe",
+    "postalCode": "Posta Kodu",
+    "label": "Adres Etiketi",
+    "home": "Ev",
+    "work": "İş",
+    "other": "Diğer",
+    "addressSelected": "Adres Seçildi"
   },
   "navigation": {
     "home": "Ana Sayfa",
@@ -937,22 +947,6 @@
     "emptyDescription": "Beğendiğiniz ürünleri favorilere ekleyin",
     "addedToFavorites": "Favorilere Eklendi",
     "removedFromFavorites": "Favorilerden Çıkarıldı"
-  },
-  "address": {
-    "title": "Adres",
-    "addNew": "Yeni Adres Ekle",
-    "edit": "Adresi Düzenle",
-    "delete": "Adresi Sil",
-    "setDefault": "Varsayılan Yap",
-    "addressLine": "Adres",
-    "city": "Şehir",
-    "district": "İlçe",
-    "postalCode": "Posta Kodu",
-    "label": "Adres Etiketi",
-    "home": "Ev",
-    "work": "İş",
-    "other": "Diğer",
-    "addressSelected": "Adres Seçildi"
   },
   "loyalty": {
     "title": "Sadakat Programı",
