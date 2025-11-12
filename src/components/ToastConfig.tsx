@@ -36,50 +36,53 @@ const styles = StyleSheet.create({
     width: '90%',
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.lg, // md → lg (daha yüksek)
     borderRadius: BorderRadius.lg,
     borderLeftWidth: 4,
     borderLeftColor: Colors.secondary,
     ...Shadows.medium,
+    minHeight: 70, // Minimum yükseklik (Minimum height)
   },
-  
+
   // Hata toast stili (Error toast style)
   errorToast: {
     width: '90%',
     backgroundColor: Colors.error,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.lg, // md → lg (daha yüksek)
     borderRadius: BorderRadius.lg,
     borderLeftWidth: 4,
     borderLeftColor: '#C62828',
     ...Shadows.medium,
+    minHeight: 70, // Minimum yükseklik (Minimum height)
   },
-  
+
   // Bilgi toast stili (Info toast style)
   infoToast: {
     width: '90%',
     backgroundColor: Colors.river,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.lg, // md → lg (daha yüksek)
     borderRadius: BorderRadius.lg,
     borderLeftWidth: 4,
     borderLeftColor: Colors.riverLight,
     ...Shadows.medium,
+    minHeight: 70, // Minimum yükseklik (Minimum height)
   },
-  
+
   // Toast başlık stili (Toast title style)
   toastTitle: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.lg, // md → lg (daha büyük)
     fontWeight: 'bold',
     color: Colors.white,
     marginBottom: Spacing.xs,
   },
-  
+
   // Toast mesaj stili (Toast message style)
   toastMessage: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md, // sm → md (daha büyük)
     color: Colors.white,
-    opacity: 0.9,
+    opacity: 0.95, // 0.9 → 0.95 (daha belirgin)
   },
 });
 

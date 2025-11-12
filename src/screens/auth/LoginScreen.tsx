@@ -48,33 +48,39 @@ export default function LoginScreen({ navigation }: any) {
       await login(email.trim().toLowerCase(), password);
 
       console.log('✅ Login successful!');
+      console.log('📢 Showing success toast...');
 
       // Başarılı giriş mesajı (Success message)
       Toast.show({
         type: 'success',
         text1: t('auth.loginSuccess'),
         text2: t('auth.welcomeBack'),
-        visibilityTime: 2000,
+        visibilityTime: 3000, // 2000 → 3000 (daha uzun)
         topOffset: 60,
       });
+
+      console.log('✅ Toast shown!');
 
       // Biraz bekle ve modal'ı kapat (Wait a bit and close modal)
       setTimeout(() => {
         console.log('🔙 Navigating back...');
         navigation.goBack();
-      }, 1000);
+      }, 2000); // 1000 → 2000 (daha uzun bekle)
 
     } catch (error: any) {
       console.error('❌ Login error:', error);
+      console.log('📢 Showing error toast...');
 
       // Hata mesajını göster (Show error message)
       Toast.show({
         type: 'error',
         text1: t('auth.loginFailed'),
         text2: error.message || t('auth.invalidCredentials'),
-        visibilityTime: 3000,
+        visibilityTime: 4000, // 3000 → 4000 (daha uzun)
         topOffset: 60,
       });
+
+      console.log('❌ Error toast shown!');
     } finally {
       setIsLoading(false);
     }
