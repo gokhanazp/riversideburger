@@ -32,6 +32,9 @@ import SettingsScreen from '../screens/SettingsScreen';
 import HelpSupportScreen from '../screens/HelpSupportScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 
+// Ödeme ekranı (Payment screen)
+import PaymentScreen from '../screens/PaymentScreen';
+
 // Admin ekranları (Admin screens)
 import AdminDashboard from '../screens/admin/AdminDashboard';
 import AdminOrders from '../screens/admin/AdminOrders';
@@ -279,6 +282,17 @@ const AppNavigator = () => {
           name="ForgotPassword"
           component={ForgotPasswordScreen}
           options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+
+        {/* Ödeme ekranı (Payment screen) */}
+        <Stack.Screen
+          name="Payment"
+          component={PaymentScreen}
+          options={{
+            headerShown: false,
             presentation: 'modal',
             animation: 'slide_from_bottom',
           }}

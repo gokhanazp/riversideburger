@@ -5,6 +5,8 @@ import { PaperProvider } from 'react-native-paper';
 import { View, ActivityIndicator, Platform } from 'react-native';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
+import { StripeProvider } from '@stripe/stripe-react-native';
+import Constants from 'expo-constants';
 import './src/i18n'; // i18n'i başlat (Initialize i18n)
 import AppNavigator from './src/navigation/AppNavigator';
 import { toastConfig } from './src/components/ToastConfig';
@@ -16,6 +18,12 @@ import {
 } from './src/services/notificationService';
 import { getAppSettings } from './src/services/appSettingsService';
 import i18n from './src/i18n';
+
+// Stripe Publishable Key (Test Mode)
+const STRIPE_PUBLISHABLE_KEY =
+  Constants.expoConfig?.extra?.stripePublishableKey ||
+  process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
+  '';
 
 // Ana uygulama componenti (Main application component)
 export default function App() {
@@ -100,13 +108,18 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <PaperProvider>
-        <AppNavigator />
-        <StatusBar style="dark" />
-        {/* Toast bildirimleri - Riverside Burgers teması (Toast notifications - Riverside Burgers theme) */}
-        <Toast config={toastConfig} />
-      </PaperProvider>
-    </SafeAreaProvider>
+    <StripeProvider
+      publishableKey={STRIPE_PUBLISHABLE_KEY}
+      merchantIdentifier="merchant.com.riversideburgers" // Apple Pay için (For Apple Pay)
+    >
+      <SafeAreaProvider>
+        <PaperProvider>
+          <AppNavigator />
+          <StatusBar style="dark" />
+          {/* Toast bildirimleri - Riverside Burgers teması (Toast notifications - Riverside Burgers theme) */}
+          <Toast config={toastConfig} />
+        </PaperProvider>
+      </SafeAreaProvider>
+    </StripeProvider>
   );
 }

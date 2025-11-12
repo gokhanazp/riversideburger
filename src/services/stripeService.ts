@@ -2,10 +2,13 @@
 // Stripe ödeme işlemlerini yönetir (Manages Stripe payment operations)
 
 import { supabase } from '../lib/supabase';
+import Constants from 'expo-constants';
 
 // Supabase Functions URL
-const FUNCTIONS_URL = process.env.SUPABASE_FUNCTIONS_URL || 
-  'https://your-project-ref.supabase.co/functions/v1';
+const FUNCTIONS_URL =
+  Constants.expoConfig?.extra?.supabaseFunctionsUrl ||
+  process.env.EXPO_PUBLIC_SUPABASE_FUNCTIONS_URL ||
+  'https://srcslhltajjvteqeptrt.supabase.co/functions/v1';
 
 /**
  * Payment Intent oluştur (Create Payment Intent)
