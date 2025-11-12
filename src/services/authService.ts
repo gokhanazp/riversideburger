@@ -35,6 +35,15 @@ export const signUp = async (
 
     if (authError) {
       console.error('❌ Auth error:', authError);
+      console.error('❌ Auth error details:', JSON.stringify(authError, null, 2));
+      console.error('❌ Auth error message:', authError.message);
+      console.error('❌ Auth error status:', authError.status);
+
+      // Database error durumunda daha açıklayıcı mesaj (More descriptive message for database errors)
+      if (authError.message?.includes('Database error')) {
+        throw new Error('Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin veya farklı bir email kullanın.');
+      }
+
       throw authError;
     }
 
@@ -49,22 +58,96 @@ export const signUp = async (
       throw new Error(i18n.t('auth.pleaseConfirmEmail'));
     }
 
-    // Trigger otomatik users tablosuna ekleyecek
-    // Biraz bekleyelim (Wait a bit for trigger to complete)
-    console.log('⏳ Waiting for database trigger...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Direkt manuel olarak kullanıcı oluştur (Create user manually - trigger'a güvenme)
+    console.log('📝 Creating user in database manually...');
 
-    // Users tablosundan kullanıcı bilgilerini al (Get user info from users table)
-    console.log('📊 Fetching user from database...');
-    const { data: dbUser, error: dbError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single();
+    let dbUser = null;
 
-    if (dbError) {
-      console.error('⚠️ Database fetch error:', dbError);
-      // Fallback to metadata if database fetch fails
+    try {
+      // Önce var mı kontrol et (Check if user already exists)
+      // NOT: .single() kullanmıyoruz çünkü yoksa hata veriyor
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id);
+
+      // Hata varsa ama "no rows" hatası değilse logla
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.warn('⚠️ Error checking existing user:', checkError);
+      }
+
+      if (existingUsers && existingUsers.length > 0) {
+        console.log('✅ User already exists in database!');
+        dbUser = existingUsers[0];
+      } else {
+        // Yoksa oluştur (Create if doesn't exist)
+        console.log('📝 Inserting user into database...');
+        const { data: insertedUser, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: authData.user.email || email,
+            role: role,
+            full_name: fullName,
+            phone: phone,
+            points: 0,
+            created_at: authData.user.created_at,
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('❌ Manual insert failed:', insertError);
+          console.error('   Error details:', JSON.stringify(insertError, null, 2));
+
+          // Son bir deneme daha - upsert kullan (Last try - use upsert)
+          console.log('🔄 Trying upsert...');
+          const { data: upsertedUser, error: upsertError } = await supabase
+            .from('users')
+            .upsert({
+              id: authData.user.id,
+              email: authData.user.email || email,
+              role: role,
+              full_name: fullName,
+              phone: phone,
+              points: 0,
+              created_at: authData.user.created_at,
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'id'
+            })
+            .select()
+            .single();
+
+          if (upsertError) {
+            console.error('❌ Upsert also failed:', upsertError);
+            // Fallback to metadata
+            const userData: User = {
+              id: authData.user.id,
+              email: authData.user.email || email,
+              role: role,
+              full_name: fullName,
+              phone: phone,
+              points: 0,
+              created_at: authData.user.created_at,
+            };
+            console.log('✅ Using metadata fallback');
+            return { user: userData, session: authData.session };
+          }
+
+          dbUser = upsertedUser;
+          console.log('✅ User created via upsert!');
+        } else {
+          dbUser = insertedUser;
+          console.log('✅ User manually created in database!');
+        }
+      }
+    } catch (err: any) {
+      console.error('❌ Database operation exception:', err);
+      console.error('   Exception details:', JSON.stringify(err, null, 2));
+
+      // Fallback to metadata
       const userData: User = {
         id: authData.user.id,
         email: authData.user.email || email,
@@ -74,7 +157,7 @@ export const signUp = async (
         points: 0,
         created_at: authData.user.created_at,
       };
-      console.log('✅ Using metadata fallback');
+      console.log('✅ Using metadata fallback after exception');
       return { user: userData, session: authData.session };
     }
 
@@ -104,6 +187,9 @@ export const signUp = async (
     }
     if (error.message?.includes('Password')) {
       throw new Error(i18n.t('auth.passwordRequirement'));
+    }
+    if (error.message?.includes('Database error')) {
+      throw new Error('Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.');
     }
 
     throw error;
@@ -138,26 +224,85 @@ export const signIn = async (email: string, password: string) => {
 
     // Kullanıcı bilgilerini users tablosundan al (Get user info from users table)
     console.log('📊 Fetching user from database...');
-    const { data: dbUser, error: dbError } = await supabase
+    const { data: dbUsers, error: dbError } = await supabase
       .from('users')
       .select('*')
-      .eq('id', data.user.id)
-      .single();
+      .eq('id', data.user.id);
 
-    if (dbError) {
-      console.error('⚠️ Database user fetch error:', dbError);
-      // Fallback to metadata if database fetch fails
-      const userData: User = {
-        id: data.user.id,
-        email: data.user.email || email,
-        role: (data.user.user_metadata?.role as UserRole) || 'customer',
-        full_name: data.user.user_metadata?.full_name || '',
-        phone: data.user.user_metadata?.phone || '',
-        points: 0,
-        created_at: data.user.created_at,
-      };
-      console.log('✅ Using metadata fallback');
-      return { user: userData, session: data.session };
+    // Hata varsa ama "no rows" hatası değilse logla
+    if (dbError && dbError.code !== 'PGRST116') {
+      console.warn('⚠️ Error fetching user:', dbError);
+    }
+
+    const dbUser = dbUsers && dbUsers.length > 0 ? dbUsers[0] : null;
+
+    if (!dbUser) {
+      console.warn('⚠️ User not found in database, creating now...');
+
+      // Users tablosunda yoksa, şimdi oluştur (Create if not exists)
+      try {
+        const { data: insertedUser, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email: data.user.email || email,
+            role: (data.user.user_metadata?.role as UserRole) || 'customer',
+            full_name: data.user.user_metadata?.full_name || '',
+            phone: data.user.user_metadata?.phone || '',
+            points: 0,
+            created_at: data.user.created_at,
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('❌ Failed to create user in database:', insertError);
+          // Fallback to metadata
+          const userData: User = {
+            id: data.user.id,
+            email: data.user.email || email,
+            role: (data.user.user_metadata?.role as UserRole) || 'customer',
+            full_name: data.user.user_metadata?.full_name || '',
+            phone: data.user.user_metadata?.phone || '',
+            points: 0,
+            created_at: data.user.created_at,
+          };
+          console.log('✅ Using metadata fallback');
+          return { user: userData, session: data.session };
+        }
+
+        console.log('✅ User created in database during login!');
+
+        // Yeni oluşturulan kullanıcıyı kullan (Use newly created user)
+        const userData: User = {
+          id: insertedUser.id,
+          email: insertedUser.email,
+          role: insertedUser.role as UserRole,
+          full_name: insertedUser.full_name || '',
+          phone: insertedUser.phone || '',
+          points: insertedUser.points || 0,
+          created_at: insertedUser.created_at,
+          updated_at: insertedUser.updated_at,
+        };
+
+        return { user: userData, session: data.session };
+
+      } catch (err) {
+        console.error('❌ Exception creating user:', err);
+        // Fallback to metadata
+        const userData: User = {
+          id: data.user.id,
+          email: data.user.email || email,
+          role: (data.user.user_metadata?.role as UserRole) || 'customer',
+          full_name: data.user.user_metadata?.full_name || '',
+          phone: data.user.user_metadata?.phone || '',
+          points: 0,
+          created_at: data.user.created_at,
+        };
+        console.log('✅ Using metadata fallback after exception');
+        return { user: userData, session: data.session };
+      }
     }
 
     // Database'den gelen kullanıcı bilgilerini kullan (Use user info from database)
@@ -219,25 +364,83 @@ export const getCurrentUser = async (): Promise<User | null> => {
     if (!authUser) return null;
 
     // Kullanıcı bilgilerini users tablosundan al (Get user info from users table)
-    const { data: dbUser, error: dbError } = await supabase
+    const { data: dbUsers, error: dbError } = await supabase
       .from('users')
       .select('*')
-      .eq('id', authUser.id)
-      .single();
+      .eq('id', authUser.id);
 
-    if (dbError) {
-      console.error('Database user fetch error:', dbError);
-      // Fallback to metadata if database fetch fails
-      const userData: User = {
-        id: authUser.id,
-        email: authUser.email || '',
-        role: (authUser.user_metadata?.role as UserRole) || 'customer',
-        full_name: authUser.user_metadata?.full_name || '',
-        phone: authUser.user_metadata?.phone || '',
-        points: 0,
-        created_at: authUser.created_at,
-      };
-      return userData;
+    // Hata varsa ama "no rows" hatası değilse logla
+    if (dbError && dbError.code !== 'PGRST116') {
+      console.warn('⚠️ Error fetching user (getCurrentUser):', dbError);
+    }
+
+    const dbUser = dbUsers && dbUsers.length > 0 ? dbUsers[0] : null;
+
+    if (!dbUser) {
+      console.warn('⚠️ User not found in database (getCurrentUser), creating now...');
+
+      // Users tablosunda yoksa, şimdi oluştur (Create if not exists)
+      try {
+        const { data: insertedUser, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: authUser.id,
+            email: authUser.email || '',
+            role: (authUser.user_metadata?.role as UserRole) || 'customer',
+            full_name: authUser.user_metadata?.full_name || '',
+            phone: authUser.user_metadata?.phone || '',
+            points: 0,
+            created_at: authUser.created_at,
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('❌ Failed to create user in database (getCurrentUser):', insertError);
+          // Fallback to metadata
+          const userData: User = {
+            id: authUser.id,
+            email: authUser.email || '',
+            role: (authUser.user_metadata?.role as UserRole) || 'customer',
+            full_name: authUser.user_metadata?.full_name || '',
+            phone: authUser.user_metadata?.phone || '',
+            points: 0,
+            created_at: authUser.created_at,
+          };
+          return userData;
+        }
+
+        console.log('✅ User created in database (getCurrentUser)!');
+
+        // Yeni oluşturulan kullanıcıyı kullan (Use newly created user)
+        const userData: User = {
+          id: insertedUser.id,
+          email: insertedUser.email,
+          role: insertedUser.role as UserRole,
+          full_name: insertedUser.full_name || '',
+          phone: insertedUser.phone || '',
+          points: insertedUser.points || 0,
+          created_at: insertedUser.created_at,
+          updated_at: insertedUser.updated_at,
+        };
+
+        return userData;
+
+      } catch (err) {
+        console.error('❌ Exception creating user (getCurrentUser):', err);
+        // Fallback to metadata
+        const userData: User = {
+          id: authUser.id,
+          email: authUser.email || '',
+          role: (authUser.user_metadata?.role as UserRole) || 'customer',
+          full_name: authUser.user_metadata?.full_name || '',
+          phone: authUser.user_metadata?.phone || '',
+          points: 0,
+          created_at: authUser.created_at,
+        };
+        return userData;
+      }
     }
 
     // Database'den gelen kullanıcı bilgilerini kullan (Use user info from database)
@@ -276,26 +479,85 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
     if (session?.user) {
       try {
         // Kullanıcı bilgilerini users tablosundan al (Get user info from users table)
-        const { data: dbUser, error: dbError } = await supabase
+        const { data: dbUsers, error: dbError } = await supabase
           .from('users')
           .select('*')
-          .eq('id', session.user.id)
-          .single();
+          .eq('id', session.user.id);
 
-        if (dbError) {
+        // Hata varsa ama "no rows" hatası değilse logla
+        if (dbError && dbError.code !== 'PGRST116') {
           console.error('Database user fetch error:', dbError);
-          // Fallback to metadata if database fetch fails
-          const userData: User = {
-            id: session.user.id,
-            email: session.user.email || '',
-            role: (session.user.user_metadata?.role as UserRole) || 'customer',
-            full_name: session.user.user_metadata?.full_name || '',
-            phone: session.user.user_metadata?.phone || '',
-            points: 0,
-            created_at: session.user.created_at,
-          };
-          callback(userData);
-          return;
+        }
+
+        const dbUser = dbUsers && dbUsers.length > 0 ? dbUsers[0] : null;
+
+        if (!dbUser) {
+          // Users tablosunda yoksa, şimdi oluştur (Create if not exists)
+          console.warn('⚠️ User not found in database (onAuthStateChange), creating now...');
+
+          try {
+            const { data: insertedUser, error: insertError } = await supabase
+              .from('users')
+              .insert({
+                id: session.user.id,
+                email: session.user.email || '',
+                role: (session.user.user_metadata?.role as UserRole) || 'customer',
+                full_name: session.user.user_metadata?.full_name || '',
+                phone: session.user.user_metadata?.phone || '',
+                points: 0,
+                created_at: session.user.created_at,
+                updated_at: new Date().toISOString(),
+              })
+              .select();
+
+            if (insertError || !insertedUser || insertedUser.length === 0) {
+              console.error('❌ Failed to create user in database (onAuthStateChange):', insertError);
+              // Fallback to metadata
+              const userData: User = {
+                id: session.user.id,
+                email: session.user.email || '',
+                role: (session.user.user_metadata?.role as UserRole) || 'customer',
+                full_name: session.user.user_metadata?.full_name || '',
+                phone: session.user.user_metadata?.phone || '',
+                points: 0,
+                created_at: session.user.created_at,
+              };
+              callback(userData);
+              return;
+            }
+
+            console.log('✅ User created in database (onAuthStateChange)!');
+
+            // Yeni oluşturulan kullanıcıyı kullan (Use newly created user)
+            const userData: User = {
+              id: insertedUser[0].id,
+              email: insertedUser[0].email,
+              role: insertedUser[0].role as UserRole,
+              full_name: insertedUser[0].full_name || '',
+              phone: insertedUser[0].phone || '',
+              points: insertedUser[0].points || 0,
+              created_at: insertedUser[0].created_at,
+              updated_at: insertedUser[0].updated_at,
+            };
+
+            callback(userData);
+            return;
+
+          } catch (err) {
+            console.error('❌ Exception creating user (onAuthStateChange):', err);
+            // Fallback to metadata
+            const userData: User = {
+              id: session.user.id,
+              email: session.user.email || '',
+              role: (session.user.user_metadata?.role as UserRole) || 'customer',
+              full_name: session.user.user_metadata?.full_name || '',
+              phone: session.user.user_metadata?.phone || '',
+              points: 0,
+              created_at: session.user.created_at,
+            };
+            callback(userData);
+            return;
+          }
         }
 
         // Database'den gelen kullanıcı bilgilerini kullan (Use user info from database)
