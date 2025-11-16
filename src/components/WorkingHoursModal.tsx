@@ -1,7 +1,7 @@
 // Working Hours Modal Component
 // Çalışma saatleri modal bileşeni
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -35,6 +35,14 @@ const WorkingHoursModal: React.FC<WorkingHoursModalProps> = ({
   const { t } = useTranslation();
   const [workingHours, setWorkingHours] = useState<WorkingHours>(initialWorkingHours);
   const [autoCloseEnabled, setAutoCloseEnabled] = useState(initialAutoCloseEnabled);
+
+  // Modal açıldığında state'i güncelle (Update state when modal opens)
+  useEffect(() => {
+    if (visible) {
+      setWorkingHours(initialWorkingHours);
+      setAutoCloseEnabled(initialAutoCloseEnabled);
+    }
+  }, [visible, initialWorkingHours, initialAutoCloseEnabled]);
 
   // Gün isimlerini çevir (Translate day names)
   const dayTranslations: Record<keyof WorkingHours, string> = {
@@ -87,177 +95,95 @@ const WorkingHoursModal: React.FC<WorkingHoursModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <View style={styles.overlay}>
         <View style={styles.modal}>
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Ionicons name="time-outline" size={28} color={Colors.primary} />
-              <View style={styles.headerTextContainer}>
-                <Text style={styles.title}>{t('admin.settings.workingHours.title')}</Text>
-                <Text style={styles.subtitle}>{t('admin.settings.workingHours.description')}</Text>
-              </View>
-            </View>
+            <Text style={styles.title}>{t('admin.settings.workingHours.title')}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close-circle" size={32} color={Colors.textSecondary} />
+              <Ionicons name="close" size={24} color={Colors.text} />
             </TouchableOpacity>
           </View>
 
           <ScrollView
             style={styles.content}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.contentContainer}
           >
             {/* Auto Close Toggle */}
             <View style={styles.autoCloseSection}>
-              <View style={styles.autoCloseBadge}>
-                <Ionicons
-                  name={autoCloseEnabled ? "checkmark-circle" : "close-circle"}
-                  size={20}
-                  color={autoCloseEnabled ? Colors.primary : Colors.textSecondary}
-                />
-                <Text style={[
-                  styles.autoCloseBadgeText,
-                  autoCloseEnabled && styles.autoCloseBadgeTextActive
-                ]}>
-                  {autoCloseEnabled
-                    ? t('admin.settings.workingHours.autoCloseEnabled')
-                    : t('admin.settings.workingHours.autoCloseDisabled')
-                  }
-                </Text>
-              </View>
+              <Text style={styles.autoCloseText}>
+                {t('admin.settings.workingHours.autoClose')}
+              </Text>
               <Switch
                 value={autoCloseEnabled}
                 onValueChange={setAutoCloseEnabled}
-                trackColor={{ false: '#E0E0E0', true: Colors.primary + '30' }}
+                trackColor={{ false: '#ccc', true: Colors.primary + '40' }}
                 thumbColor={autoCloseEnabled ? Colors.primary : '#999'}
-                ios_backgroundColor="#E0E0E0"
               />
             </View>
 
-            {/* Info Banner */}
-            {autoCloseEnabled && (
-              <View style={styles.infoBanner}>
-                <Ionicons name="information-circle" size={20} color={Colors.primary} />
-                <Text style={styles.infoBannerText}>
-                  {t('admin.settings.workingHours.autoCloseDesc')}
-                </Text>
-              </View>
-            )}
-
             {/* Days List */}
-            <View style={styles.daysSection}>
-              <Text style={styles.daysSectionTitle}>
-                📅 {t('admin.settings.workingHours.weekSchedule')}
-              </Text>
-              {dayOrder.map((day, index) => {
-                const schedule = workingHours[day];
-                const isWeekend = day === 'saturday' || day === 'sunday';
+            {dayOrder.map((day) => {
+              const schedule = workingHours[day];
 
-                return (
-                  <View key={day} style={[
-                    styles.dayCard,
-                    !schedule.enabled && styles.dayCardDisabled,
-                    isWeekend && styles.dayCardWeekend
-                  ]}>
-                    {/* Day Header */}
-                    <View style={styles.dayHeader}>
-                      <View style={styles.dayHeaderLeft}>
-                        <View style={[
-                          styles.dayIcon,
-                          schedule.enabled ? styles.dayIconActive : styles.dayIconInactive,
-                          isWeekend && styles.dayIconWeekend
-                        ]}>
-                          <Text style={[
-                            styles.dayIconText,
-                            schedule.enabled && styles.dayIconTextActive
-                          ]}>
-                            {dayTranslations[day].substring(0, 2).toUpperCase()}
-                          </Text>
-                        </View>
-                        <View>
-                          <Text style={[
-                            styles.dayName,
-                            !schedule.enabled && styles.dayNameDisabled
-                          ]}>
-                            {dayTranslations[day]}
-                          </Text>
-                          {schedule.enabled && (
-                            <Text style={styles.dayTime}>
-                              {schedule.open} - {schedule.close}
-                            </Text>
-                          )}
-                          {!schedule.enabled && (
-                            <Text style={styles.dayClosedText}>
-                              {t('admin.settings.workingHours.closed')}
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                      <Switch
-                        value={schedule.enabled}
-                        onValueChange={() => toggleDay(day)}
-                        trackColor={{ false: '#E0E0E0', true: Colors.primary + '30' }}
-                        thumbColor={schedule.enabled ? Colors.primary : '#999'}
-                        ios_backgroundColor="#E0E0E0"
-                      />
-                    </View>
-
-                    {/* Time Inputs */}
-                    {schedule.enabled && (
-                      <View style={styles.timeRow}>
-                        <View style={styles.timeInputContainer}>
-                          <View style={styles.timeInputWrapper}>
-                            <Ionicons name="sunny-outline" size={18} color={Colors.primary} />
-                            <View style={styles.timeInputContent}>
-                              <Text style={styles.timeLabel}>
-                                {t('admin.settings.workingHours.open')}
-                              </Text>
-                              <TextInput
-                                style={styles.input}
-                                value={schedule.open}
-                                onChangeText={(value) => updateTime(day, 'open', value)}
-                                placeholder="09:00"
-                                placeholderTextColor="#999"
-                                keyboardType="numbers-and-punctuation"
-                                maxLength={5}
-                              />
-                            </View>
-                          </View>
-                        </View>
-
-                        <View style={styles.timeSeparatorContainer}>
-                          <Ionicons name="arrow-forward" size={20} color={Colors.textSecondary} />
-                        </View>
-
-                        <View style={styles.timeInputContainer}>
-                          <View style={styles.timeInputWrapper}>
-                            <Ionicons name="moon-outline" size={18} color={Colors.primary} />
-                            <View style={styles.timeInputContent}>
-                              <Text style={styles.timeLabel}>
-                                {t('admin.settings.workingHours.close')}
-                              </Text>
-                              <TextInput
-                                style={styles.input}
-                                value={schedule.close}
-                                onChangeText={(value) => updateTime(day, 'close', value)}
-                                placeholder="22:00"
-                                placeholderTextColor="#999"
-                                keyboardType="numbers-and-punctuation"
-                                maxLength={5}
-                              />
-                            </View>
-                          </View>
-                        </View>
-                      </View>
-                    )}
+              return (
+                <View key={day} style={styles.dayCard}>
+                  {/* Day Header */}
+                  <View style={styles.dayHeader}>
+                    <Text style={styles.dayName}>{dayTranslations[day]}</Text>
+                    <Switch
+                      value={schedule.enabled}
+                      onValueChange={() => toggleDay(day)}
+                      trackColor={{ false: '#ccc', true: Colors.primary + '40' }}
+                      thumbColor={schedule.enabled ? Colors.primary : '#999'}
+                    />
                   </View>
-                );
-              })}
-            </View>
 
-            <View style={{ height: 20 }} />
+                  {/* Time Inputs */}
+                  {schedule.enabled && (
+                    <View style={styles.timeRow}>
+                      <View style={styles.timeInputWrapper}>
+                        <Text style={styles.timeLabel}>
+                          {t('admin.settings.workingHours.open')}
+                        </Text>
+                        <TextInput
+                          style={styles.input}
+                          value={schedule.open}
+                          onChangeText={(value) => updateTime(day, 'open', value)}
+                          placeholder="09:00"
+                          placeholderTextColor="#999"
+                          keyboardType="numbers-and-punctuation"
+                          maxLength={5}
+                        />
+                      </View>
+
+                      <Text style={styles.timeSeparator}>-</Text>
+
+                      <View style={styles.timeInputWrapper}>
+                        <Text style={styles.timeLabel}>
+                          {t('admin.settings.workingHours.close')}
+                        </Text>
+                        <TextInput
+                          style={styles.input}
+                          value={schedule.close}
+                          onChangeText={(value) => updateTime(day, 'close', value)}
+                          placeholder="22:00"
+                          placeholderTextColor="#999"
+                          keyboardType="numbers-and-punctuation"
+                          maxLength={5}
+                        />
+                      </View>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
           </ScrollView>
 
           {/* Footer Buttons */}
@@ -267,7 +193,6 @@ const WorkingHoursModal: React.FC<WorkingHoursModalProps> = ({
               onPress={onClose}
               activeOpacity={0.7}
             >
-              <Ionicons name="close-outline" size={22} color={Colors.text} />
               <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -275,7 +200,6 @@ const WorkingHoursModal: React.FC<WorkingHoursModalProps> = ({
               onPress={handleSave}
               activeOpacity={0.8}
             >
-              <Ionicons name="checkmark-circle" size={22} color="#fff" />
               <Text style={styles.saveButtonText}>{t('common.save')}</Text>
             </TouchableOpacity>
           </View>
@@ -288,265 +212,126 @@ const WorkingHoursModal: React.FC<WorkingHoursModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   modal: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '92%',
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: BorderRadius.large,
+    borderTopRightRadius: BorderRadius.large,
+    maxHeight: '85%',
     ...Shadows.medium,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.large,
-    paddingBottom: Spacing.medium,
+    padding: Spacing.medium,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    backgroundColor: '#FAFAFA',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    flex: 1,
-    gap: Spacing.medium,
-  },
-  headerTextContainer: {
-    flex: 1,
+    borderBottomColor: Colors.border,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: FontSizes.large,
+    fontWeight: '600',
     color: Colors.text,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
   },
   closeButton: {
-    padding: 4,
-    marginTop: -4,
+    padding: Spacing.small,
   },
   content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: Spacing.large,
-    paddingTop: Spacing.medium,
+    padding: Spacing.medium,
   },
   autoCloseSection: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8F9FA',
-    padding: Spacing.medium,
-    paddingHorizontal: Spacing.large,
-    borderRadius: 12,
-    marginBottom: Spacing.medium,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  autoCloseBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  autoCloseBadgeText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-  autoCloseBadgeTextActive: {
-    color: Colors.primary,
-  },
-  infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: Colors.primary + '10',
-    padding: Spacing.medium,
-    borderRadius: 10,
-    marginBottom: Spacing.large,
-    gap: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-  },
-  infoBannerText: {
-    flex: 1,
-    fontSize: 13,
-    color: Colors.text,
-    lineHeight: 18,
-  },
-  daysSection: {
-    gap: Spacing.medium,
-  },
-  daysSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.text,
+    backgroundColor: Colors.card,
+    padding: Spacing.small,
+    paddingHorizontal: Spacing.medium,
+    borderRadius: BorderRadius.small,
     marginBottom: Spacing.small,
   },
+  autoCloseText: {
+    fontSize: FontSizes.medium,
+    fontWeight: '500',
+    color: Colors.text,
+  },
   dayCard: {
-    backgroundColor: '#FFFFFF',
-    padding: Spacing.large,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    ...Shadows.small,
-  },
-  dayCardDisabled: {
-    backgroundColor: '#F8F8F8',
-    opacity: 0.7,
-  },
-  dayCardWeekend: {
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.primary + '40',
+    backgroundColor: Colors.card,
+    padding: Spacing.small,
+    paddingHorizontal: Spacing.medium,
+    borderRadius: BorderRadius.small,
+    marginBottom: Spacing.small,
   },
   dayHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  dayHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.medium,
-    flex: 1,
-  },
-  dayIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F0F0F0',
-  },
-  dayIconActive: {
-    backgroundColor: Colors.primary + '15',
-  },
-  dayIconInactive: {
-    backgroundColor: '#F5F5F5',
-  },
-  dayIconWeekend: {
-    backgroundColor: Colors.primary + '20',
-  },
-  dayIconText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#999',
-  },
-  dayIconTextActive: {
-    color: Colors.primary,
+    marginBottom: Spacing.small,
   },
   dayName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: 2,
-  },
-  dayNameDisabled: {
-    color: Colors.textSecondary,
-  },
-  dayTime: {
-    fontSize: 13,
-    color: Colors.primary,
+    fontSize: FontSizes.medium,
     fontWeight: '500',
-  },
-  dayClosedText: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    fontStyle: 'italic',
+    color: Colors.text,
   },
   timeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: Spacing.large,
     gap: Spacing.small,
   },
-  timeInputContainer: {
-    flex: 1,
-  },
   timeInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 10,
-    padding: Spacing.small,
-    paddingHorizontal: Spacing.medium,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    gap: 8,
-  },
-  timeInputContent: {
     flex: 1,
   },
   timeLabel: {
-    fontSize: 11,
+    fontSize: FontSizes.small,
     color: Colors.textSecondary,
     marginBottom: 2,
-    fontWeight: '500',
-    textTransform: 'uppercase',
   },
   input: {
-    fontSize: 16,
-    fontWeight: '600',
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.small,
+    padding: Spacing.small,
+    fontSize: FontSizes.medium,
     color: Colors.text,
-    padding: 0,
-    margin: 0,
   },
-  timeSeparatorContainer: {
-    paddingTop: 16,
+  timeSeparator: {
+    fontSize: FontSizes.medium,
+    color: Colors.textSecondary,
+    marginTop: 16,
   },
   footer: {
     flexDirection: 'row',
-    padding: Spacing.large,
-    paddingTop: Spacing.medium,
+    padding: Spacing.medium,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    gap: Spacing.medium,
-    backgroundColor: '#FAFAFA',
+    borderTopColor: Colors.border,
+    gap: Spacing.small,
   },
   cancelButton: {
     flex: 1,
-    flexDirection: 'row',
+    padding: Spacing.small,
+    borderRadius: BorderRadius.small,
+    borderWidth: 1,
+    borderColor: Colors.border,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    padding: Spacing.medium,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FFFFFF',
   },
   cancelButtonText: {
-    fontSize: 16,
+    fontSize: FontSizes.medium,
     fontWeight: '600',
     color: Colors.text,
   },
   saveButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    padding: Spacing.medium,
-    paddingVertical: 14,
-    borderRadius: 12,
+    padding: Spacing.small,
+    borderRadius: BorderRadius.small,
     backgroundColor: Colors.primary,
-    ...Shadows.small,
+    alignItems: 'center',
   },
   saveButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: FontSizes.medium,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 
