@@ -207,20 +207,20 @@ const AdminProducts = ({ navigation }: any) => {
   const handleAddIngredient = () => {
     const ingredient = ingredientInput.trim();
     if (ingredient && !formData.ingredients.includes(ingredient)) {
-      setFormData({
-        ...formData,
-        ingredients: [...formData.ingredients, ingredient],
-      });
+      setFormData(prev => ({
+        ...prev,
+        ingredients: [...prev.ingredients, ingredient],
+      }));
       setIngredientInput('');
     }
   };
 
   // Malzeme çıkar (Remove ingredient)
   const handleRemoveIngredient = (ingredient: string) => {
-    setFormData({
-      ...formData,
-      ingredients: formData.ingredients.filter((i) => i !== ingredient),
-    });
+    setFormData(prev => ({
+      ...prev,
+      ingredients: prev.ingredients.filter((i) => i !== ingredient),
+    }));
   };
 
   // Resim seç (Select image)
@@ -253,10 +253,12 @@ const AdminProducts = ({ navigation }: any) => {
 
       // Form data'yı güncelle (Update form data)
       console.log('📝 Form data güncelleniyor, yeni image_url:', imageUrl);
-      const newFormData = { ...formData, image_url: imageUrl };
-      setFormData(newFormData);
+      setFormData(prev => {
+        const newFormData = { ...prev, image_url: imageUrl };
+        console.log('✅ Form data güncellendi:', JSON.stringify(newFormData, null, 2));
+        return newFormData;
+      });
       setSelectedFile(file);
-      console.log('✅ Form data güncellendi:', JSON.stringify(newFormData, null, 2));
 
       Toast.show({
         type: 'success',
@@ -639,7 +641,7 @@ const AdminProducts = ({ navigation }: any) => {
                   placeholder={t('admin.products.namePlaceholder')}
                   placeholderTextColor="#999"
                   value={formData.name}
-                  onChangeText={(text) => setFormData({ ...formData, name: text })}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
                 />
 
                 {/* Açıklama (Description) */}
@@ -649,7 +651,7 @@ const AdminProducts = ({ navigation }: any) => {
                   placeholder={t('admin.products.descriptionPlaceholder')}
                   placeholderTextColor="#999"
                   value={formData.description}
-                  onChangeText={(text) => setFormData({ ...formData, description: text })}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
                   multiline
                   numberOfLines={3}
                 />
@@ -661,7 +663,7 @@ const AdminProducts = ({ navigation }: any) => {
                   placeholder={t('admin.products.pricePlaceholder')}
                   placeholderTextColor="#999"
                   value={formData.price}
-                  onChangeText={(text) => setFormData({ ...formData, price: text })}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, price: text }))}
                   keyboardType="decimal-pad"
                 />
                 <Text style={styles.helperText}>
@@ -683,7 +685,7 @@ const AdminProducts = ({ navigation }: any) => {
                         ]}
                         onPress={() => {
                           console.log('🎯 Category selected:', cat.id, cat.name_en);
-                          setFormData({ ...formData, category_id: cat.id });
+                          setFormData(prev => ({ ...prev, category_id: cat.id }));
                         }}
                         activeOpacity={0.7}
                       >
@@ -758,7 +760,7 @@ const AdminProducts = ({ navigation }: any) => {
                     <Image source={{ uri: formData.image_url }} style={styles.imagePreview} />
                     <TouchableOpacity
                       style={styles.removeImageButton}
-                      onPress={() => setFormData({ ...formData, image_url: '' })}
+                      onPress={() => setFormData(prev => ({ ...prev, image_url: '' }))}
                       activeOpacity={0.7}
                     >
                       <Ionicons name="close-circle" size={24} color="#DC3545" />
@@ -773,7 +775,7 @@ const AdminProducts = ({ navigation }: any) => {
                   placeholder={t('admin.products.imageUrlPlaceholder')}
                   placeholderTextColor="#999"
                   value={formData.image_url}
-                  onChangeText={(text) => setFormData({ ...formData, image_url: text })}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, image_url: text }))}
                   autoCapitalize="none"
                 />
 
@@ -783,7 +785,7 @@ const AdminProducts = ({ navigation }: any) => {
                   <Switch
                     value={formData.stock_status === 'in_stock'}
                     onValueChange={(value) =>
-                      setFormData({ ...formData, stock_status: value ? 'in_stock' : 'out_of_stock' })
+                      setFormData(prev => ({ ...prev, stock_status: value ? 'in_stock' : 'out_of_stock' }))
                     }
                     trackColor={{ false: '#DDD', true: Colors.primary + '40' }}
                     thumbColor={formData.stock_status === 'in_stock' ? Colors.primary : '#999'}
@@ -837,7 +839,7 @@ const AdminProducts = ({ navigation }: any) => {
                   <Text style={styles.label}>{t('admin.products.featuredLabel')}</Text>
                   <Switch
                     value={formData.is_featured}
-                    onValueChange={(value) => setFormData({ ...formData, is_featured: value })}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, is_featured: value }))}
                     trackColor={{ false: '#DDD', true: '#FFD70040' }}
                     thumbColor={formData.is_featured ? '#FFD700' : '#999'}
                   />
