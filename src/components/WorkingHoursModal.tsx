@@ -211,7 +211,7 @@ const WorkingHoursModal: React.FC<WorkingHoursModalProps> = ({
                 );
               })}
 
-              <View style={{ height: 20 }} />
+              <View style={{ height: 24 }} />
             </ScrollView>
 
             {/* Footer Buttons */}
@@ -250,48 +250,51 @@ const styles = StyleSheet.create({
   },
   modal: {
     backgroundColor: Colors.background,
-    borderTopLeftRadius: BorderRadius.large,
-    borderTopRightRadius: BorderRadius.large,
-    maxHeight: '85%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '88%',
     ...Shadows.medium,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.large,
-    paddingVertical: Spacing.large,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.background,
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: Colors.text,
+    flex: 1,
   },
   closeButton: {
-    padding: Spacing.small,
+    padding: 8,
+    marginLeft: 12,
   },
   content: {
-    paddingHorizontal: Spacing.large,
-    paddingTop: Spacing.large,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   autoCloseSection: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: Colors.card,
-    padding: Spacing.large,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
     borderRadius: BorderRadius.medium,
-    marginBottom: Spacing.large,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   autoCloseLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.medium,
+    gap: 12,
     flex: 1,
   },
   autoCloseText: {
@@ -301,9 +304,10 @@ const styles = StyleSheet.create({
   },
   dayCard: {
     backgroundColor: Colors.card,
-    padding: Spacing.large,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
     borderRadius: BorderRadius.medium,
-    marginBottom: Spacing.medium,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -311,12 +315,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.small,
+    marginBottom: 12,
   },
   dayHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.small,
+    gap: 10,
     flex: 1,
   },
   dayDot: {
@@ -339,8 +343,9 @@ const styles = StyleSheet.create({
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: Spacing.medium,
-    gap: Spacing.medium,
+    marginTop: 16,
+    gap: 16,
+    paddingHorizontal: 8,
   },
   timeInputGroup: {
     flex: 1,
@@ -348,32 +353,35 @@ const styles = StyleSheet.create({
   timeLabel: {
     fontSize: 13,
     color: Colors.textSecondary,
-    marginBottom: 6,
+    marginBottom: 8,
     fontWeight: '600',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   timeInput: {
     backgroundColor: Colors.background,
     borderWidth: 2,
     borderColor: Colors.border,
     borderRadius: BorderRadius.medium,
-    paddingVertical: 14,
-    paddingHorizontal: Spacing.medium,
-    fontSize: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    fontSize: 20,
     fontWeight: '700',
     color: Colors.text,
     textAlign: 'center',
+    minHeight: 56,
   },
   arrowContainer: {
-    paddingTop: 20,
+    paddingTop: 24,
   },
   footer: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.large,
-    paddingVertical: Spacing.large,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingBottom: 24,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    gap: Spacing.medium,
+    gap: 16,
     backgroundColor: Colors.background,
   },
   cancelButton: {
@@ -385,6 +393,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.background,
+    minHeight: 52,
   },
   cancelButtonText: {
     fontSize: 17,
@@ -399,6 +408,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...Shadows.small,
+    minHeight: 52,
   },
   saveButtonText: {
     fontSize: 17,
