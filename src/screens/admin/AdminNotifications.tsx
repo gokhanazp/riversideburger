@@ -25,11 +25,15 @@ const AdminNotifications = ({ navigation }: any) => {
   // State'ler (States)
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [notificationType, setNotificationType] = useState<NotificationType>('general');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [sendingNotification, setSendingNotification] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const USERS_PER_PAGE = 5;
 
   // Sayfa başlığını ayarla (Set page title)
   useLayoutEffect(() => {
@@ -53,6 +57,7 @@ const AdminNotifications = ({ navigation }: any) => {
 
       if (error) throw error;
       setUsers(data || []);
+      setFilteredUsers(data || []);
     } catch (error: any) {
       console.error('Error fetching users:', error);
       Toast.show({
@@ -80,6 +85,38 @@ const AdminNotifications = ({ navigation }: any) => {
       setSelectedUsers([]);
     } else {
       setSelectedUsers(users.map((u) => u.id));
+    }
+  };
+
+  // Kullanıcı arama (Search users)
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1); // Reset to first page on search
+
+    if (query.trim() === '') {
+      setFilteredUsers(users);
+    } else {
+      const filtered = users.filter((user) => {
+        const searchLower = query.toLowerCase();
+        return (
+          user.full_name?.toLowerCase().includes(searchLower) ||
+          user.email?.toLowerCase().includes(searchLower)
+        );
+      });
+      setFilteredUsers(filtered);
+    }
+  };
+
+  // Pagination hesaplamaları (Pagination calculations)
+  const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
+  const startIndex = (currentPage - 1) * USERS_PER_PAGE;
+  const endIndex = startIndex + USERS_PER_PAGE;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Sayfa değiştir (Change page)
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
     }
   };
 
@@ -279,26 +316,85 @@ const AdminNotifications = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
 
-        {users.map((user) => (
-          <TouchableOpacity
-            key={user.id}
-            style={styles.userCard}
-            onPress={() => toggleUserSelection(user.id)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.userInfo}>
-              <Ionicons
-                name={selectedUsers.includes(user.id) ? 'checkbox' : 'square-outline'}
-                size={24}
-                color={selectedUsers.includes(user.id) ? Colors.primary : Colors.textSecondary}
-              />
-              <View style={styles.userDetails}>
-                <Text style={styles.userName}>{user.full_name || t('admin.notifications.unnamedUser')}</Text>
-                <Text style={styles.userEmail}>{user.email}</Text>
+        {/* Arama Kutusu (Search Box) */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color={Colors.textSecondary} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t('admin.notifications.searchUsers')}
+            placeholderTextColor={Colors.textSecondary}
+            value={searchQuery}
+            onChangeText={handleSearch}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => handleSearch('')} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Kullanıcı Listesi (User List) */}
+        {paginatedUsers.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="people-outline" size={48} color={Colors.textSecondary} />
+            <Text style={styles.emptyStateText}>
+              {searchQuery ? t('admin.notifications.noUsersFound') : t('admin.notifications.noUsers')}
+            </Text>
+          </View>
+        ) : (
+          <>
+            {paginatedUsers.map((user) => (
+              <TouchableOpacity
+                key={user.id}
+                style={styles.userCard}
+                onPress={() => toggleUserSelection(user.id)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.userInfo}>
+                  <Ionicons
+                    name={selectedUsers.includes(user.id) ? 'checkbox' : 'square-outline'}
+                    size={24}
+                    color={selectedUsers.includes(user.id) ? Colors.primary : Colors.textSecondary}
+                  />
+                  <View style={styles.userDetails}>
+                    <Text style={styles.userName}>{user.full_name || t('admin.notifications.unnamedUser')}</Text>
+                    <Text style={styles.userEmail}>{user.email}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+
+            {/* Pagination (Sayfalama) */}
+            {totalPages > 1 && (
+              <View style={styles.paginationContainer}>
+                <TouchableOpacity
+                  style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
+                  onPress={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <Ionicons name="chevron-back" size={20} color={currentPage === 1 ? Colors.textSecondary : Colors.primary} />
+                </TouchableOpacity>
+
+                <View style={styles.paginationInfo}>
+                  <Text style={styles.paginationText}>
+                    {t('admin.notifications.page')} {currentPage} / {totalPages}
+                  </Text>
+                  <Text style={styles.paginationSubtext}>
+                    {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} {t('admin.notifications.of')} {filteredUsers.length}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.paginationButton, currentPage === totalPages && styles.paginationButtonDisabled]}
+                  onPress={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  <Ionicons name="chevron-forward" size={20} color={currentPage === totalPages ? Colors.textSecondary : Colors.primary} />
+                </TouchableOpacity>
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            )}
+          </>
+        )}
       </View>
 
       {/* Gönder Butonu (Send Button) */}
@@ -458,6 +554,80 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   userEmail: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  searchIcon: {
+    marginRight: Spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    fontSize: FontSizes.md,
+    color: Colors.text,
+  },
+  clearButton: {
+    padding: Spacing.xs,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xl,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  emptyStateText: {
+    marginTop: Spacing.md,
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+    ...Shadows.small,
+  },
+  paginationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.primary + '30',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+  },
+  paginationInfo: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  paginationText: {
+    fontSize: FontSizes.md,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  paginationSubtext: {
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
   },

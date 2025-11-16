@@ -894,7 +894,12 @@
       "template2Title": "🍔 Yeni Menü!",
       "template2Body": "Yeni burger menümüz çıktı! Hemen deneyin!",
       "template3Title": "⏰ Açılış Saatleri",
-      "template3Body": "Hafta sonu özel saatlerimiz: 10:00 - 23:00"
+      "template3Body": "Hafta sonu özel saatlerimiz: 10:00 - 23:00",
+      "searchUsers": "Kullanıcı ara...",
+      "noUsersFound": "Kullanıcı bulunamadı",
+      "noUsers": "Henüz kullanıcı yok",
+      "page": "Sayfa",
+      "of": "/"
     },
     "banners": {
       "title": "Banner Yönetimi",

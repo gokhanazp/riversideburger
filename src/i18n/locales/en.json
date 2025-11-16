@@ -894,7 +894,12 @@
       "template2Title": "🍔 New Menu!",
       "template2Body": "Our new burger menu is out! Try it now!",
       "template3Title": "⏰ Opening Hours",
-      "template3Body": "Weekend special hours: 10:00 AM - 11:00 PM"
+      "template3Body": "Weekend special hours: 10:00 AM - 11:00 PM",
+      "searchUsers": "Search users...",
+      "noUsersFound": "No users found",
+      "noUsers": "No users yet",
+      "page": "Page",
+      "of": "of"
     },
     "banners": {
       "title": "Banner Management",
