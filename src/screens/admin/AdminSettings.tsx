@@ -15,6 +15,12 @@ import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constan
 import { supabase } from '../../lib/supabase';
 import Toast from 'react-native-toast-message';
 import ConfirmModal from '../../components/ConfirmModal';
+import WorkingHoursModal from '../../components/WorkingHoursModal';
+import {
+  WorkingHours,
+  DEFAULT_WORKING_HOURS,
+  updateWorkingHours,
+} from '../../services/workingHoursService';
 
 // Ayarlar tipi (Settings type)
 interface Settings {
@@ -24,6 +30,8 @@ interface Settings {
   delivery_fee: number;
   free_delivery_threshold: number;
   is_open: boolean;
+  auto_close_enabled?: boolean;
+  working_hours?: WorkingHours;
   updated_at?: string;
 }
 
@@ -47,8 +55,11 @@ const AdminSettings = ({ navigation }: any) => {
     delivery_fee: 15,
     free_delivery_threshold: 150,
     is_open: true,
+    auto_close_enabled: false,
+    working_hours: DEFAULT_WORKING_HOURS,
   });
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false);
 
   // Sayfa yüklendiğinde ayarları getir (Fetch settings on page load)
   useEffect(() => {
@@ -81,7 +92,11 @@ const AdminSettings = ({ navigation }: any) => {
       }
 
       console.log('✅ Settings fetched:', data);
-      setSettings(data);
+      setSettings({
+        ...data,
+        working_hours: data.working_hours || DEFAULT_WORKING_HOURS,
+        auto_close_enabled: data.auto_close_enabled || false,
+      });
     } catch (error: any) {
       console.error('❌ Error fetching settings:', error);
       Toast.show({
@@ -183,6 +198,46 @@ const AdminSettings = ({ navigation }: any) => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Çalışma saatlerini kaydet (Save working hours)
+  const handleSaveWorkingHours = async (
+    workingHours: WorkingHours,
+    autoCloseEnabled: boolean
+  ) => {
+    try {
+      console.log('💾 Saving working hours:', { workingHours, autoCloseEnabled });
+
+      const success = await updateWorkingHours(workingHours, autoCloseEnabled);
+
+      if (!success) {
+        throw new Error('Failed to update working hours');
+      }
+
+      // State'i güncelle (Update state)
+      setSettings({
+        ...settings,
+        working_hours: workingHours,
+        auto_close_enabled: autoCloseEnabled,
+      });
+
+      Toast.show({
+        type: 'success',
+        text1: t('admin.settings.workingHours.saved'),
+        text2: t('admin.settings.workingHours.savedDesc'),
+        visibilityTime: 3000,
+        topOffset: 60,
+      });
+    } catch (error: any) {
+      console.error('❌ Error saving working hours:', error);
+      Toast.show({
+        type: 'error',
+        text1: t('admin.error'),
+        text2: error.message || t('admin.settings.workingHours.errorSaving'),
+        visibilityTime: 4000,
+        topOffset: 60,
+      });
     }
   };
 
@@ -333,6 +388,28 @@ const AdminSettings = ({ navigation }: any) => {
           </View>
         </SettingCard>
 
+        {/* Çalışma Saatleri (Working Hours) */}
+        <SettingCard
+          icon="time-outline"
+          title={t('admin.settings.workingHours.title')}
+          description={t('admin.settings.workingHours.description')}
+        >
+          <TouchableOpacity
+            style={styles.workingHoursButton}
+            onPress={() => setShowWorkingHoursModal(true)}
+          >
+            <View style={styles.workingHoursInfo}>
+              <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
+              <Text style={styles.workingHoursText}>
+                {settings.auto_close_enabled
+                  ? t('admin.settings.workingHours.autoCloseEnabled')
+                  : t('admin.settings.workingHours.autoCloseDisabled')}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        </SettingCard>
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
@@ -365,6 +442,15 @@ const AdminSettings = ({ navigation }: any) => {
         onConfirm={handleSaveSettings}
         onCancel={() => setShowSaveModal(false)}
         type="success"
+      />
+
+      {/* Çalışma Saatleri Modal (Working Hours Modal) */}
+      <WorkingHoursModal
+        visible={showWorkingHoursModal}
+        workingHours={settings.working_hours || DEFAULT_WORKING_HOURS}
+        autoCloseEnabled={settings.auto_close_enabled || false}
+        onClose={() => setShowWorkingHoursModal(false)}
+        onSave={handleSaveWorkingHours}
       />
     </View>
   );
@@ -477,6 +563,26 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     fontWeight: 'bold',
     color: '#333',
+  },
+  workingHoursButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.background,
+    padding: Spacing.medium,
+    borderRadius: BorderRadius.small,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  workingHoursInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.small,
+  },
+  workingHoursText: {
+    fontSize: FontSizes.medium,
+    color: Colors.text,
+    fontWeight: '500',
   },
   footer: {
     padding: Spacing.md,

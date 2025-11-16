@@ -829,7 +829,27 @@
       "modalTitle": "Save Settings",
       "modalMessage": "Are you sure you want to save the changes?",
       "modalConfirm": "Save",
-      "modalCancel": "Cancel"
+      "modalCancel": "Cancel",
+      "workingHours": {
+        "title": "Working Hours",
+        "description": "Set the hours when the store will be open",
+        "autoClose": "Auto Close",
+        "autoCloseDesc": "Automatically open/close based on working hours",
+        "autoCloseEnabled": "Auto close enabled",
+        "autoCloseDisabled": "Auto close disabled",
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday",
+        "open": "Open",
+        "close": "Close",
+        "saved": "Working Hours Saved",
+        "savedDesc": "Working hours updated successfully",
+        "errorSaving": "Error saving working hours"
+      }
     },
     "notifications": {
       "title": "Notifications",

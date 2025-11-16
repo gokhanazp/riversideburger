@@ -829,7 +829,27 @@
       "modalTitle": "Ayarları Kaydet",
       "modalMessage": "Yaptığınız değişiklikleri kaydetmek istediğinize emin misiniz?",
       "modalConfirm": "Kaydet",
-      "modalCancel": "İptal"
+      "modalCancel": "İptal",
+      "workingHours": {
+        "title": "Çalışma Saatleri",
+        "description": "Mağazanın hangi saatlerde açık olacağını belirleyin",
+        "autoClose": "Otomatik Kapanma",
+        "autoCloseDesc": "Çalışma saatlerine göre otomatik açılıp kapansın",
+        "autoCloseEnabled": "Otomatik kapanma aktif",
+        "autoCloseDisabled": "Otomatik kapanma kapalı",
+        "monday": "Pazartesi",
+        "tuesday": "Salı",
+        "wednesday": "Çarşamba",
+        "thursday": "Perşembe",
+        "friday": "Cuma",
+        "saturday": "Cumartesi",
+        "sunday": "Pazar",
+        "open": "Açılış",
+        "close": "Kapanış",
+        "saved": "Çalışma Saatleri Kaydedildi",
+        "savedDesc": "Çalışma saatleri başarıyla güncellendi",
+        "errorSaving": "Çalışma saatleri kaydedilirken bir hata oluştu"
+      }
     },
     "notifications": {
       "title": "Bildirimler",
