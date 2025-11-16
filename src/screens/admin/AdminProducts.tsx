@@ -322,6 +322,9 @@ const AdminProducts = ({ navigation }: any) => {
 
       if (selectedProduct) {
         // Güncelle (Update)
+        console.log('🔄 Updating product ID:', selectedProduct.id);
+        console.log('📝 Update data:', JSON.stringify(productData, null, 2));
+
         const { data, error } = await supabase
           .from('products')
           .update(productData)
@@ -330,10 +333,12 @@ const AdminProducts = ({ navigation }: any) => {
 
         if (error) {
           console.error('❌ Update error:', error);
+          console.error('❌ Error details:', JSON.stringify(error, null, 2));
           throw error;
         }
 
-        console.log('✅ Product updated:', data);
+        console.log('✅ Product updated successfully!');
+        console.log('✅ Updated data:', JSON.stringify(data, null, 2));
 
         Toast.show({
           type: 'success',
