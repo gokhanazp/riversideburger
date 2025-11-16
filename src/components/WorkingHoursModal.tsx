@@ -169,13 +169,13 @@ const WorkingHoursModal: React.FC<WorkingHoursModalProps> = ({
 
                     {/* Time Inputs */}
                     {schedule.enabled && (
-                      <View style={styles.timeRow}>
-                        <View style={styles.timeInputWrapper}>
+                      <View style={styles.timeContainer}>
+                        <View style={styles.timeInputGroup}>
                           <Text style={styles.timeLabel}>
                             {t('admin.settings.workingHours.open')}
                           </Text>
                           <TextInput
-                            style={styles.input}
+                            style={styles.timeInput}
                             value={schedule.open}
                             onChangeText={(value) => updateTime(day, 'open', value)}
                             placeholder="09:00"
@@ -186,16 +186,16 @@ const WorkingHoursModal: React.FC<WorkingHoursModalProps> = ({
                           />
                         </View>
 
-                        <View style={styles.timeSeparatorWrapper}>
-                          <Text style={styles.timeSeparator}>→</Text>
+                        <View style={styles.arrowContainer}>
+                          <Ionicons name="arrow-forward" size={20} color={Colors.textSecondary} />
                         </View>
 
-                        <View style={styles.timeInputWrapper}>
+                        <View style={styles.timeInputGroup}>
                           <Text style={styles.timeLabel}>
                             {t('admin.settings.workingHours.close')}
                           </Text>
                           <TextInput
-                            style={styles.input}
+                            style={styles.timeInput}
                             value={schedule.close}
                             onChangeText={(value) => updateTime(day, 'close', value)}
                             placeholder="22:00"
@@ -260,13 +260,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.large,
-    paddingVertical: Spacing.medium,
+    paddingVertical: Spacing.large,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.background,
   },
   title: {
-    fontSize: FontSizes.xlarge,
+    fontSize: 20,
     fontWeight: '700',
     color: Colors.text,
   },
@@ -275,35 +275,33 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Spacing.large,
-    paddingTop: Spacing.medium,
+    paddingTop: Spacing.large,
   },
   autoCloseSection: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: Colors.card,
-    paddingVertical: Spacing.medium,
-    paddingHorizontal: Spacing.large,
+    padding: Spacing.large,
     borderRadius: BorderRadius.medium,
-    marginBottom: Spacing.medium,
+    marginBottom: Spacing.large,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   autoCloseLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.small,
+    gap: Spacing.medium,
     flex: 1,
   },
   autoCloseText: {
-    fontSize: FontSizes.medium,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: Colors.text,
   },
   dayCard: {
     backgroundColor: Colors.card,
-    paddingVertical: Spacing.medium,
-    paddingHorizontal: Spacing.large,
+    padding: Spacing.large,
     borderRadius: BorderRadius.medium,
     marginBottom: Spacing.medium,
     borderWidth: 1,
@@ -313,6 +311,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: Spacing.small,
   },
   dayHeaderLeft: {
     flexDirection: 'row',
@@ -321,61 +320,57 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dayDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#ccc',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#ddd',
   },
   dayDotActive: {
     backgroundColor: Colors.primary,
   },
   dayName: {
-    fontSize: FontSizes.large,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: Colors.text,
   },
   dayNameDisabled: {
     color: Colors.textSecondary,
   },
-  timeRow: {
+  timeContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     marginTop: Spacing.medium,
-    gap: Spacing.small,
+    gap: Spacing.medium,
   },
-  timeInputWrapper: {
+  timeInputGroup: {
     flex: 1,
   },
   timeLabel: {
-    fontSize: FontSizes.small,
+    fontSize: 13,
     color: Colors.textSecondary,
-    marginBottom: 4,
-    fontWeight: '500',
-  },
-  input: {
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.small,
-    paddingVertical: Spacing.medium,
-    paddingHorizontal: Spacing.medium,
-    fontSize: FontSizes.large,
+    marginBottom: 6,
     fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  timeInput: {
+    backgroundColor: Colors.background,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.medium,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.medium,
+    fontSize: 18,
+    fontWeight: '700',
     color: Colors.text,
     textAlign: 'center',
   },
-  timeSeparatorWrapper: {
-    paddingBottom: Spacing.medium,
-  },
-  timeSeparator: {
-    fontSize: 20,
-    color: Colors.textSecondary,
-    fontWeight: '600',
+  arrowContainer: {
+    paddingTop: 20,
   },
   footer: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.large,
-    paddingVertical: Spacing.medium,
+    paddingVertical: Spacing.large,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     gap: Spacing.medium,
@@ -383,21 +378,22 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: Spacing.medium,
+    paddingVertical: 16,
     borderRadius: BorderRadius.medium,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.background,
   },
   cancelButtonText: {
-    fontSize: FontSizes.medium,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: Colors.text,
   },
   saveButton: {
     flex: 1,
-    paddingVertical: Spacing.medium,
+    paddingVertical: 16,
     borderRadius: BorderRadius.medium,
     backgroundColor: Colors.primary,
     alignItems: 'center',
@@ -405,7 +401,7 @@ const styles = StyleSheet.create({
     ...Shadows.small,
   },
   saveButtonText: {
-    fontSize: FontSizes.medium,
+    fontSize: 17,
     fontWeight: '700',
     color: '#fff',
   },
