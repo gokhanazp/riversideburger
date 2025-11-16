@@ -732,7 +732,12 @@
       "anonymousUser": "Anonymous User",
       "orderCount": "Order Count",
       "totalSpent": "Total Spent",
-      "loading": "Loading..."
+      "loading": "Loading...",
+      "searchUsers": "Search users...",
+      "noUsersFound": "No users found",
+      "usersFound": "users found",
+      "page": "Page",
+      "of": "of"
     },
     "reviews": {
       "title": "Review Management",

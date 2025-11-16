@@ -732,7 +732,12 @@
       "anonymousUser": "İsimsiz Kullanıcı",
       "orderCount": "Sipariş Sayısı",
       "totalSpent": "Toplam Harcama",
-      "loading": "Yükleniyor..."
+      "loading": "Yükleniyor...",
+      "searchUsers": "Kullanıcı ara...",
+      "noUsersFound": "Kullanıcı bulunamadı",
+      "usersFound": "kullanıcı bulundu",
+      "page": "Sayfa",
+      "of": "/"
     },
     "reviews": {
       "title": "Yorum Yönetimi",

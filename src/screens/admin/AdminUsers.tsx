@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Modal,
   ScrollView,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -24,9 +25,13 @@ const AdminUsers = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [filterRole, setFilterRole] = useState<'all' | 'customer' | 'admin'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const USERS_PER_PAGE = 5;
 
   // Sayfa başlığını ayarla (Set page title)
   useLayoutEffect(() => {
@@ -65,6 +70,7 @@ const AdminUsers = ({ navigation }: any) => {
 
       console.log('✅ Users fetched:', data?.length || 0);
       setUsers(data || []);
+      applyFilters(data || [], searchQuery);
     } catch (error: any) {
       console.error('❌ Error fetching users:', error);
       Toast.show({
@@ -73,10 +79,37 @@ const AdminUsers = ({ navigation }: any) => {
         text2: error.message || t('admin.users.errorLoading'),
       });
       setUsers([]);
+      setFilteredUsers([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  // Filtreleri uygula (Apply filters)
+  const applyFilters = (userList: User[], query: string) => {
+    let filtered = userList;
+
+    // Arama filtresi (Search filter)
+    if (query.trim() !== '') {
+      const searchLower = query.toLowerCase();
+      filtered = filtered.filter((user) => {
+        return (
+          user.full_name?.toLowerCase().includes(searchLower) ||
+          user.email?.toLowerCase().includes(searchLower) ||
+          user.phone?.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    setFilteredUsers(filtered);
+    setCurrentPage(1); // Reset to first page
+  };
+
+  // Kullanıcı arama (Search users)
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    applyFilters(users, query);
   };
 
   // Yenileme (Refresh)
@@ -185,6 +218,19 @@ const AdminUsers = ({ navigation }: any) => {
     </TouchableOpacity>
   );
 
+  // Pagination hesaplamaları (Pagination calculations)
+  const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
+  const startIndex = (currentPage - 1) * USERS_PER_PAGE;
+  const endIndex = startIndex + USERS_PER_PAGE;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Sayfa değiştir (Change page)
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -203,20 +249,82 @@ const AdminUsers = ({ navigation }: any) => {
         <FilterButton role="admin" label={t('admin.users.filterAdmins')} />
       </View>
 
-      {/* Kullanıcı listesi (Users list) */}
-      <FlatList
-        data={users}
-        renderItem={({ item }) => <UserCard user={item} />}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+      {/* Arama ve Liste (Search and List) */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
-        ListEmptyComponent={
+      >
+        {/* Arama Kutusu (Search Box) */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color={Colors.textSecondary} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t('admin.users.searchUsers')}
+            placeholderTextColor={Colors.textSecondary}
+            value={searchQuery}
+            onChangeText={handleSearch}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => handleSearch('')} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Kullanıcı Sayısı (User Count) */}
+        <View style={styles.countContainer}>
+          <Text style={styles.countText}>
+            {filteredUsers.length} {t('admin.users.usersFound')}
+          </Text>
+        </View>
+
+        {/* Kullanıcı Listesi (User List) */}
+        {paginatedUsers.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="people-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>{t('admin.users.noUsers')}</Text>
+            <Text style={styles.emptyText}>
+              {searchQuery ? t('admin.users.noUsersFound') : t('admin.users.noUsers')}
+            </Text>
           </View>
-        }
-      />
+        ) : (
+          <>
+            {paginatedUsers.map((user) => (
+              <UserCard key={user.id} user={user} />
+            ))}
+
+            {/* Pagination (Sayfalama) */}
+            {totalPages > 1 && (
+              <View style={styles.paginationContainer}>
+                <TouchableOpacity
+                  style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
+                  onPress={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <Ionicons name="chevron-back" size={20} color={currentPage === 1 ? Colors.textSecondary : Colors.primary} />
+                </TouchableOpacity>
+
+                <View style={styles.paginationInfo}>
+                  <Text style={styles.paginationText}>
+                    {t('admin.users.page')} {currentPage} / {totalPages}
+                  </Text>
+                  <Text style={styles.paginationSubtext}>
+                    {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} {t('admin.users.of')} {filteredUsers.length}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.paginationButton, currentPage === totalPages && styles.paginationButtonDisabled]}
+                  onPress={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  <Ionicons name="chevron-forward" size={20} color={currentPage === totalPages ? Colors.textSecondary : Colors.primary} />
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
 
       {/* Kullanıcı detay modal (User details modal) */}
       {showDetailsModal && selectedUser && (
@@ -356,9 +464,42 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: 'bold',
   },
-  listContent: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: Spacing.md,
-    gap: Spacing.md,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadows.small,
+  },
+  searchIcon: {
+    marginRight: Spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    fontSize: FontSizes.md,
+    color: Colors.text,
+  },
+  clearButton: {
+    padding: Spacing.xs,
+  },
+  countContainer: {
+    marginBottom: Spacing.md,
+  },
+  countText: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    fontWeight: '600',
   },
   userCard: {
     flexDirection: 'row',
@@ -367,6 +508,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     gap: Spacing.md,
+    marginBottom: Spacing.md,
     ...Shadows.small,
   },
   userAvatar: {
@@ -545,6 +687,44 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: '#666',
     marginTop: 4,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+    ...Shadows.small,
+  },
+  paginationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.primary + '30',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+  },
+  paginationInfo: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  paginationText: {
+    fontSize: FontSizes.md,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  paginationSubtext: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
   },
 });
 
