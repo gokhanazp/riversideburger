@@ -19,11 +19,18 @@ import Toast from 'react-native-toast-message';
 import {
   CANADIAN_PROVINCES,
   ONTARIO_CITIES,
-  formatPostalCode,
-  validatePostalCode,
-  formatPhoneNumber,
-  validatePhoneNumber,
+  formatPostalCode as formatCanadianPostalCode,
+  validatePostalCode as validateCanadianPostalCode,
+  formatPhoneNumber as formatCanadianPhoneNumber,
+  validatePhoneNumber as validateCanadianPhoneNumber,
 } from '../constants/canada';
+import {
+  TURKISH_CITIES,
+  formatPostalCode as formatTurkishPostalCode,
+  validatePostalCode as validateTurkishPostalCode,
+  formatPhoneNumber as formatTurkishPhoneNumber,
+  validatePhoneNumber as validateTurkishPhoneNumber,
+} from '../constants/turkey';
 import { useTranslation } from 'react-i18next';
 
 // Adres düzenleme ekranı - Canada Format (Address edit screen - Canada Format)
@@ -34,6 +41,7 @@ const AddressEditScreen = ({ route, navigation }: any) => {
   const isEditMode = !!addressId;
 
   // Form state'leri (Form states)
+  const [country, setCountry] = useState<'Canada' | 'Turkey'>('Canada'); // Ülke seçimi (Country selection)
   const [title, setTitle] = useState('Home');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -48,9 +56,51 @@ const AddressEditScreen = ({ route, navigation }: any) => {
   const [isLoadingData, setIsLoadingData] = useState(isEditMode);
   const [showCityModal, setShowCityModal] = useState(false);
   const [showProvinceModal, setShowProvinceModal] = useState(false);
+  const [showCountryModal, setShowCountryModal] = useState(false);
 
   // Adres başlıkları (Address titles)
   const addressTitles = ['Home', 'Work', 'Other'];
+
+  // Ülkeler (Countries)
+  const countries = ['Canada', 'Turkey'];
+
+  // Ülkeye göre şehir listesi (City list based on country)
+  const getCityList = () => {
+    return country === 'Canada' ? ONTARIO_CITIES : TURKISH_CITIES;
+  };
+
+  // Ülkeye göre eyalet/il listesi (Province list based on country)
+  const getProvinceList = () => {
+    return country === 'Canada' ? CANADIAN_PROVINCES : TURKISH_CITIES.map(city => ({ code: city, name: city }));
+  };
+
+  // Ülkeye göre format fonksiyonları (Format functions based on country)
+  const formatPostalCode = (code: string) => {
+    return country === 'Canada' ? formatCanadianPostalCode(code) : formatTurkishPostalCode(code);
+  };
+
+  const validatePostalCode = (code: string) => {
+    return country === 'Canada' ? validateCanadianPostalCode(code) : validateTurkishPostalCode(code);
+  };
+
+  const formatPhoneNumber = (phoneNum: string) => {
+    return country === 'Canada' ? formatCanadianPhoneNumber(phoneNum) : formatTurkishPhoneNumber(phoneNum);
+  };
+
+  const validatePhoneNumber = (phoneNum: string) => {
+    return country === 'Canada' ? validateCanadianPhoneNumber(phoneNum) : validateTurkishPhoneNumber(phoneNum);
+  };
+
+  // Ülke değiştiğinde şehir ve eyalet/il bilgilerini sıfırla (Reset city and province when country changes)
+  useEffect(() => {
+    if (country === 'Canada') {
+      setCity('Toronto');
+      setProvince('ON');
+    } else if (country === 'Turkey') {
+      setCity('İstanbul');
+      setProvince('İstanbul');
+    }
+  }, [country]);
 
   // Düzenleme modunda adresi yükle (Load address in edit mode)
   useEffect(() => {
@@ -225,12 +275,12 @@ const AddressEditScreen = ({ route, navigation }: any) => {
               <Ionicons name="call-outline" size={20} color={Colors.primary} />
               <TextInput
                 style={styles.textInput}
-                placeholder="(416) 555-1234"
+                placeholder={country === 'Canada' ? '(416) 555-1234' : '0(555) 123 45 67'}
                 placeholderTextColor="#999"
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
-                maxLength={14}
+                maxLength={country === 'Canada' ? 17 : 18}
               />
             </View>
           </View>
@@ -239,7 +289,21 @@ const AddressEditScreen = ({ route, navigation }: any) => {
         {/* Adres Bilgileri (Address Info) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Address Details</Text>
-          
+
+          {/* Ülke Seçimi (Country Selection) */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Country *</Text>
+            <TouchableOpacity
+              style={styles.selectButton}
+              onPress={() => setShowCountryModal(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="globe-outline" size={20} color={Colors.primary} />
+              <Text style={styles.selectButtonText}>{country}</Text>
+              <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.row}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
               <Text style={styles.label}>Street Number *</Text>
@@ -298,7 +362,9 @@ const AddressEditScreen = ({ route, navigation }: any) => {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Province *</Text>
+            <Text style={styles.label}>
+              {country === 'Canada' ? 'Province *' : 'City *'}
+            </Text>
             <TouchableOpacity
               style={styles.selectButton}
               onPress={() => setShowProvinceModal(true)}
@@ -306,24 +372,27 @@ const AddressEditScreen = ({ route, navigation }: any) => {
             >
               <Ionicons name="map-outline" size={20} color={Colors.primary} />
               <Text style={styles.selectButtonText}>
-                {CANADIAN_PROVINCES.find(p => p.code === province)?.name || province}
+                {getProvinceList().find(p => p.code === province)?.name || province}
               </Text>
               <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Postal Code *</Text>
+            <Text style={styles.label}>
+              {country === 'Canada' ? 'Postal Code *' : 'Postal Code *'}
+            </Text>
             <View style={styles.inputContainer}>
               <Ionicons name="mail-outline" size={20} color={Colors.primary} />
               <TextInput
                 style={styles.textInput}
-                placeholder="M5H 2N2"
+                placeholder={country === 'Canada' ? 'M5H 2N2' : '34000'}
                 placeholderTextColor="#999"
                 value={postalCode}
                 onChangeText={setPostalCode}
-                autoCapitalize="characters"
-                maxLength={7}
+                autoCapitalize={country === 'Canada' ? 'characters' : 'none'}
+                keyboardType={country === 'Canada' ? 'default' : 'number-pad'}
+                maxLength={country === 'Canada' ? 7 : 5}
               />
             </View>
           </View>
@@ -380,7 +449,7 @@ const AddressEditScreen = ({ route, navigation }: any) => {
               </TouchableOpacity>
             </View>
             <FlatList
-              data={ONTARIO_CITIES}
+              data={getCityList()}
               keyExtractor={(item) => item}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -422,13 +491,15 @@ const AddressEditScreen = ({ route, navigation }: any) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Province</Text>
+              <Text style={styles.modalTitle}>
+                {country === 'Canada' ? 'Select Province' : 'Select City'}
+              </Text>
               <TouchableOpacity onPress={() => setShowProvinceModal(false)}>
                 <Ionicons name="close" size={24} color={Colors.text} />
               </TouchableOpacity>
             </View>
             <FlatList
-              data={CANADIAN_PROVINCES}
+              data={getProvinceList()}
               keyExtractor={(item) => item.code}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -451,9 +522,59 @@ const AddressEditScreen = ({ route, navigation }: any) => {
                     >
                       {item.name}
                     </Text>
-                    <Text style={styles.modalItemSubtext}>{item.code}</Text>
+                    {country === 'Canada' && (
+                      <Text style={styles.modalItemSubtext}>{item.code}</Text>
+                    )}
                   </View>
                   {province === item.code && (
+                    <Ionicons name="checkmark" size={24} color={Colors.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Country Seçim Modal (Country Selection Modal) */}
+      <Modal
+        visible={showCountryModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCountryModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Country</Text>
+              <TouchableOpacity onPress={() => setShowCountryModal(false)}>
+                <Ionicons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={countries}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.modalItem,
+                    country === item && styles.modalItemActive,
+                  ]}
+                  onPress={() => {
+                    setCountry(item as 'Canada' | 'Turkey');
+                    setShowCountryModal(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      country === item && styles.modalItemTextActive,
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                  {country === item && (
                     <Ionicons name="checkmark" size={24} color={Colors.primary} />
                   )}
                 </TouchableOpacity>
