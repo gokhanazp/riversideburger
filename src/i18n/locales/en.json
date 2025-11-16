@@ -837,6 +837,7 @@
         "autoCloseDesc": "Store will automatically open/close based on working hours",
         "autoCloseEnabled": "Auto close enabled",
         "autoCloseDisabled": "Auto close disabled",
+        "tapToEdit": "Tap to edit",
         "weekSchedule": "Weekly Schedule",
         "closed": "Closed",
         "monday": "Monday",

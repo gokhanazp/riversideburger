@@ -837,6 +837,7 @@
         "autoCloseDesc": "Çalışma saatlerine göre mağaza otomatik olarak açılıp kapanacak",
         "autoCloseEnabled": "Otomatik kapanma aktif",
         "autoCloseDisabled": "Otomatik kapanma kapalı",
+        "tapToEdit": "Düzenlemek için dokunun",
         "weekSchedule": "Haftalık Program",
         "closed": "Kapalı",
         "monday": "Pazartesi",

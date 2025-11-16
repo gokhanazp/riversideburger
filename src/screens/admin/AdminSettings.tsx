@@ -397,16 +397,31 @@ const AdminSettings = ({ navigation }: any) => {
           <TouchableOpacity
             style={styles.workingHoursButton}
             onPress={() => setShowWorkingHoursModal(true)}
+            activeOpacity={0.7}
           >
             <View style={styles.workingHoursInfo}>
-              <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
-              <Text style={styles.workingHoursText}>
-                {settings.auto_close_enabled
-                  ? t('admin.settings.workingHours.autoCloseEnabled')
-                  : t('admin.settings.workingHours.autoCloseDisabled')}
-              </Text>
+              <View style={[
+                styles.workingHoursIconContainer,
+                settings.auto_close_enabled && styles.workingHoursIconContainerActive
+              ]}>
+                <Ionicons
+                  name={settings.auto_close_enabled ? "time" : "time-outline"}
+                  size={22}
+                  color={settings.auto_close_enabled ? Colors.primary : Colors.textSecondary}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.workingHoursText}>
+                  {settings.auto_close_enabled
+                    ? t('admin.settings.workingHours.autoCloseEnabled')
+                    : t('admin.settings.workingHours.autoCloseDisabled')}
+                </Text>
+                <Text style={styles.workingHoursSubtext}>
+                  {t('admin.settings.workingHours.tapToEdit')}
+                </Text>
+              </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+            <Ionicons name="chevron-forward" size={24} color={Colors.primary} />
           </TouchableOpacity>
         </SettingCard>
 
@@ -568,20 +583,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.background,
-    padding: Spacing.medium,
-    borderRadius: BorderRadius.small,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: Colors.card,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: BorderRadius.medium,
+    borderWidth: 2,
+    borderColor: Colors.primary + '20',
+    ...Shadows.small,
   },
   workingHoursInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.small,
+    gap: 14,
+    flex: 1,
+  },
+  workingHoursIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.border,
+  },
+  workingHoursIconContainerActive: {
+    backgroundColor: Colors.primary + '10',
+    borderColor: Colors.primary + '30',
   },
   workingHoursText: {
-    fontSize: FontSizes.medium,
+    fontSize: 16,
     color: Colors.text,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  workingHoursSubtext: {
+    fontSize: 13,
+    color: Colors.textSecondary,
     fontWeight: '500',
   },
   footer: {
