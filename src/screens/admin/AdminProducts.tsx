@@ -252,8 +252,11 @@ const AdminProducts = ({ navigation }: any) => {
       }
 
       // Form data'yı güncelle (Update form data)
-      setFormData({ ...formData, image_url: imageUrl });
+      console.log('📝 Form data güncelleniyor, yeni image_url:', imageUrl);
+      const newFormData = { ...formData, image_url: imageUrl };
+      setFormData(newFormData);
       setSelectedFile(file);
+      console.log('✅ Form data güncellendi:', JSON.stringify(newFormData, null, 2));
 
       Toast.show({
         type: 'success',
@@ -275,8 +278,13 @@ const AdminProducts = ({ navigation }: any) => {
   // Ürün kaydet (Save product)
   const handleSaveProduct = async () => {
     try {
+      console.log('🚀 handleSaveProduct çağrıldı');
+      console.log('📋 Form Data:', JSON.stringify(formData, null, 2));
+      console.log('🆔 Selected Product:', selectedProduct?.id);
+
       // Validasyon (Validation)
       if (!formData.name || !formData.price || !formData.image_url) {
+        console.log('❌ Validasyon hatası: Eksik alanlar');
         Toast.show({
           type: 'error',
           text1: t('admin.error'),
@@ -287,6 +295,7 @@ const AdminProducts = ({ navigation }: any) => {
 
       // Kategori kontrolü (Category validation)
       if (!formData.category_id) {
+        console.log('❌ Validasyon hatası: Kategori seçilmemiş');
         Toast.show({
           type: 'error',
           text1: t('admin.error'),
@@ -298,6 +307,7 @@ const AdminProducts = ({ navigation }: any) => {
       // Fiyat kontrolü (Price validation)
       const priceValue = parseFloat(formData.price);
       if (isNaN(priceValue) || priceValue <= 0) {
+        console.log('❌ Validasyon hatası: Geçersiz fiyat:', formData.price);
         Toast.show({
           type: 'error',
           text1: t('admin.error'),
@@ -305,6 +315,8 @@ const AdminProducts = ({ navigation }: any) => {
         });
         return;
       }
+
+      console.log('✅ Validasyon başarılı, fiyat:', priceValue);
 
       const productData = {
         name: formData.name.trim(),
@@ -366,10 +378,13 @@ const AdminProducts = ({ navigation }: any) => {
         });
       }
 
+      console.log('🎉 Modal kapatılıyor ve ürünler yeniden yükleniyor...');
       setShowEditModal(false);
-      fetchProducts();
+      await fetchProducts();
+      console.log('✅ Ürünler yeniden yüklendi');
     } catch (error: any) {
       console.error('❌ Error saving product:', error);
+      console.error('❌ Error stack:', error.stack);
       Toast.show({
         type: 'error',
         text1: t('admin.error'),
