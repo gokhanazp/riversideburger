@@ -462,6 +462,8 @@
     "subtitle": "Enter your delivery address",
     "addressTitle": "Address Title",
     "addressTitlePlaceholder": "Home, Work, etc.",
+    "contactInformation": "Contact Information",
+    "addressDetails": "Address Details",
     "fullName": "Full Name",
     "fullNamePlaceholder": "Recipient name",
     "phone": "Phone",
@@ -476,6 +478,8 @@
     "cityPlaceholder": "Select city",
     "province": "Province",
     "provincePlaceholder": "Select province",
+    "district": "District",
+    "districtPlaceholder": "Select district",
     "postalCode": "Postal Code",
     "postalCodePlaceholder": "M5H 2N2",
     "deliveryInstructions": "Delivery Instructions (Optional)",
@@ -490,6 +494,9 @@
     "errorSave": "An error occurred while saving address",
     "selectCity": "Select City",
     "selectProvince": "Select Province",
+    "selectDistrict": "Select District",
+    "noDistricts": "No Districts Found",
+    "noDistrictsDesc": "District list has not been added for this province yet",
     "cancel": "Cancel"
   },
   "admin": {
