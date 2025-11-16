@@ -641,7 +641,7 @@ const AdminProducts = ({ navigation }: any) => {
                   placeholder={t('admin.products.pricePlaceholder')}
                   placeholderTextColor="#999"
                   value={formData.price}
-                  onChangeText={(text) => setFormData({ ...formData, name: text })}
+                  onChangeText={(text) => setFormData({ ...formData, price: text })}
                   keyboardType="decimal-pad"
                 />
                 <Text style={styles.helperText}>
