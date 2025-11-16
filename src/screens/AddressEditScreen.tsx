@@ -62,7 +62,11 @@ const AddressEditScreen = ({ route, navigation }: any) => {
   const [showCityModal, setShowCityModal] = useState(false); // Kanada şehir seçimi
 
   // Adres başlıkları (Address titles)
-  const addressTitles = ['Home', 'Work', 'Other'];
+  const addressTitles = [
+    t('addressEdit.home'),
+    t('addressEdit.work'),
+    t('addressEdit.other')
+  ];
 
   // Admin settings'den ülke bilgisini yükle (Load country from admin settings)
   useEffect(() => {
@@ -321,7 +325,7 @@ const AddressEditScreen = ({ route, navigation }: any) => {
               <Ionicons name="call-outline" size={20} color={Colors.primary} />
               <TextInput
                 style={styles.textInput}
-                placeholder={country === 'canada' ? '(416) 555-1234' : '0(555) 123 45 67'}
+                placeholder={t('addressEdit.phonePlaceholder')}
                 placeholderTextColor="#999"
                 value={phone}
                 onChangeText={setPhone}
@@ -336,21 +340,53 @@ const AddressEditScreen = ({ route, navigation }: any) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('addressEdit.addressDetails')}</Text>
 
-          <View style={styles.row}>
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.label}>{t('addressEdit.streetNumber')} *</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder={t('addressEdit.streetNumberPlaceholder')}
-                  placeholderTextColor="#999"
-                  value={streetNumber}
-                  onChangeText={setStreetNumber}
-                  keyboardType="number-pad"
-                />
-              </View>
+          {/* Türkiye için İl seçimi (Province selection for Turkey) */}
+          {country === 'turkey' && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('addressEdit.province')} *</Text>
+              <TouchableOpacity
+                style={styles.selectButton}
+                onPress={() => setShowProvinceModal(true)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="map-outline" size={20} color={Colors.primary} />
+                <Text style={styles.selectButtonText}>{province}</Text>
+                <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+              </TouchableOpacity>
             </View>
+          )}
 
+          {/* Türkiye için İlçe seçimi (District selection for Turkey) */}
+          {country === 'turkey' && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('addressEdit.district')} *</Text>
+              <TouchableOpacity
+                style={styles.selectButton}
+                onPress={() => {
+                  if (getDistrictList().length > 0) {
+                    setShowDistrictModal(true);
+                  } else {
+                    Toast.show({
+                      type: 'info',
+                      text1: t('addressEdit.noDistricts'),
+                      text2: t('addressEdit.noDistrictsDesc'),
+                    });
+                  }
+                }}
+                activeOpacity={0.7}
+                disabled={getDistrictList().length === 0}
+              >
+                <Ionicons name="location-outline" size={20} color={Colors.primary} />
+                <Text style={[styles.selectButtonText, !district && { color: '#999' }]}>
+                  {district || t('addressEdit.selectDistrict')}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Sokak Adı ve Bina No (Street Name and Number) */}
+          <View style={styles.row}>
             <View style={[styles.inputGroup, { flex: 2 }]}>
               <Text style={styles.label}>{t('addressEdit.streetName')} *</Text>
               <View style={styles.inputContainer}>
@@ -364,8 +400,23 @@ const AddressEditScreen = ({ route, navigation }: any) => {
                 />
               </View>
             </View>
+
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.label}>{t('addressEdit.streetNumber')} *</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder={t('addressEdit.streetNumberPlaceholder')}
+                  placeholderTextColor="#999"
+                  value={streetNumber}
+                  onChangeText={setStreetNumber}
+                  keyboardType="number-pad"
+                />
+              </View>
+            </View>
           </View>
 
+          {/* Daire No (Unit Number) */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t('addressEdit.unitNumber')}</Text>
             <View style={styles.inputContainer}>
@@ -414,58 +465,13 @@ const AddressEditScreen = ({ route, navigation }: any) => {
             </View>
           )}
 
-          {/* Türkiye için İl seçimi (Province selection for Turkey) */}
-          {country === 'turkey' && (
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('addressEdit.province')} *</Text>
-              <TouchableOpacity
-                style={styles.selectButton}
-                onPress={() => setShowProvinceModal(true)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="map-outline" size={20} color={Colors.primary} />
-                <Text style={styles.selectButtonText}>{province}</Text>
-                <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Türkiye için İlçe seçimi (District selection for Turkey) */}
-          {country === 'turkey' && (
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('addressEdit.district')} *</Text>
-              <TouchableOpacity
-                style={styles.selectButton}
-                onPress={() => {
-                  if (getDistrictList().length > 0) {
-                    setShowDistrictModal(true);
-                  } else {
-                    Toast.show({
-                      type: 'info',
-                      text1: t('addressEdit.noDistricts'),
-                      text2: t('addressEdit.noDistrictsDesc'),
-                    });
-                  }
-                }}
-                activeOpacity={0.7}
-                disabled={getDistrictList().length === 0}
-              >
-                <Ionicons name="location-outline" size={20} color={Colors.primary} />
-                <Text style={[styles.selectButtonText, !district && { color: '#999' }]}>
-                  {district || t('addressEdit.selectDistrict')}
-                </Text>
-                <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-          )}
-
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t('addressEdit.postalCode')} *</Text>
             <View style={styles.inputContainer}>
               <Ionicons name="mail-outline" size={20} color={Colors.primary} />
               <TextInput
                 style={styles.textInput}
-                placeholder={country === 'canada' ? 'M5H 2N2' : '34000'}
+                placeholder={t('addressEdit.postalCodePlaceholder')}
                 placeholderTextColor="#999"
                 value={postalCode}
                 onChangeText={setPostalCode}
