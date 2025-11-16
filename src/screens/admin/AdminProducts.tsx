@@ -127,6 +127,7 @@ const AdminProducts = ({ navigation }: any) => {
     try {
       setLoading(true);
       console.log('🔍 Fetching products, filter:', filterCategory);
+      console.log('🕐 Fetch time:', new Date().toISOString());
 
       let query = supabase
         .from('products')
@@ -146,7 +147,19 @@ const AdminProducts = ({ navigation }: any) => {
       }
 
       console.log('✅ Products fetched:', data?.length || 0);
+
+      // İlk 3 ürünün detaylarını göster
+      if (data && data.length > 0) {
+        console.log('📦 İlk ürün:', {
+          id: data[0].id,
+          name: data[0].name,
+          price: data[0].price,
+          image_url: data[0].image_url?.substring(0, 50) + '...',
+        });
+      }
+
       setProducts(data || []);
+      console.log('✅ Products state güncellendi');
     } catch (error: any) {
       console.error('❌ Error fetching products:', error);
       Toast.show({
@@ -338,6 +351,7 @@ const AdminProducts = ({ navigation }: any) => {
         // Güncelle (Update)
         console.log('🔄 Updating product ID:', selectedProduct.id);
         console.log('📝 Update data:', JSON.stringify(productData, null, 2));
+        console.log('📝 Original product data:', JSON.stringify(selectedProduct, null, 2));
 
         const { data, error } = await supabase
           .from('products')
@@ -351,8 +365,14 @@ const AdminProducts = ({ navigation }: any) => {
           throw error;
         }
 
+        if (!data || data.length === 0) {
+          console.error('⚠️ Update başarılı ama data boş döndü!');
+          throw new Error('Update başarılı ama veri döndürülmedi');
+        }
+
         console.log('✅ Product updated successfully!');
         console.log('✅ Updated data:', JSON.stringify(data, null, 2));
+        console.log('✅ Updated product:', data[0]);
 
         Toast.show({
           type: 'success',
@@ -382,8 +402,22 @@ const AdminProducts = ({ navigation }: any) => {
 
       console.log('🎉 Modal kapatılıyor ve ürünler yeniden yükleniyor...');
       setShowEditModal(false);
+
+      // Kısa bir gecikme ekleyelim (Supabase'in cache'i güncellemesi için)
+      console.log('⏳ 500ms bekleniyor...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      console.log('🔄 fetchProducts çağrılıyor...');
       await fetchProducts();
       console.log('✅ Ürünler yeniden yüklendi');
+
+      // Güncellenmiş ürünü kontrol et
+      const updatedProduct = products.find(p => p.id === selectedProduct?.id);
+      if (updatedProduct) {
+        console.log('🔍 Güncellenmiş ürün listede:', JSON.stringify(updatedProduct, null, 2));
+      } else {
+        console.warn('⚠️ Güncellenmiş ürün listede bulunamadı!');
+      }
     } catch (error: any) {
       console.error('❌ Error saving product:', error);
       console.error('❌ Error stack:', error.stack);
