@@ -8,11 +8,19 @@ import Constants from 'expo-constants';
 if (Platform.OS !== 'web') {
   // Bildirim davranışını ayarla (Notification behavior configuration)
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true, // Bildirim göster (Show notification)
-      shouldPlaySound: true, // Ses çal (Play sound)
-      shouldSetBadge: true, // Badge göster (Show badge)
-    }),
+    handleNotification: async (notification) => {
+      // Admin sipariş bildirimleri için özel ayarlar
+      // (Special settings for admin order notifications)
+      const isAdminOrder = notification.request.content.data?.type === 'new_order_admin';
+
+      return {
+        shouldShowAlert: true, // Bildirim göster (Show notification)
+        shouldPlaySound: true, // Ses çal (Play sound)
+        shouldSetBadge: true, // Badge göster (Show badge)
+        // iOS için kritik bildirim (Critical notification for iOS)
+        priority: isAdminOrder ? Notifications.AndroidNotificationPriority.MAX : Notifications.AndroidNotificationPriority.HIGH,
+      };
+    },
   });
 }
 
@@ -42,15 +50,26 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
 
     // İzin yoksa iste (Request permission if not granted)
     if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
+      // iOS için tüm izinleri iste (Request all permissions for iOS)
+      const { status } = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+          allowAnnouncements: true,
+          allowCriticalAlerts: false, // Kritik uyarılar için özel izin gerekir (Requires special entitlement)
+        },
+      });
       finalStatus = status;
     }
 
     // İzin verilmediyse çık (Exit if permission not granted)
     if (finalStatus !== 'granted') {
-      console.log('Bildirim izni verilmedi');
+      console.log('❌ Bildirim izni verilmedi');
       return undefined;
     }
+
+    console.log('✅ Bildirim izni verildi');
 
     // Push token al (Get push token)
     // Expo Go'da projectId olmayabilir, bu durumda yerel bildirimler çalışır
@@ -93,6 +112,18 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
       sound: 'default',
     });
 
+    // Admin sipariş bildirimleri kanalı - Daha yüksek öncelik, uzun titreşim ve özel ses
+    // (Admin order notifications channel - Higher priority, longer vibration and custom sound)
+    await Notifications.setNotificationChannelAsync('admin_orders', {
+      name: 'Admin Sipariş Bildirimleri',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 500, 200, 500, 200, 500], // Üç kez titreşim (Triple vibration)
+      lightColor: '#E63946',
+      sound: 'order-sound.mp3', // Özel sipariş sesi (Custom order sound)
+      enableLights: true,
+      enableVibrate: true,
+    });
+
     // Kampanya bildirimleri kanalı (Campaign notifications channel)
     await Notifications.setNotificationChannelAsync('promotions', {
       name: 'Kampanya Bildirimleri',
@@ -108,26 +139,61 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
 
 /**
  * Yerel bildirim gönder (Send local notification)
+ * iOS'ta uygulama açıkken de bildirim gösterir
+ * (Shows notification even when app is open on iOS)
+ *
+ * @param customSound - Özel ses dosyası (örn: 'order-sound.mp3')
  */
 export async function sendLocalNotification(
   title: string,
   body: string,
   data?: any,
-  channelId: string = 'default'
+  channelId: string = 'default',
+  priority: Notifications.AndroidNotificationPriority = Notifications.AndroidNotificationPriority.HIGH,
+  customSound?: string // Özel ses dosyası (Custom sound file)
 ) {
   try {
+    // iOS için özel ayarlar (Special settings for iOS)
+    const iosConfig = Platform.OS === 'ios' ? {
+      _displayInForeground: true, // iOS'ta ön planda göster (Show in foreground on iOS)
+    } : {};
+
+    // Ses ayarı (Sound configuration)
+    // iOS: .mp3 uzantısı olmadan, Android: tam dosya adı ile
+    // (iOS: without .mp3 extension, Android: with full filename)
+    let soundConfig: string | boolean = true;
+    if (customSound) {
+      if (Platform.OS === 'ios') {
+        // iOS için uzantıyı kaldır (Remove extension for iOS)
+        soundConfig = customSound.replace('.mp3', '');
+      } else {
+        // Android için tam dosya adı (Full filename for Android)
+        soundConfig = customSound;
+      }
+    }
+
     await Notifications.scheduleNotificationAsync({
       content: {
         title,
         body,
         data,
-        sound: true,
-        priority: Notifications.AndroidNotificationPriority.HIGH,
+        sound: soundConfig,
+        priority: priority,
+        vibrate: channelId === 'admin_orders' ? [0, 500, 200, 500, 200, 500] : [0, 250, 250, 250],
+        ...iosConfig,
       },
       trigger: null, // Hemen gönder (Send immediately)
     });
+
+    console.log('✅ Yerel bildirim gönderildi:', {
+      title,
+      body,
+      channelId,
+      sound: soundConfig,
+      platform: Platform.OS
+    });
   } catch (error) {
-    console.error('Yerel bildirim gönderilemedi:', error);
+    console.error('❌ Yerel bildirim gönderilemedi:', error);
   }
 }
 
@@ -191,13 +257,21 @@ export async function sendPromotionNotification(title: string, message: string, 
 
 /**
  * Admin: Yeni sipariş bildirimi (Admin: New order notification)
+ * Özel kanal, maksimum öncelik ve özel ses ile gönderilir
+ * (Sent with special channel, maximum priority and custom sound)
  */
 export async function sendNewOrderNotificationToAdmin(orderId: string, customerName: string, total: number) {
+  // Para birimi formatla (Format with currency)
+  const { formatPrice } = await import('./currencyService');
+  const formattedPrice = formatPrice(total);
+
   await sendLocalNotification(
-    '🔔 Yeni Sipariş!',
-    `${customerName} - ₺${total.toFixed(2)}`,
+    '🔔 YENİ SİPARİŞ!',
+    `${customerName} - ${formattedPrice}`,
     { orderId, type: 'new_order_admin' },
-    'orders'
+    'admin_orders', // Özel admin kanalı (Special admin channel)
+    Notifications.AndroidNotificationPriority.MAX, // Maksimum öncelik (Maximum priority)
+    'order-sound.mp3' // Özel sipariş sesi (Custom order sound)
   );
 }
 
@@ -283,6 +357,8 @@ export async function sendPushNotificationToAdmins(title: string, body: string, 
     }
 
     // Expo Push Notification API'ye istek gönder
+    // Admin bildirimleri için özel kanal ve maksimum öncelik
+    // (Special channel and maximum priority for admin notifications)
     const messages = tokens.map((t) => ({
       to: t.token,
       sound: 'default',
@@ -290,7 +366,8 @@ export async function sendPushNotificationToAdmins(title: string, body: string, 
       body: body,
       data: data || {},
       priority: 'high',
-      channelId: 'orders',
+      channelId: data?.type === 'new_order_admin' ? 'admin_orders' : 'orders',
+      badge: 1, // Badge sayısını artır (Increment badge count)
     }));
 
     console.log(`📤 ${messages.length} admin'e push notification gönderiliyor...`);

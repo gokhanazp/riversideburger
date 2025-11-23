@@ -28,6 +28,7 @@ import {
   savePushToken,
 } from './src/services/notificationService';
 import { getAppSettings } from './src/services/appSettingsService';
+import { loadCurrency } from './src/services/currencyService';
 import i18n from './src/i18n';
 
 // Stripe Publishable Key (Test Mode)
@@ -55,6 +56,9 @@ export default function App() {
       // Dili ayarla (Set language)
       await i18n.changeLanguage(settings.language);
 
+      // Para birimini yükle (Load currency)
+      await loadCurrency();
+
       console.log('🌍 Uygulama ayarları yüklendi:', settings);
     };
     initializeApp();
@@ -71,20 +75,30 @@ export default function App() {
     // Push notification izni iste ve token al (Request push notification permission and get token)
     registerForPushNotificationsAsync().then((token) => {
       if (token && user.id) {
+        console.log('✅ Push token alındı, kaydediliyor...');
         // Token'ı Supabase'e kaydet (Save token to Supabase)
         const deviceType = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
         savePushToken(user.id, token, deviceType);
+      } else {
+        console.log('ℹ️ Push token alınamadı (Expo Go modunda normal)');
       }
     });
 
     // Bildirim geldiğinde (When notification is received)
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-      console.log('Bildirim alındı:', notification);
+      console.log('📬 Bildirim alındı:', {
+        title: notification.request.content.title,
+        body: notification.request.content.body,
+        data: notification.request.content.data,
+      });
     });
 
     // Bildirime tıklandığında (When notification is tapped)
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log('Bildirime tıklandı:', response);
+      console.log('👆 Bildirime tıklandı:', {
+        title: response.notification.request.content.title,
+        data: response.notification.request.content.data,
+      });
       // Badge sayısını temizle (Clear badge count)
       clearBadgeCount();
     });

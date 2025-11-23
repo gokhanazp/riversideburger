@@ -175,12 +175,14 @@ const CartScreen = ({ navigation }: any) => {
     navigation.navigate('Login');
   };
 
-  // Sipariş onayı - Ödeme ekranına yönlendir (Checkout confirm - Navigate to payment screen)
+  // Sipariş onayı - Direkt sipariş oluştur (Checkout confirm - Create order directly)
+  // ÖNEMLİ: Ödeme sistemi geçici olarak devre dışı (IMPORTANT: Payment system temporarily disabled)
   const handleCheckoutConfirm = async () => {
     if (!user) return;
 
     try {
       setShowCheckoutModal(false);
+      setIsCreatingOrder(true);
 
       // Adres bilgisini hazırla (Prepare address info)
       const fullAddress = selectedAddress
@@ -189,27 +191,59 @@ const CartScreen = ({ navigation }: any) => {
           }, ${selectedAddress.city}, ${selectedAddress.province} ${selectedAddress.postal_code}`
         : 'Adres belirtilmedi';
 
-      console.log('💳 Navigating to payment screen with data:', {
+      console.log('📦 Creating order directly (payment disabled):', {
         totalAmount: getFinalPrice(),
-        currency: 'CAD',
         deliveryAddress: fullAddress,
         phone: selectedAddress?.phone || user.phone,
         pointsUsed: pointsToUse,
       });
 
-      // Ödeme ekranına yönlendir (Navigate to payment screen)
-      navigation.navigate('Payment', {
-        totalAmount: getFinalPrice(), // İndirimli fiyat (Discounted price)
-        currency: 'CAD', // Para birimi (Currency)
-        deliveryAddress: fullAddress,
+      // Sipariş kalemlerini hazırla (Prepare order items)
+      const orderItems = items.map((item) => ({
+        product_id: item.id,
+        product_name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        subtotal: item.price * item.quantity,
+        customizations: item.selectedOptions?.map((opt) => ({
+          option_id: opt.id,
+          option_name: opt.name,
+          option_price: opt.price,
+        })),
+        specialInstructions: item.specialInstructions,
+      }));
+
+      // Siparişi oluştur (Create order)
+      const order = await createOrder({
+        user_id: user.id,
+        total_amount: getFinalPrice(),
+        delivery_address: fullAddress,
         phone: selectedAddress?.phone || user.phone || 'Telefon belirtilmedi',
         notes: pointsToUse > 0 ? `${pointsToUse.toFixed(2)} puan kullanıldı` : '',
-        pointsUsed: pointsToUse,
-        addressId: selectedAddress?.id || null,
+        items: orderItems,
+        points_used: pointsToUse,
+        address_id: selectedAddress?.id || null,
       });
 
+      console.log('✅ Order created successfully:', order.id);
+
+      // Sepeti temizle (Clear cart)
+      clearCart();
+
+      // Başarı mesajı (Success message)
+      Toast.show({
+        type: 'success',
+        text1: '✅ Sipariş Oluşturuldu!',
+        text2: `Sipariş numaranız: ${order.order_number}`,
+        visibilityTime: 4000,
+        topOffset: 60,
+      });
+
+      // Sipariş geçmişi ekranına yönlendir (Navigate to order history)
+      navigation.navigate('OrderHistory');
+
     } catch (error: any) {
-      console.error('❌ Error navigating to payment:', error);
+      console.error('❌ Error creating order:', error);
       Toast.show({
         type: 'error',
         text1: t('cart.error'),
@@ -217,6 +251,8 @@ const CartScreen = ({ navigation }: any) => {
         visibilityTime: 3000,
         topOffset: 60,
       });
+    } finally {
+      setIsCreatingOrder(false);
     }
   };
 
@@ -461,11 +497,19 @@ const CartScreen = ({ navigation }: any) => {
             </View>
 
             <TouchableOpacity
-              style={styles.checkoutButton}
+              style={[styles.checkoutButton, isCreatingOrder && styles.checkoutButtonDisabled]}
               onPress={handleCheckout}
               activeOpacity={0.8}
+              disabled={isCreatingOrder}
             >
-              <Text style={styles.checkoutButtonText}>{t('cart.confirmOrder')}</Text>
+              {isCreatingOrder ? (
+                <View style={styles.checkoutButtonContent}>
+                  <ActivityIndicator color={Colors.white} size="small" />
+                  <Text style={styles.checkoutButtonText}>Sipariş Oluşturuluyor...</Text>
+                </View>
+              ) : (
+                <Text style={styles.checkoutButtonText}>{t('cart.confirmOrder')}</Text>
+              )}
             </TouchableOpacity>
           </View>
         </>
@@ -861,6 +905,15 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     marginTop: Spacing.md,
     alignItems: 'center',
+  },
+  checkoutButtonDisabled: {
+    backgroundColor: '#CCC',
+    opacity: 0.7,
+  },
+  checkoutButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   checkoutButtonText: {
     fontSize: FontSizes.lg,

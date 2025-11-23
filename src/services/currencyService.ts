@@ -1,6 +1,6 @@
 // Currency Service - Para Birimi Servisi
 // Admin'in seçtiği ülkeye göre para birimi gösterimi (Currency display based on admin's country selection)
-import i18n from '../i18n';
+import { getAppSettings } from './appSettingsService';
 
 // Para birimi tipleri (Currency types)
 export type Currency = 'TRY' | 'CAD';
@@ -21,11 +21,25 @@ export const CURRENCIES = {
   },
 };
 
+// Global currency cache (to avoid multiple async calls)
+let cachedCurrency: Currency = 'CAD'; // Default
+
 // Mevcut para birimini al (Get current currency)
-// Dil seçimine göre otomatik belirlenir (Automatically determined by language selection)
+// App settings'ten para birimini alır (Gets currency from app settings)
 export const getCurrentCurrency = (): Currency => {
-  const currentLanguage = i18n.language;
-  return currentLanguage === 'tr' ? 'TRY' : 'CAD';
+  return cachedCurrency;
+};
+
+// Para birimini yükle ve cache'e al (Load and cache currency)
+export const loadCurrency = async (): Promise<Currency> => {
+  try {
+    const settings = await getAppSettings();
+    cachedCurrency = settings.currency;
+    return cachedCurrency;
+  } catch (error) {
+    console.error('Error loading currency:', error);
+    return cachedCurrency; // Return cached or default
+  }
 };
 
 // Para birimi bilgisini al (Get currency info)

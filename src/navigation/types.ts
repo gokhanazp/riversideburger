@@ -18,15 +18,16 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
-  Payment: {
-    totalAmount: number;
-    currency: string;
-    deliveryAddress: string;
-    phone: string;
-    notes: string;
-    pointsUsed: number;
-    addressId: string | null;
-  }; // Ödeme ekranı (Payment screen)
+  // Payment ekranı geçici olarak devre dışı (Payment screen temporarily disabled)
+  // Payment: {
+  //   totalAmount: number;
+  //   currency: string;
+  //   deliveryAddress: string;
+  //   phone: string;
+  //   notes: string;
+  //   pointsUsed: number;
+  //   addressId: string | null;
+  // };
   OrderHistory: undefined;
   PointsHistory: undefined;
   ProfileEdit: undefined;

@@ -17,6 +17,7 @@ import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constan
 import { supabase } from '../../lib/supabase';
 import { User } from '../../types/database.types';
 import Toast from 'react-native-toast-message';
+import { formatPrice } from '../../services/currencyService';
 
 // Admin Kullanıcılar Ekranı (Admin Users Screen)
 const AdminUsers = ({ navigation }: any) => {
@@ -406,7 +407,7 @@ const AdminUsers = ({ navigation }: any) => {
                   </View>
                   <View style={[styles.statBox, { width: '100%' }]}>
                     <Text style={[styles.statValue, { color: Colors.primary }]}>
-                      ₺{((selectedUser as any).totalSpent || 0).toFixed(2)}
+                      {formatPrice((selectedUser as any).totalSpent || 0)}
                     </Text>
                     <Text style={styles.statLabel}>Toplam Harcama</Text>
                   </View>

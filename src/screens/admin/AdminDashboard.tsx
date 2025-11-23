@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
 import Toast from 'react-native-toast-message';
+import { formatPrice } from '../../services/currencyService';
 
 // Admin Dashboard Ekranı (Admin Dashboard Screen)
 const AdminDashboard = ({ navigation }: any) => {
@@ -221,7 +222,7 @@ const AdminDashboard = ({ navigation }: any) => {
           <StatCard
             iconName="cash"
             title={t('admin.totalRevenue')}
-            value={`₺${stats.totalRevenue.toFixed(2)}`}
+            value={formatPrice(stats.totalRevenue)}
             color="#28A745"
           />
           <StatCard

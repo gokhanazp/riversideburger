@@ -22,6 +22,8 @@ import * as Print from 'expo-print';
 import { shareAsync } from 'expo-sharing';
 import { useTranslation } from 'react-i18next';
 import { sendLocalNotification } from '../../services/notificationService';
+import * as Notifications from 'expo-notifications';
+import { formatPrice } from '../../services/currencyService';
 
 // Sipariş durumu renkleri (Order status colors)
 const STATUS_COLORS: Record<OrderStatus, string> = {
@@ -43,6 +45,14 @@ const AdminOrders = ({ navigation, route }: any) => {
   useLayoutEffect(() => {
     navigation.setOptions({
       title: t('admin.screenTitles.orderManagement'),
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={sendTestNotification}
+          style={{ marginRight: 15 }}
+        >
+          <Ionicons name="notifications-outline" size={24} color={Colors.primary} />
+        </TouchableOpacity>
+      ),
     });
   }, [navigation, t, i18n.language]);
 
@@ -105,23 +115,41 @@ const AdminOrders = ({ navigation, route }: any) => {
           }
 
           // Yerel bildirim gönder (Send local notification) - Sadece mobil cihazlarda
+          // Özel admin kanalı ve maksimum öncelik ile
+          // (Send with special admin channel and maximum priority)
           if (Platform.OS !== 'web') {
             const customerName = (orderData as any).user?.full_name || 'Müşteri';
             const total = orderData.total_amount;
 
-            await sendLocalNotification(
-              '🔔 Yeni Sipariş!',
-              `${customerName} - ₺${total.toFixed(2)}`,
-              { orderId: orderData.id, type: 'new_order_admin' },
-              'orders'
-            );
+            console.log('📱 Yerel bildirim gönderiliyor...', {
+              platform: Platform.OS,
+              customerName,
+              total,
+              orderId: orderData.id,
+            });
+
+            try {
+              await sendLocalNotification(
+                '🔔 YENİ SİPARİŞ!',
+                `${customerName} - ${formatPrice(total)}`,
+                { orderId: orderData.id, type: 'new_order_admin' },
+                'admin_orders', // Özel admin kanalı (Special admin channel)
+                Notifications.AndroidNotificationPriority.MAX, // Maksimum öncelik (Maximum priority)
+                'order-sound.mp3' // Özel sipariş sesi (Custom order sound)
+              );
+              console.log('✅ Yerel bildirim başarıyla gönderildi (özel ses ile)');
+            } catch (error) {
+              console.error('❌ Yerel bildirim hatası:', error);
+            }
+          } else {
+            console.log('ℹ️ Web platformunda yerel bildirim desteklenmiyor');
           }
 
           // Toast göster (Show toast)
           Toast.show({
             type: 'success',
             text1: '🔔 Yeni Sipariş!',
-            text2: `${(orderData as any).user?.full_name || 'Müşteri'} - ₺${orderData.total_amount.toFixed(2)}`,
+            text2: `${(orderData as any).user?.full_name || 'Müşteri'} - ${formatPrice(orderData.total_amount)}`,
             visibilityTime: 5000,
             autoHide: true,
           });
@@ -187,11 +215,64 @@ const AdminOrders = ({ navigation, route }: any) => {
     fetchOrders();
   };
 
+  // Test bildirimi gönder (Send test notification) - DEBUG
+  const sendTestNotification = async () => {
+    try {
+      console.log('🧪 Test bildirimi gönderiliyor...');
+
+      // İzinleri kontrol et (Check permissions)
+      const { status } = await Notifications.getPermissionsAsync();
+      console.log('📋 Bildirim izin durumu:', status);
+
+      if (status !== 'granted') {
+        Alert.alert(
+          'Bildirim İzni Gerekli',
+          'Bildirim göndermek için izin vermeniz gerekiyor.',
+          [
+            { text: 'İptal', style: 'cancel' },
+            {
+              text: 'İzin Ver',
+              onPress: async () => {
+                const { status: newStatus } = await Notifications.requestPermissionsAsync();
+                console.log('📋 Yeni izin durumu:', newStatus);
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      // Test bildirimi gönder (Send test notification)
+      await sendLocalNotification(
+        '🧪 Test Bildirimi',
+        'Bu bir test bildirimidir. Eğer bunu görüyorsanız, bildirimler çalışıyor! 🎉',
+        { type: 'test', timestamp: new Date().toISOString() },
+        'admin_orders',
+        Notifications.AndroidNotificationPriority.MAX
+      );
+
+      Toast.show({
+        type: 'success',
+        text1: '✅ Test Bildirimi Gönderildi',
+        text2: 'Bildirim çalışıyorsa görmelisiniz',
+        visibilityTime: 3000,
+      });
+    } catch (error) {
+      console.error('❌ Test bildirimi hatası:', error);
+      Alert.alert('Hata', 'Test bildirimi gönderilemedi: ' + error);
+    }
+  };
+
   // Sipariş yazdır (Print order)
   const handlePrintOrder = async (order: Order) => {
     try {
       // Özelleştirmeleri al (Get customizations)
       const allCustomizations = (order as any).order_item_customizations || [];
+
+      // Para birimi sembolünü al (Get currency symbol)
+      const { getCurrencyInfo } = await import('../../services/currencyService');
+      const currencyInfo = getCurrencyInfo();
+      const currencySymbol = currencyInfo.symbol;
 
       // HTML içeriği oluştur (Create HTML content)
       const html = `
@@ -348,14 +429,14 @@ const AdminOrders = ({ navigation, route }: any) => {
                   (c: any) => c.product_id === item.product_id
                 );
                 const customizationsHtml = customizations.map((custom: any) =>
-                  `<div class="customization">• ${custom.option_name}${custom.option_price > 0 ? ` (+₺${custom.option_price.toFixed(2)})` : ''}</div>`
+                  `<div class="customization">• ${custom.option_name}${custom.option_price > 0 ? ` (+${currencySymbol}${custom.option_price.toFixed(2)})` : ''}</div>`
                 ).join('');
 
                 return `
                   <div class="product-item">
                     <div class="product-header">
                       <span>${item.quantity}x ${item.product?.name || 'Ürün'}</span>
-                      <span>₺${item.subtotal.toFixed(2)}</span>
+                      <span>${currencySymbol}${item.subtotal.toFixed(2)}</span>
                     </div>
                     ${customizationsHtml}
                   </div>
@@ -375,7 +456,7 @@ const AdminOrders = ({ navigation, route }: any) => {
             <div class="total">
               <div class="total-row">
                 <span>TOPLAM:</span>
-                <span>₺${order.total_amount.toFixed(2)}</span>
+                <span>${currencySymbol}${order.total_amount.toFixed(2)}</span>
               </div>
               ${order.points_used > 0 ? `
                 <div style="font-size: 12px; color: #28A745; margin-top: 5px;">
@@ -488,7 +569,7 @@ const AdminOrders = ({ navigation, route }: any) => {
 
         {/* Alt kısım - Tutar ve tarih (Bottom - Amount and date) */}
         <View style={styles.orderFooter}>
-          <Text style={styles.orderAmount}>₺{order.total_amount.toFixed(2)}</Text>
+          <Text style={styles.orderAmount}>{formatPrice(order.total_amount)}</Text>
           <Text style={styles.orderDate}>
             {new Date(order.created_at).toLocaleDateString('tr-TR', {
               day: '2-digit',
@@ -682,14 +763,14 @@ const AdminOrders = ({ navigation, route }: any) => {
                                 {customizations.map((custom: any, idx: number) => (
                                   <Text key={idx} style={styles.customizationText}>
                                     • {custom.option_name}
-                                    {custom.option_price > 0 && ` (+₺${custom.option_price.toFixed(2)})`}
+                                    {custom.option_price > 0 && ` (+${formatPrice(custom.option_price)})`}
                                   </Text>
                                 ))}
                               </View>
                             )}
                           </View>
                         </View>
-                        <Text style={styles.detailProductPrice}>₺{orderItem.subtotal.toFixed(2)}</Text>
+                        <Text style={styles.detailProductPrice}>{formatPrice(orderItem.subtotal)}</Text>
                       </View>
                     );
                   })}
