@@ -48,6 +48,7 @@ export type RootStackParamList = {
   AdminCategories: undefined; // Kategori yönetimi (Category management)
   AdminUsers: undefined;
   AdminSettings: undefined;
+  AdminContactSettings: undefined; // İletişim bilgileri ayarları (Contact information settings)
   AdminBanners: undefined;
   AdminNotifications: undefined;
   AdminReviews: undefined; // Yorum yönetimi (Review management)

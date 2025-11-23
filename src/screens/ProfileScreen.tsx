@@ -10,6 +10,7 @@ import Toast from 'react-native-toast-message';
 import { getUserPoints } from '../services/pointsService';
 import { useTranslation } from 'react-i18next';
 import { formatPrice } from '../services/currencyService';
+import { getContactInfo, getPhoneLink, getEmailLink, ContactInfo } from '../services/contactService';
 
 // Profil ekranı (Profile screen)
 const ProfileScreen = ({ navigation }: any) => {
@@ -19,6 +20,7 @@ const ProfileScreen = ({ navigation }: any) => {
   const addItem = useCartStore((state) => state.addItem);
   const { user, isAuthenticated, logout } = useAuthStore();
   const [userPoints, setUserPoints] = useState<number>(0);
+  const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
 
   // Kullanıcı puanlarını yükle (Load user points)
   useEffect(() => {
@@ -26,6 +28,20 @@ const ProfileScreen = ({ navigation }: any) => {
       loadUserPoints();
     }
   }, [isAuthenticated, user]);
+
+  // İletişim bilgilerini yükle (Load contact information)
+  useEffect(() => {
+    loadContactInfo();
+  }, []);
+
+  const loadContactInfo = async () => {
+    try {
+      const info = await getContactInfo();
+      setContactInfo(info);
+    } catch (error) {
+      console.error('Error loading contact info:', error);
+    }
+  };
 
   const loadUserPoints = async () => {
     if (!user) return;
@@ -330,55 +346,81 @@ const ProfileScreen = ({ navigation }: any) => {
                 {t('profile.aboutUsText')}
               </Text>
               {/* Social Media */}
-              <View style={styles.socialContainer}>
-                <TouchableOpacity
-                  style={styles.socialButton}
-                  onPress={() => Linking.openURL('https://www.facebook.com/riversideburgers')}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="logo-facebook" size={24} color={Colors.white} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.socialButton}
-                  onPress={() => Linking.openURL('https://www.instagram.com/riversideburgers')}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="logo-instagram" size={24} color={Colors.white} />
-                </TouchableOpacity>
-              </View>
+              {contactInfo && (
+                <View style={styles.socialContainer}>
+                  {contactInfo.facebook && (
+                    <TouchableOpacity
+                      style={styles.socialButton}
+                      onPress={() => Linking.openURL(contactInfo.facebook)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="logo-facebook" size={24} color={Colors.white} />
+                    </TouchableOpacity>
+                  )}
+                  {contactInfo.instagram && (
+                    <TouchableOpacity
+                      style={styles.socialButton}
+                      onPress={() => Linking.openURL(contactInfo.instagram)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="logo-instagram" size={24} color={Colors.white} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             </View>
 
             {/* Locations - Yan yana (Side by side) */}
-            <View style={styles.footerSection}>
-              <Text style={styles.footerTitle}>{t('profile.locations')}</Text>
-              <View style={styles.locationsRow}>
-                <TouchableOpacity
-                  style={styles.locationItem}
-                  onPress={() => Linking.openURL('tel:+14168507026')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.footerText}>
-                    688 Queen Street East{'\n'}Toronto, Ontario{'\n'}(416) 850-7026
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.locationItem}
-                  onPress={() => Linking.openURL('tel:+14169356600')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.footerText}>
-                    1228 King St W{'\n'}Toronto, Ontario{'\n'}(416) 935-6600
-                  </Text>
-                </TouchableOpacity>
+            {contactInfo && (
+              <View style={styles.footerSection}>
+                <Text style={styles.footerTitle}>{t('profile.locations')}</Text>
+                <View style={styles.locationsRow}>
+                  {contactInfo.address1 && contactInfo.phone1 && (
+                    <TouchableOpacity
+                      style={styles.locationItem}
+                      onPress={() => Linking.openURL(getPhoneLink(contactInfo.phone1))}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.footerText}>
+                        {contactInfo.address1.split('\n').map((line, i) => (
+                          <React.Fragment key={i}>
+                            {line}
+                            {i < contactInfo.address1.split('\n').length - 1 && '\n'}
+                          </React.Fragment>
+                        ))}
+                        {'\n'}{contactInfo.phone1}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {contactInfo.address2 && contactInfo.phone2 && (
+                    <TouchableOpacity
+                      style={styles.locationItem}
+                      onPress={() => Linking.openURL(getPhoneLink(contactInfo.phone2))}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.footerText}>
+                        {contactInfo.address2.split('\n').map((line, i) => (
+                          <React.Fragment key={i}>
+                            {line}
+                            {i < contactInfo.address2.split('\n').length - 1 && '\n'}
+                          </React.Fragment>
+                        ))}
+                        {'\n'}{contactInfo.phone2}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                {contactInfo.email && (
+                  <TouchableOpacity
+                    onPress={() => Linking.openURL(getEmailLink(contactInfo.email))}
+                    activeOpacity={0.7}
+                    style={styles.emailButton}
+                  >
+                    <Text style={styles.footerText}>{contactInfo.email}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              <TouchableOpacity
-                onPress={() => Linking.openURL('mailto:riversideburgerss@gmail.com')}
-                activeOpacity={0.7}
-                style={styles.emailButton}
-              >
-                <Text style={styles.footerText}>riversideburgerss@gmail.com</Text>
-              </TouchableOpacity>
-            </View>
+            )}
 
             {/* Copyright */}
             <View style={styles.copyright}>
@@ -467,8 +509,9 @@ const styles = StyleSheet.create({
   },
   favoriteImage: {
     width: '100%',
-    height: 120,
+    height: 150, // Yükseklik artırıldı (Height increased from 120 to 150)
     backgroundColor: Colors.surface,
+    resizeMode: 'cover', // Görselin tam kapsaması için (For full image coverage)
   },
   favoriteBadge: {
     position: 'absolute',

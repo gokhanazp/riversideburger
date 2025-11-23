@@ -44,6 +44,7 @@ import AdminProductOptions from '../screens/admin/AdminProductOptions';
 import AdminCategories from '../screens/admin/AdminCategories';
 import AdminUsers from '../screens/admin/AdminUsers';
 import AdminSettings from '../screens/admin/AdminSettings';
+import AdminContactSettings from '../screens/admin/AdminContactSettings';
 import AdminBanners from '../screens/admin/AdminBanners';
 import AdminNotifications from '../screens/admin/AdminNotifications';
 import AdminReviews from '../screens/admin/AdminReviews';
@@ -588,6 +589,26 @@ const AppNavigator = () => {
         <Stack.Screen
           name="AdminSettings"
           component={AdminSettings}
+          options={{
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: Colors.primary,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+            },
+            headerTintColor: '#FFF',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+              fontSize: 18,
+            },
+          }}
+        />
+        <Stack.Screen
+          name="AdminContactSettings"
+          component={AdminContactSettings}
           options={{
             headerShown: true,
             headerStyle: {

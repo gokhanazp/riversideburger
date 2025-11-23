@@ -323,6 +323,13 @@ const AdminDashboard = ({ navigation }: any) => {
             onPress={() => navigation.navigate('AdminLanguageSettings')}
           />
           <MenuCard
+            iconName="call-outline"
+            title={t('admin.contactSettingsMenu')}
+            subtitle={t('admin.contactSettingsSubtitle')}
+            color="#FF6B35"
+            onPress={() => navigation.navigate('AdminContactSettings')}
+          />
+          <MenuCard
             iconName="settings-outline"
             title={t('admin.settingsMenu')}
             subtitle={t('admin.settingsSubtitle')}

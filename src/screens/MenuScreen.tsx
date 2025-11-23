@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
   },
   menuImage: {
     width: '100%',
-    height: 220, // Yükseklik artırıldı (Height increased from 180 to 220)
+    height: 260, // Yükseklik artırıldı (Height increased from 220 to 260)
     backgroundColor: Colors.surface,
     resizeMode: 'cover', // Görselin tam kapsaması için (For full image coverage)
   },

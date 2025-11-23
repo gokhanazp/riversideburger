@@ -977,9 +977,10 @@ const styles = StyleSheet.create({
     ...Shadows.small,
   },
   productImage: {
-    width: 120,
-    height: 120,
+    width: 140, // Genişlik artırıldı (Width increased from 120 to 140)
+    height: 140, // Yükseklik artırıldı (Height increased from 120 to 140)
     backgroundColor: '#F0F0F0',
+    resizeMode: 'cover', // Görselin tam kapsaması için (For full image coverage)
   },
   productInfo: {
     flex: 1,

@@ -1,6 +1,6 @@
 // Help & Support Screen - Yardım ve Destek Ekranı
 // SSS ve iletişim bilgileri (FAQ and contact information)
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,14 @@ import {
   ScrollView,
   Linking,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
+import { getContactInfo, getPhoneLink, getWhatsAppLink, getEmailLink, ContactInfo } from '../services/contactService';
 
 // SSS öğesi tipi (FAQ item type)
 interface FAQItem {
@@ -27,6 +29,24 @@ const HelpSupportScreen = () => {
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // İletişim bilgilerini yükle (Load contact information)
+  useEffect(() => {
+    loadContactInfo();
+  }, []);
+
+  const loadContactInfo = async () => {
+    try {
+      const info = await getContactInfo();
+      setContactInfo(info);
+    } catch (error) {
+      console.error('Error loading contact info:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // SSS listesi (FAQ list)
   const faqItems: FAQItem[] = i18n.language === 'tr' ? [
@@ -104,16 +124,18 @@ const HelpSupportScreen = () => {
 
   // E-posta gönder (Send email)
   const sendEmail = (type: 'support' | 'privacy') => {
-    const email = type === 'support' ? 'support@riversideburgers.com' : 'privacy@riversideburgers.com';
-    const subject = type === 'support' 
+    if (!contactInfo) return;
+
+    const email = contactInfo.email;
+    const subject = type === 'support'
       ? (i18n.language === 'tr' ? 'Destek Talebi' : 'Support Request')
       : (i18n.language === 'tr' ? 'Gizlilik Talebi' : 'Privacy Request');
-    
-    Linking.openURL(`mailto:${email}?subject=${subject}`).catch(() => {
+
+    Linking.openURL(getEmailLink(email, subject)).catch(() => {
       Alert.alert(
         i18n.language === 'tr' ? 'Hata' : 'Error',
-        i18n.language === 'tr' 
-          ? 'E-posta uygulaması açılamadı' 
+        i18n.language === 'tr'
+          ? 'E-posta uygulaması açılamadı'
           : 'Could not open email app'
       );
     });
@@ -121,11 +143,13 @@ const HelpSupportScreen = () => {
 
   // Telefon ara (Call phone)
   const callPhone = () => {
-    Linking.openURL('tel:+905551234567').catch(() => {
+    if (!contactInfo) return;
+
+    Linking.openURL(getPhoneLink(contactInfo.phone1)).catch(() => {
       Alert.alert(
         i18n.language === 'tr' ? 'Hata' : 'Error',
-        i18n.language === 'tr' 
-          ? 'Telefon uygulaması açılamadı' 
+        i18n.language === 'tr'
+          ? 'Telefon uygulaması açılamadı'
           : 'Could not open phone app'
       );
     });
@@ -133,11 +157,13 @@ const HelpSupportScreen = () => {
 
   // WhatsApp aç (Open WhatsApp)
   const openWhatsApp = () => {
-    Linking.openURL('https://wa.me/905551234567').catch(() => {
+    if (!contactInfo) return;
+
+    Linking.openURL(getWhatsAppLink(contactInfo.whatsapp)).catch(() => {
       Alert.alert(
         i18n.language === 'tr' ? 'Hata' : 'Error',
-        i18n.language === 'tr' 
-          ? 'WhatsApp açılamadı' 
+        i18n.language === 'tr'
+          ? 'WhatsApp açılamadı'
           : 'Could not open WhatsApp'
       );
     });
@@ -157,70 +183,80 @@ const HelpSupportScreen = () => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* İletişim Kartları (Contact Cards) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {i18n.language === 'tr' ? '📞 Bize Ulaşın' : '📞 Contact Us'}
-          </Text>
-
-          <View style={styles.contactGrid}>
-            {/* E-posta (Email) */}
-            <TouchableOpacity
-              style={styles.contactCard}
-              onPress={() => sendEmail('support')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.contactIcon, { backgroundColor: '#E3F2FD' }]}>
-                <Ionicons name="mail" size={28} color="#2196F3" />
-              </View>
-              <Text style={styles.contactTitle}>
-                {i18n.language === 'tr' ? 'E-posta' : 'Email'}
-              </Text>
-              <Text style={styles.contactSubtitle}>support@riversideburgers.com</Text>
-            </TouchableOpacity>
-
-            {/* Telefon (Phone) */}
-            <TouchableOpacity
-              style={styles.contactCard}
-              onPress={callPhone}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.contactIcon, { backgroundColor: '#E8F5E9' }]}>
-                <Ionicons name="call" size={28} color="#4CAF50" />
-              </View>
-              <Text style={styles.contactTitle}>
-                {i18n.language === 'tr' ? 'Telefon' : 'Phone'}
-              </Text>
-              <Text style={styles.contactSubtitle}>+90 555 123 45 67</Text>
-            </TouchableOpacity>
-
-            {/* WhatsApp */}
-            <TouchableOpacity
-              style={styles.contactCard}
-              onPress={openWhatsApp}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.contactIcon, { backgroundColor: '#E8F5E9' }]}>
-                <Ionicons name="logo-whatsapp" size={28} color="#25D366" />
-              </View>
-              <Text style={styles.contactTitle}>WhatsApp</Text>
-              <Text style={styles.contactSubtitle}>+90 555 123 45 67</Text>
-            </TouchableOpacity>
-
-            {/* Çalışma Saatleri (Working Hours) */}
-            <View style={[styles.contactCard, styles.infoCard]}>
-              <View style={[styles.contactIcon, { backgroundColor: '#FFF3E0' }]}>
-                <Ionicons name="time" size={28} color="#FF9800" />
-              </View>
-              <Text style={styles.contactTitle}>
-                {i18n.language === 'tr' ? 'Çalışma Saatleri' : 'Working Hours'}
-              </Text>
-              <Text style={styles.contactSubtitle}>
-                {i18n.language === 'tr' ? 'Her gün 10:00 - 23:00' : 'Every day 10:00 - 23:00'}
-              </Text>
-            </View>
+        {/* Yükleniyor (Loading) */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>
+              {i18n.language === 'tr' ? 'Yükleniyor...' : 'Loading...'}
+            </Text>
           </View>
-        </View>
+        ) : (
+          <>
+            {/* İletişim Kartları (Contact Cards) */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                {i18n.language === 'tr' ? '📞 Bize Ulaşın' : '📞 Contact Us'}
+              </Text>
+
+              <View style={styles.contactGrid}>
+                {/* E-posta (Email) */}
+                <TouchableOpacity
+                  style={styles.contactCard}
+                  onPress={() => sendEmail('support')}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.contactIcon, { backgroundColor: '#E3F2FD' }]}>
+                    <Ionicons name="mail" size={28} color="#2196F3" />
+                  </View>
+                  <Text style={styles.contactTitle}>
+                    {i18n.language === 'tr' ? 'E-posta' : 'Email'}
+                  </Text>
+                  <Text style={styles.contactSubtitle}>{contactInfo?.email}</Text>
+                </TouchableOpacity>
+
+                {/* Telefon (Phone) */}
+                <TouchableOpacity
+                  style={styles.contactCard}
+                  onPress={callPhone}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.contactIcon, { backgroundColor: '#E8F5E9' }]}>
+                    <Ionicons name="call" size={28} color="#4CAF50" />
+                  </View>
+                  <Text style={styles.contactTitle}>
+                    {i18n.language === 'tr' ? 'Telefon' : 'Phone'}
+                  </Text>
+                  <Text style={styles.contactSubtitle}>{contactInfo?.phone1}</Text>
+                </TouchableOpacity>
+
+                {/* WhatsApp */}
+                <TouchableOpacity
+                  style={styles.contactCard}
+                  onPress={openWhatsApp}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.contactIcon, { backgroundColor: '#E8F5E9' }]}>
+                    <Ionicons name="logo-whatsapp" size={28} color="#25D366" />
+                  </View>
+                  <Text style={styles.contactTitle}>WhatsApp</Text>
+                  <Text style={styles.contactSubtitle}>{contactInfo?.whatsapp}</Text>
+                </TouchableOpacity>
+
+                {/* Çalışma Saatleri (Working Hours) */}
+                <View style={[styles.contactCard, styles.infoCard]}>
+                  <View style={[styles.contactIcon, { backgroundColor: '#FFF3E0' }]}>
+                    <Ionicons name="time" size={28} color="#FF9800" />
+                  </View>
+                  <Text style={styles.contactTitle}>
+                    {i18n.language === 'tr' ? 'Çalışma Saatleri' : 'Working Hours'}
+                  </Text>
+                  <Text style={styles.contactSubtitle}>
+                    {i18n.language === 'tr' ? 'Her gün 10:00 - 23:00' : 'Every day 10:00 - 23:00'}
+                  </Text>
+                </View>
+              </View>
+            </View>
 
         {/* SSS (FAQ) */}
         <View style={styles.section}>
@@ -250,20 +286,22 @@ const HelpSupportScreen = () => {
           ))}
         </View>
 
-        {/* Ek Bilgiler (Additional Info) */}
-        <View style={styles.section}>
-          <View style={styles.infoBox}>
-            <Ionicons name="information-circle" size={24} color={Colors.primary} />
-            <Text style={styles.infoText}>
-              {i18n.language === 'tr'
-                ? 'Sorununuz çözülmediyse lütfen yukarıdaki iletişim kanallarından bize ulaşın. Size en kısa sürede yardımcı olacağız.'
-                : 'If your issue is not resolved, please contact us through the channels above. We will help you as soon as possible.'}
-            </Text>
-          </View>
-        </View>
+            {/* Ek Bilgiler (Additional Info) */}
+            <View style={styles.section}>
+              <View style={styles.infoBox}>
+                <Ionicons name="information-circle" size={24} color={Colors.primary} />
+                <Text style={styles.infoText}>
+                  {i18n.language === 'tr'
+                    ? 'Sorununuz çözülmediyse lütfen yukarıdaki iletişim kanallarından bize ulaşın. Size en kısa sürede yardımcı olacağız.'
+                    : 'If your issue is not resolved, please contact us through the channels above. We will help you as soon as possible.'}
+                </Text>
+              </View>
+            </View>
 
-        {/* Footer boşluk (Footer spacing) */}
-        <View style={{ height: Spacing.xxl }} />
+            {/* Footer boşluk (Footer spacing) */}
+            <View style={{ height: Spacing.xxl }} />
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -273,6 +311,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.xxl,
+  },
+  loadingText: {
+    marginTop: Spacing.md,
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
   },
   header: {
     flexDirection: 'row',
