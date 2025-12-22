@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "Riverside Burgers",
+    "slug": "riverside-burgers",
+    "version": "1.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.riversideburgers.app",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.riversideburgers.app",
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#E63946"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "POST_NOTIFICATIONS",
+        "USE_FULL_SCREEN_INTENT"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#E63946",
+          "sounds": [
+            "./assets/order-sound.mp3"
+          ],
+          "mode": "production"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8fe95f1d-8d84-4ccf-8b75-cdd48aceb0fd"
+      },
+      "supabaseUrl": "https://srcslhltajjvteqeptrt.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyY3NsaGx0YWpqdnRlcWVwdHJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4OTE1NjIsImV4cCI6MjA3NzQ2NzU2Mn0.FJs8OLIbJdP8vn2GXlNFkGrVeLlR6OhcmNTMW79uH9U"
+    }
+  }
+}
