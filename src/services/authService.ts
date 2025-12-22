@@ -608,3 +608,46 @@ export const updatePassword = async (newPassword: string) => {
   }
 };
 
+// Hesabı sil (Delete account)
+export const deleteAccount = async () => {
+  try {
+    console.log('🗑️ Deleting user account...');
+    
+    // 1. Önce RPC fonksiyonunu dene (tercih edilen yöntem)
+    const { error: rpcError } = await supabase.rpc('delete_user');
+    
+    if (!rpcError) {
+      console.log('✅ User deleted via RPC');
+      await supabase.auth.signOut();
+      return;
+    }
+
+    console.warn('⚠️ RPC delete_user failed or not found, trying manual cleanup:', rpcError);
+
+    // 2. RPC yoksa manuel temizlik (Sadece public verileri silebilir)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      // Public users tablosundan sil
+      const { error: dbError } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', user.id);
+        
+      if (dbError) {
+        console.error('❌ Failed to delete from public.users:', dbError);
+        // Devam et, auth logout yapacağız
+      }
+      
+      // Auth'dan çıkış yap
+      await supabase.auth.signOut();
+      
+      // Not: Auth kullanıcısı Supabase panelinden manuel silinmeli
+      // çünkü client-side'dan auth.users tablosuna erişim yok
+      throw new Error('Hesabınızın verileri temizlendi. Tam silinme için yöneticinizle iletişime geçin veya "delete_user" RPC fonksiyonunu kurun.');
+    }
+  } catch (error: any) {
+    console.error('Delete account error:', error);
+    throw error;
+  }
+};
+

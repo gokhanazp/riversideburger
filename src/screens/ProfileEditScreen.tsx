@@ -14,6 +14,8 @@ import { useAuthStore } from '../store/authStore';
 import { updateUserProfile } from '../services/userService';
 import Toast from 'react-native-toast-message';
 import { useTranslation } from 'react-i18next';
+import ConfirmModal from '../components/ConfirmModal';
+import { deleteAccount } from '../services/authService';
 
 // Profil düzenleme ekranı (Profile edit screen)
 const ProfileEditScreen = ({ navigation }: any) => {
@@ -24,6 +26,10 @@ const ProfileEditScreen = ({ navigation }: any) => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Hesap silme state'leri (Delete account states)
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Kullanıcı bilgilerini yükle (Load user data)
   useEffect(() => {
@@ -96,6 +102,41 @@ const ProfileEditScreen = ({ navigation }: any) => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Hesabı silme işlemi (Delete account handler)
+  const handleDeleteAccount = async () => {
+    try {
+      setIsDeleting(true);
+      setShowDeleteModal(false);
+
+      await deleteAccount();
+
+      // Store'dan çıkış yap (Logout from store)
+      setUser(null);
+
+      Toast.show({
+        type: 'success',
+        text1: t('profileEdit.successTitle'),
+        text2: t('profileEdit.deleteAccountSuccess'),
+      });
+
+      // Ana sayfaya yönlendir ve stack'i sıfırla
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main' }],
+      });
+
+    } catch (error: any) {
+      console.error('Account deletion error:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Hata',
+        text2: error.message || 'Hesap silinirken bir hata oluştu.',
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -177,7 +218,38 @@ const ProfileEditScreen = ({ navigation }: any) => {
             </>
           )}
         </TouchableOpacity>
+
+        {/* Hesabı Sil Butonu (Delete Account Button) */}
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => setShowDeleteModal(true)}
+          disabled={isLoading || isDeleting}
+          activeOpacity={0.8}
+        >
+          {isDeleting ? (
+            <ActivityIndicator color="#FF3B30" />
+          ) : (
+            <>
+              <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+              <Text style={styles.deleteButtonText}>{t('profileEdit.deleteButton')}</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Hesap Silme Onay Modal (Delete Confirmation Modal) */}
+      <ConfirmModal
+        visible={showDeleteModal}
+        title={t('profileEdit.deleteModalTitle')}
+        message={t('profileEdit.deleteModalMessage')}
+        confirmText={t('profileEdit.deleteModalConfirm')}
+        cancelText={t('profileEdit.deleteModalCancel')}
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setShowDeleteModal(false)}
+        type="danger"
+      />
     </View>
   );
 };
@@ -277,6 +349,23 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     fontWeight: 'bold',
     color: Colors.white,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF5F5',
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.xl,
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: '#FFE5E5',
+  },
+  deleteButtonText: {
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
+    color: '#FF3B30',
   },
 });
 
