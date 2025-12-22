@@ -10,6 +10,8 @@ export interface ContactInfo {
   facebook: string;
   instagram: string;
   whatsapp: string;
+  footerAbout: string;
+  footerCopyright: string;
 }
 
 // Varsayılan iletişim bilgileri (Default contact information)
@@ -22,6 +24,8 @@ const DEFAULT_CONTACT_INFO: ContactInfo = {
   facebook: 'https://www.facebook.com/riversideburgers',
   instagram: 'https://www.instagram.com/riversideburgers',
   whatsapp: '+14168507026',
+  footerAbout: 'Riverside Burgers was established in 2019. Our passion for fresh and high quality burgers led us to creating our Signature Burger.',
+  footerCopyright: '© 2024 Riverside Burgers. All rights reserved.',
 };
 
 // Global cache (to avoid multiple async calls)
@@ -51,6 +55,8 @@ export const getContactInfo = async (): Promise<ContactInfo> => {
         'social_facebook',
         'social_instagram',
         'social_whatsapp',
+        'footer_about',
+        'footer_copyright',
       ]);
 
     if (error) {
@@ -61,9 +67,17 @@ export const getContactInfo = async (): Promise<ContactInfo> => {
     // Ayarları objeye çevir (Convert settings to object)
     const contactInfo: any = { ...DEFAULT_CONTACT_INFO };
     data?.forEach((item) => {
-      const key = item.setting_key
+      let key = item.setting_key
         .replace('contact_', '')
-        .replace('social_', '');
+        .replace('social_', '')
+        .replace('footer_', '');
+
+      // footer_ için camelCase'e çevir (Convert footer_ to camelCase)
+      if (item.setting_key.startsWith('footer_')) {
+        if (key === 'about') key = 'footerAbout';
+        if (key === 'copyright') key = 'footerCopyright';
+      }
+
       contactInfo[key] = item.setting_value || DEFAULT_CONTACT_INFO[key as keyof ContactInfo];
     });
 

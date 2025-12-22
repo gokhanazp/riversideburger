@@ -542,7 +542,7 @@ const HomeScreen = ({ navigation }: any) => {
         <View style={styles.footerSection}>
           <Text style={styles.footerTitle}>About Us</Text>
           <Text style={styles.footerText}>
-            Riverside Burgers was established in 2019. Our passion for fresh and high quality burgers led us to creating our Signature Burger.
+            {contactInfo?.footerAbout || 'Riverside Burgers was established in 2019. Our passion for fresh and high quality burgers led us to creating our Signature Burger.'}
           </Text>
           {/* Social Media */}
           {contactInfo && (
@@ -624,7 +624,7 @@ const HomeScreen = ({ navigation }: any) => {
         {/* Copyright */}
         <View style={styles.copyright}>
           <Text style={styles.copyrightText}>
-            © 2023 Riverside Burgers. All rights reserved.
+            {contactInfo?.footerCopyright || '© 2024 Riverside Burgers. All rights reserved.'}
           </Text>
         </View>
       </View>

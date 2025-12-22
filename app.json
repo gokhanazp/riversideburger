@@ -14,13 +14,21 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.riversideburgers.app",
+      "bundleIdentifier": "com.riverside-burgers.app",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Bu uygulama kamera erişimi kullanmamaktadır, ancak bağımlılıklardan biri bu izni gerektirmektedir."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.riversideburgers.app",
+      "package": "com.riverside_burgers.app",
       "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -46,7 +54,9 @@
         {
           "icon": "./assets/icon.png",
           "color": "#E63946",
-          "sounds": ["./assets/order-sound.mp3"],
+          "sounds": [
+            "./assets/order_sound.mp3"
+          ],
           "mode": "production"
         }
       ]

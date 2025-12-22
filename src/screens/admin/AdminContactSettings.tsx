@@ -26,6 +26,8 @@ interface ContactSettings {
   facebook: string;
   instagram: string;
   whatsapp: string;
+  footerAbout: string;
+  footerCopyright: string;
 }
 
 // Admin İletişim Ayarları Ekranı (Admin Contact Settings Screen)
@@ -51,6 +53,8 @@ const AdminContactSettings = ({ navigation }: any) => {
     facebook: '',
     instagram: '',
     whatsapp: '',
+    footerAbout: '',
+    footerCopyright: '',
   });
   const [showSaveModal, setShowSaveModal] = useState(false);
 
@@ -63,6 +67,8 @@ const AdminContactSettings = ({ navigation }: any) => {
   const facebookRef = useRef<any>(null);
   const instagramRef = useRef<any>(null);
   const whatsappRef = useRef<any>(null);
+  const footerAboutRef = useRef<any>(null);
+  const footerCopyrightRef = useRef<any>(null);
 
   // Input değerlerini tutmak için ref'ler (Refs to hold input values)
   const settingsRef = useRef<ContactSettings>({
@@ -74,6 +80,8 @@ const AdminContactSettings = ({ navigation }: any) => {
     facebook: '',
     instagram: '',
     whatsapp: '',
+    footerAbout: '',
+    footerCopyright: '',
   });
 
   // Input değişiklik handler'ları (Input change handlers)
@@ -99,6 +107,8 @@ const AdminContactSettings = ({ navigation }: any) => {
           'social_facebook',
           'social_instagram',
           'social_whatsapp',
+          'footer_about',
+          'footer_copyright',
         ]);
 
       if (error) {
@@ -113,7 +123,8 @@ const AdminContactSettings = ({ navigation }: any) => {
       data?.forEach((item) => {
         const key = item.setting_key
           .replace('contact_', '')
-          .replace('social_', '');
+          .replace('social_', '')
+          .replace('footer_', '');
         settingsObj[key] = item.setting_value || '';
       });
 
@@ -126,6 +137,8 @@ const AdminContactSettings = ({ navigation }: any) => {
         facebook: settingsObj.facebook || '',
         instagram: settingsObj.instagram || '',
         whatsapp: settingsObj.whatsapp || '',
+        footerAbout: settingsObj.about || '',
+        footerCopyright: settingsObj.copyright || '',
       };
 
       setSettings(newSettings);
@@ -166,6 +179,8 @@ const AdminContactSettings = ({ navigation }: any) => {
         { key: 'social_facebook', value: currentSettings.facebook },
         { key: 'social_instagram', value: currentSettings.instagram },
         { key: 'social_whatsapp', value: currentSettings.whatsapp },
+        { key: 'footer_about', value: currentSettings.footerAbout },
+        { key: 'footer_copyright', value: currentSettings.footerCopyright },
       ];
 
       for (const update of updates) {
@@ -393,6 +408,45 @@ const AdminContactSettings = ({ navigation }: any) => {
               placeholder="+14168507026"
               placeholderTextColor={Colors.textSecondary}
               keyboardType="phone-pad"
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => footerAboutRef.current?.focus()}
+            />
+          </View>
+        </SettingCard>
+
+        {/* Footer Metinleri (Footer Texts) */}
+        <SettingCard
+          title={t('admin.contactSettings.footerTexts')}
+          description={t('admin.contactSettings.footerTextsDesc')}
+          iconName="document-text-outline"
+          iconColor="#9C27B0"
+        >
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>{t('admin.contactSettings.footerAbout')}</Text>
+            <TextInput
+              ref={footerAboutRef}
+              style={[styles.input, styles.textArea]}
+              defaultValue={settings.footerAbout}
+              onChangeText={(text) => handleInputChange('footerAbout', text)}
+              placeholder={t('admin.contactSettings.footerAboutPlaceholder')}
+              placeholderTextColor={Colors.textSecondary}
+              multiline
+              numberOfLines={3}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => footerCopyrightRef.current?.focus()}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>{t('admin.contactSettings.footerCopyright')}</Text>
+            <TextInput
+              ref={footerCopyrightRef}
+              style={styles.input}
+              defaultValue={settings.footerCopyright}
+              onChangeText={(text) => handleInputChange('footerCopyright', text)}
+              placeholder={t('admin.contactSettings.footerCopyrightPlaceholder')}
+              placeholderTextColor={Colors.textSecondary}
               returnKeyType="done"
             />
           </View>

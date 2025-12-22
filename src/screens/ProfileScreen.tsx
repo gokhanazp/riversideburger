@@ -343,7 +343,7 @@ const ProfileScreen = ({ navigation }: any) => {
             <View style={styles.footerSection}>
               <Text style={styles.footerTitle}>{t('profile.aboutUs')}</Text>
               <Text style={styles.footerText}>
-                {t('profile.aboutUsText')}
+                {contactInfo?.footerAbout || t('profile.aboutUsText')}
               </Text>
               {/* Social Media */}
               {contactInfo && (
@@ -425,7 +425,7 @@ const ProfileScreen = ({ navigation }: any) => {
             {/* Copyright */}
             <View style={styles.copyright}>
               <Text style={styles.copyrightText}>
-                {t('profile.copyright')}
+                {contactInfo?.footerCopyright || t('profile.copyright')}
               </Text>
             </View>
           </View>
