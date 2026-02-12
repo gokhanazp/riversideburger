@@ -845,10 +845,11 @@ const styles = StyleSheet.create({
   categoryItemHorizontal: {
     marginBottom: 0,
     marginRight: Spacing.sm,
-    minWidth: 140,
-    maxWidth: 180,
-    paddingVertical: Spacing.md + 4, // Yazıların kesilmemesi için ekstra padding (Extra padding to prevent text clipping)
-    minHeight: 56, // Minimum yükseklik (Minimum height)
+    minWidth: 160,
+    maxWidth: 220,
+    paddingVertical: Spacing.md + 4,
+    paddingHorizontal: Spacing.md + 2,
+    minHeight: 64,
   },
   categoryItemActive: {
     backgroundColor: Colors.primary,
@@ -861,7 +862,8 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: '600',
     color: Colors.text,
-    lineHeight: FontSizes.md * 1.4, // Satır yüksekliği (Line height)
+    lineHeight: FontSizes.md * 1.5,
+    flexWrap: 'wrap',
   },
   categoryItemNameActive: {
     color: '#FFF',

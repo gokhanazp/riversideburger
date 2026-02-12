@@ -76,6 +76,7 @@ const HomeScreen = ({ navigation }: any) => {
         .select('*')
         .eq('is_featured', true)
         .eq('stock_status', 'in_stock')
+        .order('display_order', { ascending: true })
         .order('created_at', { ascending: false })
         .limit(6);
 
@@ -362,16 +363,16 @@ const HomeScreen = ({ navigation }: any) => {
           entering={FadeInDown.delay(300).duration(600)}
           style={styles.sectionTitle}
         >
-          {t('home.aboutUs')}
+          {contactInfo ? (i18n.language === 'tr' ? contactInfo.aboutTitleTr : contactInfo.aboutTitleEn) : t('home.aboutUs')}
         </Animated.Text>
         <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.aboutCard}>
           <Image
-            source={{ uri: 'https://riversideburgers.ca/wp-content/uploads/2020/12/83333940_125121939016697_1418790697863077606_n-1.jpg' }}
+            source={{ uri: contactInfo?.aboutImage || 'https://riversideburgers.ca/wp-content/uploads/2020/12/83333940_125121939016697_1418790697863077606_n-1.jpg' }}
             style={styles.aboutImage}
           />
           <View style={styles.aboutContent}>
             <Text style={styles.aboutText}>
-              Riverside Burgers was established in 2019. Our passion for fresh and high quality burgers led us to creating our Signature Burger, along with serving you everyone's favourite Classic Burgers. We take pride in making everything in house with the highest quality of meat and produces to keep it fresh, tasty and mouth-watering to keep you coming back for more!
+              {contactInfo ? (i18n.language === 'tr' ? contactInfo.aboutDescTr : contactInfo.aboutDescEn) : 'Riverside Burgers was established in 2019. Our passion for fresh and high quality burgers led us to creating our Signature Burger, along with serving you everyone\'s favourite Classic Burgers. We take pride in making everything in house with the highest quality of meat and produces to keep it fresh, tasty and mouth-watering to keep you coming back for more!'}
             </Text>
           </View>
         </Animated.View>
@@ -492,7 +493,7 @@ const HomeScreen = ({ navigation }: any) => {
           entering={FadeInDown.delay(950).duration(600)}
           style={styles.sectionTitle}
         >
-          {t('home.whyRiversideBurgers')}
+          {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyTitleTr : contactInfo.whyTitleEn) : t('home.whyRiversideBurgers')}
         </Animated.Text>
         <View style={styles.featuresContainer}>
           <Animated.View entering={FadeInDown.delay(1000).duration(600)} style={styles.featureCard}>
@@ -500,8 +501,12 @@ const HomeScreen = ({ navigation }: any) => {
               <Ionicons name="time" size={48} color={Colors.white} />
             </View>
             <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>{t('home.fastDelivery')}</Text>
-              <Text style={styles.featureText}>{t('home.fastDeliveryDesc')}</Text>
+              <Text style={styles.featureTitle}>
+                {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature1TitleTr : contactInfo.whyFeature1TitleEn) : t('home.fastDelivery')}
+              </Text>
+              <Text style={styles.featureText}>
+                {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature1DescTr : contactInfo.whyFeature1DescEn) : t('home.fastDeliveryDesc')}
+              </Text>
               <View style={styles.featureBadge}>
                 <Text style={styles.featureBadgeText}>{t('home.fastDeliveryBadge')}</Text>
               </View>
@@ -513,8 +518,12 @@ const HomeScreen = ({ navigation }: any) => {
               <Ionicons name="shield-checkmark" size={48} color={Colors.white} />
             </View>
             <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>{t('home.qualityGuarantee')}</Text>
-              <Text style={styles.featureText}>{t('home.qualityGuaranteeDesc')}</Text>
+              <Text style={styles.featureTitle}>
+                {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature2TitleTr : contactInfo.whyFeature2TitleEn) : t('home.qualityGuarantee')}
+              </Text>
+              <Text style={styles.featureText}>
+                {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature2DescTr : contactInfo.whyFeature2DescEn) : t('home.qualityGuaranteeDesc')}
+              </Text>
               <View style={styles.featureBadge}>
                 <Text style={styles.featureBadgeText}>{t('home.qualityGuaranteeBadge')}</Text>
               </View>
@@ -526,8 +535,12 @@ const HomeScreen = ({ navigation }: any) => {
               <Ionicons name="star" size={48} color={Colors.white} />
             </View>
             <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>{t('home.fiveStarSatisfaction')}</Text>
-              <Text style={styles.featureText}>{t('home.fiveStarSatisfactionDesc')}</Text>
+              <Text style={styles.featureTitle}>
+                {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature3TitleTr : contactInfo.whyFeature3TitleEn) : t('home.fiveStarSatisfaction')}
+              </Text>
+              <Text style={styles.featureText}>
+                {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature3DescTr : contactInfo.whyFeature3DescEn) : t('home.fiveStarSatisfactionDesc')}
+              </Text>
               <View style={styles.featureBadge}>
                 <Text style={styles.featureBadgeText}>{t('home.fiveStarSatisfactionBadge')}</Text>
               </View>
@@ -824,9 +837,16 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     padding: Spacing.xl,
     marginRight: Spacing.md,
-    ...Shadows.large,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: '#EAEAEA',
   },
   reviewQuoteIcon: {
     marginBottom: Spacing.md,

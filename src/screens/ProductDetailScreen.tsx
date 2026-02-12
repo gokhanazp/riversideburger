@@ -309,27 +309,9 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
           ) : customizations.length > 0 ? (
             <>
               {customizations.map((categoryWithOptions, catIndex) => {
-                // "Çıkarılacak Malzemeler" kategorisi için ürünün kendi malzemelerini kullan
-                // (Use product's own ingredients for "Remove Ingredients" category)
-                const isRemoveCategory = categoryWithOptions.category.name === 'Çıkarılacak Malzemeler';
-                const displayOptions = isRemoveCategory && item.ingredients && item.ingredients.length > 0
-                  ? item.ingredients.map((ingredient, idx) => ({
-                      id: `ingredient-${idx}`,
-                      category_id: categoryWithOptions.category.id,
-                      name: `${ingredient} Çıkar`,
-                      name_en: `Remove ${ingredient}`,
-                      description: null,
-                      price: 0,
-                      is_active: true,
-                      display_order: idx,
-                      created_at: new Date().toISOString(),
-                      updated_at: new Date().toISOString(),
-                    }))
-                  : categoryWithOptions.options;
+                const displayOptions = categoryWithOptions.options;
 
-                // Eğer "Çıkarılacak Malzemeler" kategorisiyse ve ürünün malzemesi yoksa, gösterme
-                // (If it's "Remove Ingredients" category and product has no ingredients, don't show)
-                if (isRemoveCategory && (!item.ingredients || item.ingredients.length === 0)) {
+                if (displayOptions.length === 0) {
                   return null;
                 }
 
@@ -368,7 +350,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
                               styles.optionCard,
                               isSelected && styles.optionCardSelected,
                             ]}
-                            onPress={() => toggleOption(categoryWithOptions, option.id, isRemoveCategory ? option : undefined)}
+                            onPress={() => toggleOption(categoryWithOptions, option.id)}
                             activeOpacity={0.7}
                           >
                             <View style={styles.optionContent}>

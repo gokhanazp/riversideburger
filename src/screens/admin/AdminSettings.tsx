@@ -21,6 +21,7 @@ import {
   DEFAULT_WORKING_HOURS,
   updateWorkingHours,
 } from '../../services/workingHoursService';
+import { getCurrencyInfo } from '../../services/currencyService';
 
 // Ayarlar tipi (Settings type)
 interface Settings {
@@ -312,7 +313,7 @@ const AdminSettings = ({ navigation }: any) => {
           description={t('admin.settings.minOrderDesc')}
         >
           <View style={styles.inputRow}>
-            <Text style={styles.inputPrefix}>₺</Text>
+            <Text style={styles.inputPrefix}>{getCurrencyInfo().symbol}</Text>
             <TextInput
               style={styles.input}
               value={settings.min_order_amount.toString()}
@@ -334,7 +335,7 @@ const AdminSettings = ({ navigation }: any) => {
           description={t('admin.settings.deliveryFeeDescription')}
         >
           <View style={styles.inputRow}>
-            <Text style={styles.inputPrefix}>₺</Text>
+            <Text style={styles.inputPrefix}>{getCurrencyInfo().symbol}</Text>
             <TextInput
               style={styles.input}
               value={settings.delivery_fee.toString()}
@@ -354,7 +355,7 @@ const AdminSettings = ({ navigation }: any) => {
           description={t('admin.settings.freeDeliveryDesc')}
         >
           <View style={styles.inputRow}>
-            <Text style={styles.inputPrefix}>₺</Text>
+            <Text style={styles.inputPrefix}>{getCurrencyInfo().symbol}</Text>
             <TextInput
               style={styles.input}
               value={settings.free_delivery_threshold.toString()}

@@ -1,21 +1,58 @@
 // Image Service - Resim yükleme ve boyutlandırma servisi
+import { Platform } from 'react-native';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '../lib/supabase';
 
 /**
  * Resmi boyutlandır ve optimize et (Resize and optimize image)
- * @param file - Yüklenecek dosya (File to upload)
+ * @param file - Yüklenecek dosya veya URI (File to upload or URI)
  * @param maxWidth - Maksimum genişlik (Maximum width)
  * @param maxHeight - Maksimum yükseklik (Maximum height)
  * @param quality - Kalite (0-1 arası) (Quality 0-1)
  * @returns Optimize edilmiş blob (Optimized blob)
  */
 export const resizeImage = async (
-  file: File,
+  file: File | string,
   maxWidth: number = 1200,
   maxHeight: number = 800,
   quality: number = 0.8
 ): Promise<Blob> => {
+  // Mobile implementation (Expo Image Manipulator)
+  if (Platform.OS !== 'web') {
+    if (typeof file !== 'string') {
+      throw new Error('Mobile platformda dosya URI string olmalıdır');
+    }
+
+    try {
+      const manipResult = await ImageManipulator.manipulateAsync(
+        file,
+        [{ resize: { width: maxWidth } }], // Sadece genişliğe göre scale et, height otomatik ayarlanır
+        { compress: quality, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      const response = await fetch(manipResult.uri);
+      const blob = await response.blob();
+      
+      console.log('✅ Resim boyutlandırıldı (Mobile):', {
+         originalUri: file,
+         newUri: manipResult.uri,
+         newSize: `${(blob.size / 1024).toFixed(2)} KB`,
+         newDimensions: `${manipResult.width}x${manipResult.height}`,
+      });
+
+      return blob;
+    } catch (error) {
+       console.error('Mobile resize error:', error);
+       throw new Error('Mobil resim işleme hatası');
+    }
+  }
+
+  // Web implementation (Canvas)
   return new Promise((resolve, reject) => {
+    if (typeof file === 'string') {
+       reject(new Error('Web platformunda File nesnesi gereklidir'));
+       return;
+    }
     const reader = new FileReader();
 
     reader.onload = (e) => {
@@ -90,40 +127,52 @@ export const resizeImage = async (
 
 /**
  * Dosya boyutunu kontrol et (Check file size)
- * @param file - Kontrol edilecek dosya (File to check)
+ * @param file - Kontrol edilecek dosya veya URI (File to check or URI)
  * @param maxSizeMB - Maksimum boyut (MB) (Maximum size in MB)
  * @returns Geçerli mi? (Is valid?)
  */
-export const validateFileSize = (file: File, maxSizeMB: number = 5): boolean => {
-  const maxSizeBytes = maxSizeMB * 1024 * 1024;
-  return file.size <= maxSizeBytes;
+export const validateFileSize = (file: File | any, maxSizeMB: number = 5): boolean => {
+  // File object on web has .size property
+  if (Platform.OS === 'web' && file.size) {
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    return file.size <= maxSizeBytes;
+  }
+  return true; // Mobile assumption: usually handled by picker or checked after blob creation
 };
 
 /**
  * Dosya tipini kontrol et (Check file type)
- * @param file - Kontrol edilecek dosya (File to check)
+ * @param file - Kontrol edilecek dosya veya URI (File to check)
  * @returns Geçerli mi? (Is valid?)
  */
-export const validateFileType = (file: File): boolean => {
+export const validateFileType = (file: File | string): boolean => {
   const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  return validTypes.includes(file.type);
+  if (Platform.OS === 'web' && typeof file !== 'string') {
+     return validTypes.includes(file.type);
+  }
+  // Mobile check extension from URI
+  if (typeof file === 'string') {
+      const ext = file.split('.').pop()?.toLowerCase();
+      return ['jpg', 'jpeg', 'png', 'webp'].includes(ext || '');
+  }
+  return true;
 };
 
 /**
  * Ürün resmi yükle (Upload product image)
- * @param file - Yüklenecek dosya (File to upload)
+ * @param file - Yüklenecek dosya veya URI (File to upload or URI string)
  * @param productId - Ürün ID (Product ID)
  * @returns Resim URL'si (Image URL)
  */
 export const uploadProductImage = async (
-  file: File,
+  file: File | string,
   productId?: string
 ): Promise<string> => {
   try {
+    const isWeb = Platform.OS === 'web';
     console.log('📤 Ürün resmi yükleniyor...', {
-      name: file.name,
-      size: `${(file.size / 1024).toFixed(2)} KB`,
-      type: file.type,
+      platform: Platform.OS,
+      type: typeof file,
     });
 
     // Dosya tipini kontrol et (Check file type)
@@ -132,7 +181,7 @@ export const uploadProductImage = async (
     }
 
     // Dosya boyutunu kontrol et (Check file size)
-    if (!validateFileSize(file, 5)) {
+    if (isWeb && !validateFileSize(file, 5)) {
       throw new Error('Dosya boyutu 5MB\'dan büyük olamaz.');
     }
 
@@ -142,7 +191,15 @@ export const uploadProductImage = async (
     // Benzersiz dosya adı oluştur (Generate unique filename)
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 8);
-    const fileExt = file.name.split('.').pop() || 'jpg';
+    
+    let fileExt = 'jpg';
+    if (typeof file === 'string') {
+        const ext = file.split('.').pop();
+        if (ext) fileExt = ext;
+    } else if (typeof File !== 'undefined' && file instanceof File) {
+        fileExt = file.name.split('.').pop() || 'jpg';
+    }
+    
     const fileName = productId
       ? `${productId}_${timestamp}.${fileExt}`
       : `product_${timestamp}_${randomString}.${fileExt}`;
@@ -176,29 +233,20 @@ export const uploadProductImage = async (
 
 /**
  * Banner resmi yükle (Upload banner image)
- * @param file - Yüklenecek dosya (File to upload)
+ * @param file - Yüklenecek dosya veya URI (File to upload or URI)
  * @param bannerId - Banner ID (Banner ID)
  * @returns Resim URL'si (Image URL)
  */
 export const uploadBannerImage = async (
-  file: File,
+  file: File | string,
   bannerId?: string
 ): Promise<string> => {
   try {
-    console.log('📤 Banner resmi yükleniyor...', {
-      name: file.name,
-      size: `${(file.size / 1024).toFixed(2)} KB`,
-      type: file.type,
-    });
+    console.log('📤 Banner resmi yükleniyor...');
 
     // Dosya tipini kontrol et (Check file type)
     if (!validateFileType(file)) {
       throw new Error('Geçersiz dosya tipi. Sadece JPEG, PNG ve WebP desteklenir.');
-    }
-
-    // Dosya boyutunu kontrol et (Check file size)
-    if (!validateFileSize(file, 5)) {
-      throw new Error('Dosya boyutu 5MB\'dan büyük olamaz.');
     }
 
     // Resmi boyutlandır (Resize image - banner için daha büyük)
@@ -207,7 +255,15 @@ export const uploadBannerImage = async (
     // Benzersiz dosya adı oluştur (Generate unique filename)
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 8);
-    const fileExt = file.name.split('.').pop() || 'jpg';
+
+    let fileExt = 'jpg';
+    if (typeof file === 'string') {
+        const ext = file.split('.').pop();
+        if (ext) fileExt = ext;
+    } else if (typeof File !== 'undefined' && file instanceof File) {
+        fileExt = file.name.split('.').pop() || 'jpg';
+    }
+
     const fileName = bannerId
       ? `${bannerId}_${timestamp}.${fileExt}`
       : `banner_${timestamp}_${randomString}.${fileExt}`;
@@ -268,4 +324,3 @@ export const deleteImage = async (
     throw error;
   }
 };
-

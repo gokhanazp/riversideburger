@@ -13,7 +13,9 @@ import {
   Image,
   Switch,
   Platform,
+  Alert,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
@@ -58,7 +60,7 @@ const AdminBanners = ({ navigation }: any) => {
 
   // Resim yükleme state'leri (Image upload states)
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sayfa başlığını ayarla (Set page title)
@@ -144,23 +146,40 @@ const AdminBanners = ({ navigation }: any) => {
   };
 
   // Resim seç (Select image)
-  const handleSelectImage = () => {
+  const handleSelectImage = async () => {
     if (Platform.OS === 'web' && fileInputRef.current) {
       fileInputRef.current.click();
+    } else if (Platform.OS !== 'web') {
+      try {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true, // Kullanıcıya kırpma imkanı ver
+          aspect: [16, 9], // Banner için geniş format (Wide format for banner)
+          quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          handleImageUpload(result.assets[0].uri);
+        }
+      } catch (error) {
+        console.error('Image picker error:', error);
+        Toast.show({
+          type: 'error',
+          text1: t('admin.error'),
+          text2: 'Resim seçilirken hata oluştu',
+        });
+      }
     }
   };
 
-  // Dosya seçildiğinde (When file is selected)
-  const handleFileChange = async (event: any) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  // Resim yükleme işlemi (Image upload process)
+  const handleImageUpload = async (fileOrUri: File | string) => {
     try {
       setUploadingImage(true);
-      console.log('📤 Banner resmi yükleniyor...', file.name);
+      console.log('📤 Banner resmi yükleniyor...', typeof fileOrUri === 'string' ? 'URI' : fileOrUri.name);
 
       // Resmi yükle (Upload image)
-      const imageUrl = await uploadBannerImage(file, selectedBanner?.id);
+      const imageUrl = await uploadBannerImage(fileOrUri, selectedBanner?.id);
 
       // Eski resmi sil (Delete old image if exists)
       if (selectedBanner?.image_url && formData.image_url !== imageUrl) {
@@ -173,12 +192,12 @@ const AdminBanners = ({ navigation }: any) => {
 
       // Form data'yı güncelle (Update form data)
       setFormData({ ...formData, image_url: imageUrl });
-      setSelectedFile(file);
+      setSelectedFile(fileOrUri);
 
       Toast.show({
         type: 'success',
         text1: t('admin.banners.imageUploaded'),
-        text2: file.name,
+        text2: typeof fileOrUri === 'string' ? 'Resim yüklendi' : fileOrUri.name,
       });
     } catch (error: any) {
       console.error('❌ Resim yükleme hatası:', error);
@@ -189,6 +208,14 @@ const AdminBanners = ({ navigation }: any) => {
       });
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  // Dosya seçildiğinde (When file is selected)
+  const handleFileChange = async (event: any) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleImageUpload(file);
     }
   };
 

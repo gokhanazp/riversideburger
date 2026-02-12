@@ -184,7 +184,7 @@ const AdminLanguageSettings = ({ navigation }: any) => {
           <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>{t('admin.languageSettings.labelCurrency')}</Text>
             <Text style={styles.settingValue}>
-              {COUNTRIES[selectedCountry].currency === 'TRY' ? t('admin.languageSettings.currencyTRY') : t('admin.languageSettings.currencyCAD')}
+              {COUNTRIES[selectedCountry].currency === 'TRY' ? '₺ ' : '$ '}{COUNTRIES[selectedCountry].currency === 'TRY' ? t('admin.languageSettings.currencyTRY') : t('admin.languageSettings.currencyCAD')}
             </Text>
           </View>
         </View>

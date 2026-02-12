@@ -13,7 +13,9 @@ import {
   ScrollView,
   Switch,
   Platform,
+  Alert,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
@@ -35,6 +37,7 @@ interface Product {
   stock_status: 'in_stock' | 'out_of_stock';
   is_featured: boolean;
   ingredients?: string[];
+  display_order?: number; // Sıralama (Sort order)
   created_at: string;
 }
 
@@ -74,6 +77,7 @@ const AdminProducts = ({ navigation }: any) => {
     stock_status: 'in_stock' as 'in_stock' | 'out_of_stock',
     is_featured: false,
     ingredients: [] as string[],
+    display_order: 0,
   });
 
   // Malzeme input state'i (Ingredient input state)
@@ -81,7 +85,8 @@ const AdminProducts = ({ navigation }: any) => {
 
   // Resim yükleme state'leri (Image upload states)
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const [selectedFile, setSelectedFile] = useState<File | string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sayfa yüklendiğinde kategorileri getir (Fetch categories on page load)
@@ -132,6 +137,7 @@ const AdminProducts = ({ navigation }: any) => {
       let query = supabase
         .from('products')
         .select('*')
+        .order('display_order', { ascending: true })
         .order('created_at', { ascending: false });
 
       // Kategori filtresi (Category filter)
@@ -194,6 +200,7 @@ const AdminProducts = ({ navigation }: any) => {
       stock_status: 'in_stock',
       is_featured: false,
       ingredients: [],
+      display_order: 0,
     });
     setShowEditModal(true);
   };
@@ -212,6 +219,7 @@ const AdminProducts = ({ navigation }: any) => {
       stock_status: product.stock_status,
       is_featured: product.is_featured,
       ingredients: product.ingredients || [],
+      display_order: product.display_order || 0,
     });
     setShowEditModal(true);
   };
@@ -237,23 +245,40 @@ const AdminProducts = ({ navigation }: any) => {
   };
 
   // Resim seç (Select image)
-  const handleSelectImage = () => {
+  const handleSelectImage = async () => {
     if (Platform.OS === 'web' && fileInputRef.current) {
       fileInputRef.current.click();
+    } else if (Platform.OS !== 'web') {
+      try {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true, // Kullanıcıya kırpma imkanı ver
+          aspect: [1, 1], // Kare format (Square format)
+          quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          handleImageUpload(result.assets[0].uri);
+        }
+      } catch (error) {
+        console.error('Image picker error:', error);
+        Toast.show({
+          type: 'error',
+          text1: t('admin.error'),
+          text2: 'Resim seçilirken hata oluştu',
+        });
+      }
     }
   };
 
-  // Dosya seçildiğinde (When file is selected)
-  const handleFileChange = async (event: any) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  // Resim yükleme işlemi (Image upload process)
+  const handleImageUpload = async (fileOrUri: File | string) => {
     try {
       setUploadingImage(true);
-      console.log('📤 Resim yükleniyor...', file.name);
+      console.log('📤 Resim yükleniyor...', typeof fileOrUri === 'string' ? 'URI' : fileOrUri.name);
 
       // Resmi yükle (Upload image)
-      const imageUrl = await uploadProductImage(file, selectedProduct?.id);
+      const imageUrl = await uploadProductImage(fileOrUri, selectedProduct?.id);
 
       // Eski resmi sil (Delete old image if exists)
       if (selectedProduct?.image_url && formData.image_url !== imageUrl) {
@@ -271,12 +296,12 @@ const AdminProducts = ({ navigation }: any) => {
         console.log('✅ Form data güncellendi:', JSON.stringify(newFormData, null, 2));
         return newFormData;
       });
-      setSelectedFile(file);
+      setSelectedFile(fileOrUri);
 
       Toast.show({
         type: 'success',
         text1: t('admin.products.imageUploaded'),
-        text2: file.name,
+        text2: typeof fileOrUri === 'string' ? 'Resim yüklendi' : fileOrUri.name,
       });
     } catch (error: any) {
       console.error('❌ Resim yükleme hatası:', error);
@@ -287,6 +312,14 @@ const AdminProducts = ({ navigation }: any) => {
       });
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  // Dosya seçildiğinde (Web only)
+  const handleFileChange = async (event: any) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleImageUpload(file);
     }
   };
 
@@ -342,6 +375,7 @@ const AdminProducts = ({ navigation }: any) => {
         stock_status: formData.stock_status,
         is_featured: formData.is_featured,
         ingredients: formData.ingredients,
+        display_order: formData.display_order,
       };
 
       console.log('💾 Saving product with category_id:', formData.category_id);
@@ -704,6 +738,17 @@ const AdminProducts = ({ navigation }: any) => {
                   {t('admin.products.priceHelper')}
                 </Text>
 
+                {/* Sıralama (Display Order) */}
+                <Text style={styles.label}>{t('admin.products.sortOrderLabel') || 'Sıralama (Opsiyonel)'}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0"
+                  placeholderTextColor="#999"
+                  value={formData.display_order.toString()}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, display_order: parseInt(text) || 0 }))}
+                  keyboardType="numeric"
+                />
+
                 {/* Kategori (Category) */}
                 <Text style={styles.label}>{t('admin.products.categoryLabel')}</Text>
                 {categories.length === 0 ? (
@@ -937,7 +982,7 @@ const styles = StyleSheet.create({
   filterButton: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.round,
     borderWidth: 1,
     borderColor: '#DDD',
     backgroundColor: Colors.white,
@@ -1242,7 +1287,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
     backgroundColor: Colors.primary + '10',
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.round,
     paddingVertical: Spacing.xs,
     paddingLeft: Spacing.md,
     paddingRight: Spacing.sm,

@@ -71,6 +71,7 @@ export interface Product {
   preparation_time: number;
   is_active: boolean;
   stock_status: StockStatus;
+  display_order?: number; // Sıralama (Display order)
   ingredients?: string[]; // Malzemeler (Ingredients)
   created_at: string;
   updated_at?: string;
@@ -183,11 +184,7 @@ export interface Database {
         Insert: Omit<PointsHistory, 'id' | 'created_at'>;
         Update: Partial<Omit<PointsHistory, 'id' | 'created_at'>>;
       };
-      addresses: {
-        Row: Address;
-        Insert: Omit<Address, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Address, 'id' | 'created_at'>>;
-      };
+
       reviews: {
         Row: Review;
         Insert: Omit<Review, 'id' | 'created_at' | 'updated_at'>;

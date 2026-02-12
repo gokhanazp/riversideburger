@@ -8,6 +8,7 @@ export const getProducts = async (): Promise<Product[]> => {
       .from('products')
       .select('*')
       .eq('is_active', true)
+      .order('display_order', { ascending: true })
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -26,6 +27,7 @@ export const getProductsByCategory = async (categoryId: string): Promise<Product
       .select('*')
       .eq('category_id', categoryId)
       .eq('is_active', true)
+      .order('display_order', { ascending: true })
       .order('created_at', { ascending: false });
 
     if (error) throw error;

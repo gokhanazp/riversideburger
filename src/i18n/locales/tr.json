@@ -644,6 +644,7 @@
       "uploading": "Yükleniyor...",
       "stockUpdated": "Stok Durumu Güncellendi",
       "stockUpdateError": "Stok durumu güncellenirken bir hata oluştu",
+      "sortOrderLabel": "Sıralama (Opsiyonel)",
       "inStock": "Stokta",
       "outOfStock": "Stokta Yok",
       "namePlaceholder": "Örn: Double Riverside Burger",

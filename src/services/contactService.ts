@@ -12,6 +12,30 @@ export interface ContactInfo {
   whatsapp: string;
   footerAbout: string;
   footerCopyright: string;
+  // About Us Section
+  aboutTitleTr: string;
+  aboutTitleEn: string;
+  aboutDescTr: string;
+  aboutDescEn: string;
+  aboutImage: string;
+  // Why Riverside Section
+  whyTitleTr: string;
+  whyTitleEn: string;
+  // Feature 1
+  whyFeature1TitleTr: string;
+  whyFeature1TitleEn: string;
+  whyFeature1DescTr: string;
+  whyFeature1DescEn: string;
+  // Feature 2
+  whyFeature2TitleTr: string;
+  whyFeature2TitleEn: string;
+  whyFeature2DescTr: string;
+  whyFeature2DescEn: string;
+  // Feature 3
+  whyFeature3TitleTr: string;
+  whyFeature3TitleEn: string;
+  whyFeature3DescTr: string;
+  whyFeature3DescEn: string;
 }
 
 // Varsayılan iletişim bilgileri (Default contact information)
@@ -26,6 +50,32 @@ const DEFAULT_CONTACT_INFO: ContactInfo = {
   whatsapp: '+14168507026',
   footerAbout: 'Riverside Burgers was established in 2019. Our passion for fresh and high quality burgers led us to creating our Signature Burger.',
   footerCopyright: '© 2024 Riverside Burgers. All rights reserved.',
+  
+  // About Us Defaults
+  aboutTitleTr: 'Hakkımızda',
+  aboutTitleEn: 'About Us',
+  aboutDescTr: 'Riverside Burgers 2019 yılında kuruldu. Taze ve kaliteli burgerlere olan tutkumuz bizi İmza Burgerimizi yaratmaya yöneltti. Yanı sıra herkesin favorisi Klasik Burgerlerimizi de sunuyoruz. Her şeyi taze, lezzetli ve ağız sulandıran bir şekilde sizin için hazırlamaktan gurur duyuyoruz!',
+  aboutDescEn: 'Riverside Burgers was established in 2019. Our passion for fresh and high quality burgers led us to creating our Signature Burger, along with serving you everyone\'s favourite Classic Burgers. We take pride in making everything in house with the highest quality of meat and produces to keep it fresh, tasty and mouth-watering to keep you coming back for more!',
+  aboutImage: 'https://riversideburgers.ca/wp-content/uploads/2020/12/83333940_125121939016697_1418790697863077606_n-1.jpg',
+  
+  // Why Riverside Defaults
+  whyTitleTr: '🎯 Neden Riverside Burgers?',
+  whyTitleEn: '🎯 Why Riverside Burgers?',
+  
+  whyFeature1TitleTr: 'Hızlı Teslimat',
+  whyFeature1TitleEn: 'Fast Delivery',
+  whyFeature1DescTr: '30 dakikada kapınızda, sıcacık teslim',
+  whyFeature1DescEn: 'At your door in 30 minutes, hot and fresh',
+  
+  whyFeature2TitleTr: 'Kalite Garantisi',
+  whyFeature2TitleEn: 'Quality Guarantee',
+  whyFeature2DescTr: 'Her zaman taze malzemeler ve hijyen',
+  whyFeature2DescEn: 'Always fresh ingredients and hygiene',
+  
+  whyFeature3TitleTr: '5 Yıldız Memnuniyet',
+  whyFeature3TitleEn: '5 Star Satisfaction',
+  whyFeature3DescTr: 'Binlerce mutlu müşteri yorumu',
+  whyFeature3DescEn: 'Thousands of happy customer reviews',
 };
 
 // Global cache (to avoid multiple async calls)
@@ -57,6 +107,27 @@ export const getContactInfo = async (): Promise<ContactInfo> => {
         'social_whatsapp',
         'footer_about',
         'footer_copyright',
+        // About Us
+        'home_about_title_tr',
+        'home_about_title_en',
+        'home_about_desc_tr',
+        'home_about_desc_en',
+        'home_about_image',
+        // Why Riverside
+        'home_why_title_tr',
+        'home_why_title_en',
+        'home_why_f1_title_tr',
+        'home_why_f1_title_en',
+        'home_why_f1_desc_tr',
+        'home_why_f1_desc_en',
+        'home_why_f2_title_tr',
+        'home_why_f2_title_en',
+        'home_why_f2_desc_tr',
+        'home_why_f2_desc_en',
+        'home_why_f3_title_tr',
+        'home_why_f3_title_en',
+        'home_why_f3_desc_tr',
+        'home_why_f3_desc_en',
       ]);
 
     if (error) {
@@ -67,15 +138,37 @@ export const getContactInfo = async (): Promise<ContactInfo> => {
     // Ayarları objeye çevir (Convert settings to object)
     const contactInfo: any = { ...DEFAULT_CONTACT_INFO };
     data?.forEach((item) => {
-      let key = item.setting_key
-        .replace('contact_', '')
-        .replace('social_', '')
-        .replace('footer_', '');
-
-      // footer_ için camelCase'e çevir (Convert footer_ to camelCase)
-      if (item.setting_key.startsWith('footer_')) {
+      let key = item.setting_key;
+      
+      if (key.startsWith('contact_')) {
+        key = key.replace('contact_', '');
+      } else if (key.startsWith('social_')) {
+        key = key.replace('social_', '');
+      } else if (key.startsWith('footer_')) {
+        key = key.replace('footer_', '');
         if (key === 'about') key = 'footerAbout';
         if (key === 'copyright') key = 'footerCopyright';
+      } else if (key.startsWith('home_')) {
+        // Map home_ settings to camelCase
+        if (key === 'home_about_title_tr') key = 'aboutTitleTr';
+        else if (key === 'home_about_title_en') key = 'aboutTitleEn';
+        else if (key === 'home_about_desc_tr') key = 'aboutDescTr';
+        else if (key === 'home_about_desc_en') key = 'aboutDescEn';
+        else if (key === 'home_about_image') key = 'aboutImage';
+        else if (key === 'home_why_title_tr') key = 'whyTitleTr';
+        else if (key === 'home_why_title_en') key = 'whyTitleEn';
+        else if (key === 'home_why_f1_title_tr') key = 'whyFeature1TitleTr';
+        else if (key === 'home_why_f1_title_en') key = 'whyFeature1TitleEn';
+        else if (key === 'home_why_f1_desc_tr') key = 'whyFeature1DescTr';
+        else if (key === 'home_why_f1_desc_en') key = 'whyFeature1DescEn';
+        else if (key === 'home_why_f2_title_tr') key = 'whyFeature2TitleTr';
+        else if (key === 'home_why_f2_title_en') key = 'whyFeature2TitleEn';
+        else if (key === 'home_why_f2_desc_tr') key = 'whyFeature2DescTr';
+        else if (key === 'home_why_f2_desc_en') key = 'whyFeature2DescEn';
+        else if (key === 'home_why_f3_title_tr') key = 'whyFeature3TitleTr';
+        else if (key === 'home_why_f3_title_en') key = 'whyFeature3TitleEn';
+        else if (key === 'home_why_f3_desc_tr') key = 'whyFeature3DescTr';
+        else if (key === 'home_why_f3_desc_en') key = 'whyFeature3DescEn';
       }
 
       contactInfo[key] = item.setting_value || DEFAULT_CONTACT_INFO[key as keyof ContactInfo];

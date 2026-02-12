@@ -12,6 +12,7 @@ import {
   TextInput,
   Modal,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -39,7 +40,7 @@ const AdminReviews = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [filter, setFilter] = useState<FilterType>('pending');
-  
+
   // Reddetme modal state
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
@@ -345,7 +346,7 @@ const AdminReviews = () => {
         </View>
       )}
 
-      {/* Aksiyon Butonları (Action Buttons) - Sadece pending için */}
+      {/* Aksiyon Butonları (Action Buttons) - Pending için */}
       {!item.is_approved && !item.is_rejected && (
         <View style={styles.actionButtons}>
           <TouchableOpacity
@@ -362,6 +363,33 @@ const AdminReviews = () => {
             <Ionicons name="close-circle" size={20} color="#FFF" />
             <Text style={styles.actionButtonText}>{t('admin.reviews.buttonReject')}</Text>
           </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Aksiyon Butonları (Action Buttons) - Onaylanmış veya Reddedilmişler için Silme/Pasife Alma */}
+      {(item.is_approved || item.is_rejected) && (
+        <View style={styles.actionButtons}>
+          {/* Eğer onaylıysa Pasife Al (Reddet) butonu göster */}
+          {item.is_approved && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.rejectButton, { flex: 1 }]}
+              onPress={() => handleRejectPress(item.id)}
+            >
+              <Ionicons name="eye-off-outline" size={20} color="#FFF" />
+              <Text style={styles.actionButtonText}>{t('admin.reviews.deactivate') || 'Pasif Yap'}</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Kalıcı Silme Butonu - (Bu özellik için servis fonksiyonu gerekebilir, şimdilik UI ekliyorum) */}
+          {/* 
+           <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: '#333' }]}
+              onPress={() => handleDeletePress(item.id)} 
+            >
+              <Ionicons name="trash-outline" size={20} color="#FFF" />
+              <Text style={styles.actionButtonText}>{t('common.delete')}</Text>
+            </TouchableOpacity>
+            */}
         </View>
       )}
     </View>
