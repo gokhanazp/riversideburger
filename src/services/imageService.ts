@@ -1,7 +1,10 @@
-// Image Service - Resim yükleme ve boyutlandırma servisi
 import { Platform } from 'react-native';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { File as ExpoFile } from 'expo-file-system';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from '../lib/supabase';
+
+
 
 /**
  * Resmi boyutlandır ve optimize et (Resize and optimize image)
@@ -16,16 +19,15 @@ export const resizeImage = async (
   maxWidth: number = 1200,
   maxHeight: number = 800,
   quality: number = 0.8
-): Promise<Blob> => {
+): Promise<{ uri: string; blob: Blob }> => {
   // Mobile implementation (Expo Image Manipulator)
   if (Platform.OS !== 'web') {
-    if (typeof file !== 'string') {
-      throw new Error('Mobile platformda dosya URI string olmalıdır');
-    }
+    const uri = typeof file === 'string' ? file : (file as any).uri;
+    if (!uri) throw new Error('Mobile platformda geçerli bir URI bulunamadı');
 
     try {
       const manipResult = await ImageManipulator.manipulateAsync(
-        file,
+        uri,
         [{ resize: { width: maxWidth } }], // Sadece genişliğe göre scale et, height otomatik ayarlanır
         { compress: quality, format: ImageManipulator.SaveFormat.JPEG }
       );
@@ -33,31 +35,18 @@ export const resizeImage = async (
       const response = await fetch(manipResult.uri);
       const blob = await response.blob();
       
-      console.log('✅ Resim boyutlandırıldı (Mobile):', {
-         originalUri: file,
-         newUri: manipResult.uri,
-         newSize: `${(blob.size / 1024).toFixed(2)} KB`,
-         newDimensions: `${manipResult.width}x${manipResult.height}`,
-      });
-
-      return blob;
+      return { uri: manipResult.uri, blob };
     } catch (error) {
        console.error('Mobile resize error:', error);
        throw new Error('Mobil resim işleme hatası');
     }
   }
 
-  // Web implementation (Canvas)
+  // Web implementation (Canvas/FileReader)
   return new Promise((resolve, reject) => {
-    if (typeof file === 'string') {
-       reject(new Error('Web platformunda File nesnesi gereklidir'));
-       return;
-    }
     const reader = new FileReader();
-
     reader.onload = (e) => {
       const img = new Image();
-
       img.onload = () => {
         // Canvas oluştur (Create canvas)
         const canvas = document.createElement('canvas');
@@ -83,31 +72,17 @@ export const resizeImage = async (
 
         // Resmi çiz (Draw image)
         const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Canvas context oluşturulamadı'));
-          return;
-        }
-
+        if (!ctx) return reject(new Error('Canvas context error'));
         ctx.drawImage(img, 0, 0, width, height);
 
         // Blob'a çevir (Convert to blob)
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              console.log('✅ Resim boyutlandırıldı:', {
-                originalSize: `${(file.size / 1024).toFixed(2)} KB`,
-                newSize: `${(blob.size / 1024).toFixed(2)} KB`,
-                originalDimensions: `${img.width}x${img.height}`,
-                newDimensions: `${width}x${height}`,
-              });
-              resolve(blob);
-            } else {
-              reject(new Error('Blob oluşturulamadı'));
-            }
-          },
-          'image/jpeg',
-          quality
-        );
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve({ uri: URL.createObjectURL(blob), blob });
+          } else {
+            reject(new Error('Blob creation failed'));
+          }
+        }, 'image/jpeg', quality);
       };
 
       img.onerror = () => {
@@ -121,7 +96,7 @@ export const resizeImage = async (
       reject(new Error('Dosya okunamadı'));
     };
 
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(file as File);
   });
 };
 
@@ -186,44 +161,36 @@ export const uploadProductImage = async (
     }
 
     // Resmi boyutlandır (Resize image)
-    const resizedBlob = await resizeImage(file, 800, 800, 0.85);
+    const resizedResult = await resizeImage(file, 800, 800, 0.8);
 
-    // Benzersiz dosya adı oluştur (Generate unique filename)
+    // Benzersiz dosya adı oluştur
     const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 8);
-    
-    let fileExt = 'jpg';
-    if (typeof file === 'string') {
-        const ext = file.split('.').pop();
-        if (ext) fileExt = ext;
-    } else if (typeof File !== 'undefined' && file instanceof File) {
-        fileExt = file.name.split('.').pop() || 'jpg';
-    }
-    
-    const fileName = productId
-      ? `${productId}_${timestamp}.${fileExt}`
-      : `product_${timestamp}_${randomString}.${fileExt}`;
+    const fileName = productId ? `${productId}_${timestamp}.jpg` : `product_${timestamp}.jpg`;
 
-    // Supabase Storage'a yükle (Upload to Supabase Storage)
+    // Supabase Storage'a yükle
+    let uploadData: any;
+    
+    if (Platform.OS === 'web') {
+      uploadData = resizedResult.blob;
+    } else {
+      // Mobile: URI'den ArrayBuffer olarak oku (New SDK 54 API)
+      uploadData = await new ExpoFile(resizedResult.uri).arrayBuffer();
+    }
+
     const { data, error } = await supabase.storage
       .from('product-images')
-      .upload(fileName, resizedBlob, {
+      .upload(fileName, uploadData, {
         contentType: 'image/jpeg',
         cacheControl: '3600',
         upsert: false,
       });
 
     if (error) {
-      console.error('❌ Yükleme hatası:', error);
-      throw error;
+       console.error('❌ Supabase Upload Error:', error);
+       throw error;
     }
 
-    // Public URL al (Get public URL)
-    const { data: urlData } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(data.path);
-
-    console.log('✅ Ürün resmi yüklendi:', urlData.publicUrl);
+    const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(data.path);
     return urlData.publicUrl;
   } catch (error: any) {
     console.error('❌ Ürün resmi yükleme hatası:', error);
@@ -250,7 +217,7 @@ export const uploadBannerImage = async (
     }
 
     // Resmi boyutlandır (Resize image - banner için daha büyük)
-    const resizedBlob = await resizeImage(file, 1920, 1080, 0.85);
+    const resizedResult = await resizeImage(file, 1920, 1080, 0.85);
 
     // Benzersiz dosya adı oluştur (Generate unique filename)
     const timestamp = Date.now();
@@ -269,9 +236,17 @@ export const uploadBannerImage = async (
       : `banner_${timestamp}_${randomString}.${fileExt}`;
 
     // Supabase Storage'a yükle (Upload to Supabase Storage)
+    let uploadData: any;
+    if (Platform.OS === 'web') {
+      uploadData = resizedResult.blob;
+    } else {
+      // Mobile: URI'den ArrayBuffer olarak oku
+      uploadData = await new ExpoFile(resizedResult.uri).arrayBuffer();
+    }
+
     const { data, error } = await supabase.storage
       .from('banner-images')
-      .upload(fileName, resizedBlob, {
+      .upload(fileName, uploadData, {
         contentType: 'image/jpeg',
         cacheControl: '3600',
         upsert: false,

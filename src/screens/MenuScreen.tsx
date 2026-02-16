@@ -147,6 +147,7 @@ const MenuScreen = ({ navigation, route }: any) => {
       image: item.image_url,
       category: 'burger',
       preparationTime: item.preparation_time || 15,
+      available: item.is_active,
       rating: 4.5,
       reviews: 0,
     };
@@ -219,8 +220,9 @@ const MenuScreen = ({ navigation, route }: any) => {
       image: item.image_url,
       category: 'burger',
       preparationTime: item.preparation_time || 15,
-      rating: 4.5,
-      reviews: 0,
+      available: item.is_active,
+      rating: 4.5, // Assuming a default or fetching from item if available
+      reviews: reviewCounts[item.id] || 0, // Using fetched review counts
       ingredients: item.ingredients || [],
     };
 
@@ -242,7 +244,7 @@ const MenuScreen = ({ navigation, route }: any) => {
     // Grid stilini hesapla
     const gridStyle = isGridView ? {
       flex: 1,
-      maxWidth: `${100 / numColumns}%`,
+      maxWidth: (100 / numColumns) + '%' as any,
     } : {};
 
     return (
@@ -328,7 +330,7 @@ const MenuScreen = ({ navigation, route }: any) => {
                   activeOpacity={0.7}
                 >
                   {isGridView ? (
-                    <Ionicons name="add" size={20} color={Colors.white} />
+                    <Ionicons name="add" size={20} color={isGridView ? Colors.white : '#000'} />
                   ) : (
                     <Text style={styles.addButtonText}>{t('menu.addToCart')}</Text>
                   )}
@@ -536,61 +538,71 @@ const styles = StyleSheet.create({
   },
   menuImage: {
     width: '100%',
-    height: 200,
-    backgroundColor: Colors.surface,
+    height: 240,
+    backgroundColor: Colors.white,
     resizeMode: 'cover',
   },
   menuInfo: {
-    padding: Spacing.md,
+    padding: Spacing.lg,
   },
   menuName: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
+    fontSize: FontSizes.xl,
+    fontWeight: '600',
     color: Colors.text,
-    marginBottom: Spacing.xs,
+    letterSpacing: -0.5,
+    marginBottom: 4,
   },
   menuDescription: {
     fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
+    color: '#666',
+    marginBottom: Spacing.md,
     lineHeight: 20,
+    fontWeight: '400',
   },
   reviewCountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   reviewCountText: {
-    fontSize: FontSizes.xs,
+    fontSize: 12,
     color: Colors.textSecondary,
-    marginLeft: 4,
-    fontWeight: '500',
+    marginLeft: 6,
+    letterSpacing: 0.2,
   },
   menuFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 4,
   },
   menuPrice: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold',
-    color: Colors.primary,
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
+    color: Colors.text,
+    letterSpacing: 0,
   },
   preparationTime: {
-    fontSize: FontSizes.xs,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
+    fontSize: 10,
+    color: '#999',
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   addButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: '#000',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: 'transparent',
   },
   addButtonText: {
-    fontSize: FontSizes.md,
+    fontSize: 12,
     fontWeight: '600',
-    color: Colors.white,
+    color: '#000',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   favoriteButton: {
     position: 'absolute',
@@ -626,14 +638,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   menuCardGrid: {
-    height: '100%',
     marginBottom: 0,
     borderRadius: BorderRadius.md,
+    backgroundColor: Colors.white,
+    minHeight: 170, // Dikey uzunluğu kısalttık (Reduced height)
   },
   menuImageGrid: {
     width: '100%',
-    height: 125, // Compact height
-    backgroundColor: Colors.surface,
+    height: 140, // Slightly taller for better proportions
+    backgroundColor: Colors.white,
     resizeMode: 'cover',
   },
   menuInfoGrid: {
@@ -656,6 +669,8 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: Colors.primary, // Grid'de renkli kalsın (Keep primary color in grid)
+    borderWidth: 0, // Çerçeveyi kaldır (Remove border in grid)
   }
 });
 

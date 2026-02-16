@@ -39,7 +39,9 @@ interface Product {
   ingredients?: string[];
   display_order?: number; // Sıralama (Sort order)
   created_at: string;
+  updated_at?: string;
 }
+
 
 // Admin Ürünler Ekranı (Admin Products Screen)
 const AdminProducts = ({ navigation }: any) => {
@@ -83,8 +85,9 @@ const AdminProducts = ({ navigation }: any) => {
   // Malzeme input state'i (Ingredient input state)
   const [ingredientInput, setIngredientInput] = useState('');
 
-  // Resim yükleme state'leri (Image upload states)
+  // Resim yükleme state'ler (Image upload states)
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [localImagePreview, setLocalImagePreview] = useState<string | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -128,9 +131,9 @@ const AdminProducts = ({ navigation }: any) => {
   };
 
   // Ürünleri getir (Fetch products)
-  const fetchProducts = async () => {
+  const fetchProducts = async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
       console.log('🔍 Fetching products, filter:', filterCategory);
       console.log('🕐 Fetch time:', new Date().toISOString());
 
@@ -190,6 +193,7 @@ const AdminProducts = ({ navigation }: any) => {
   const handleAddProduct = () => {
     setSelectedProduct(null);
     setSelectedFile(null);
+    setLocalImagePreview(null);
     setIngredientInput('');
     setFormData({
       name: '',
@@ -209,6 +213,7 @@ const AdminProducts = ({ navigation }: any) => {
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
     setSelectedFile(null);
+    setLocalImagePreview(null);
     setIngredientInput('');
     setFormData({
       name: product.name,
@@ -258,7 +263,9 @@ const AdminProducts = ({ navigation }: any) => {
         });
 
         if (!result.canceled && result.assets && result.assets.length > 0) {
-          handleImageUpload(result.assets[0].uri);
+          const uri = result.assets[0].uri;
+          setLocalImagePreview(uri);
+          handleImageUpload(uri);
         }
       } catch (error) {
         console.error('Image picker error:', error);
@@ -280,20 +287,11 @@ const AdminProducts = ({ navigation }: any) => {
       // Resmi yükle (Upload image)
       const imageUrl = await uploadProductImage(fileOrUri, selectedProduct?.id);
 
-      // Eski resmi sil (Delete old image if exists)
-      if (selectedProduct?.image_url && formData.image_url !== imageUrl) {
-        try {
-          await deleteImage(selectedProduct.image_url, 'product-images');
-        } catch (error) {
-          console.warn('Eski resim silinemedi:', error);
-        }
-      }
-
       // Form data'yı güncelle (Update form data)
       console.log('📝 Form data güncelleniyor, yeni image_url:', imageUrl);
       setFormData(prev => {
         const newFormData = { ...prev, image_url: imageUrl };
-        console.log('✅ Form data güncellendi:', JSON.stringify(newFormData, null, 2));
+        console.log('✅ Form data güncellendi:', imageUrl);
         return newFormData;
       });
       setSelectedFile(fileOrUri);
@@ -319,6 +317,8 @@ const AdminProducts = ({ navigation }: any) => {
   const handleFileChange = async (event: any) => {
     const file = event.target.files?.[0];
     if (file) {
+      const localUri = URL.createObjectURL(file);
+      setLocalImagePreview(localUri);
       handleImageUpload(file);
     }
   };
@@ -442,7 +442,8 @@ const AdminProducts = ({ navigation }: any) => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       console.log('🔄 fetchProducts çağrılıyor...');
-      await fetchProducts();
+      await fetchProducts(true); // Silent refresh
+      setLocalImagePreview(null);
       console.log('✅ Ürünler yeniden yüklendi');
 
       // Güncellenmiş ürünü kontrol et
@@ -522,7 +523,17 @@ const AdminProducts = ({ navigation }: any) => {
   // Ürün kartı (Product card)
   const ProductCard = ({ product }: { product: Product }) => (
     <View style={styles.productCard}>
-      <Image source={{ uri: product.image_url }} style={styles.productImage} />
+      <Image
+        source={{ 
+          uri: product.image_url.includes('?') 
+            ? product.image_url 
+            : `${product.image_url}?v=${new Date(product.updated_at || product.created_at).getTime()}` 
+        }}
+        style={styles.productImage}
+        key={`${product.id}-${product.image_url}`}
+        onError={(e) => console.log('Image failed to load', product.image_url, e.nativeEvent)}
+      />
+
 
       <View style={styles.productInfo}>
         <View style={styles.productHeader}>
@@ -834,12 +845,19 @@ const AdminProducts = ({ navigation }: any) => {
                 </Text>
 
                 {/* Resim Önizleme (Image Preview) */}
-                {formData.image_url && (
+                {(localImagePreview || formData.image_url) && (
                   <View style={styles.imagePreviewContainer}>
-                    <Image source={{ uri: formData.image_url }} style={styles.imagePreview} />
+                    <Image 
+                      source={{ uri: localImagePreview || formData.image_url }} 
+                      style={styles.imagePreview}
+                      key={localImagePreview || formData.image_url}
+                    />
                     <TouchableOpacity
                       style={styles.removeImageButton}
-                      onPress={() => setFormData(prev => ({ ...prev, image_url: '' }))}
+                      onPress={() => {
+                        setFormData(prev => ({ ...prev, image_url: '' }));
+                        setLocalImagePreview(null);
+                      }}
                       activeOpacity={0.7}
                     >
                       <Ionicons name="close-circle" size={24} color="#DC3545" />
