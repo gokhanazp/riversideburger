@@ -1013,7 +1013,14 @@
       "buttonDeactivate": "Deactivate",
       "buttonActivate": "Activate",
       "buttonEdit": "Edit",
-      "buttonDelete": "Delete"
+      "buttonDelete": "Delete",
+      "labelLinkType": "Action Type (What happens on click?)",
+      "labelSelectProduct": "Select Product to Link",
+      "labelSelectCategory": "Select Category to Link",
+      "linkTypeNone": "None",
+      "linkTypeProduct": "Product",
+      "linkTypeCategory": "Menu",
+      "linkTypeUrl": "Custom link"
     },
     "languageSettings": {
       "title": "Language & Currency",

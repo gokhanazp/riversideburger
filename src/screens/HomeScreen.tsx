@@ -185,6 +185,37 @@ const HomeScreen = ({ navigation }: any) => {
     });
   };
 
+  // Banner tıklandığında (When banner is pressed)
+  const handleBannerPress = async (banner: any) => {
+    const link = banner.button_link;
+    if (!link) return;
+
+    console.log('🚩 Banner action:', link);
+
+    if (link.startsWith('product:')) {
+      const productId = link.split(':')[1];
+      // Ürünü database'den çek veya navigation ile git (Fetch product from DB or go with ID)
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .single();
+
+        if (data && !error) {
+          handleProductPress(data);
+        }
+      } catch (err) {
+        console.error('Error fetching banner product:', err);
+      }
+    } else if (link.startsWith('category:')) {
+      const categoryId = link.split(':')[1];
+      handleCategoryPress(categoryId);
+    } else if (link.startsWith('http')) {
+      Linking.openURL(link).catch(err => console.error('Error opening banner URL:', err));
+    }
+  };
+
   // Kategori kartı componenti (Category card component)
   const CategoryCard = ({
     category,
@@ -211,6 +242,7 @@ const HomeScreen = ({ navigation }: any) => {
   );
 
   return (
+
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header bölümü (Header section) */}
       <Animated.View entering={FadeInUp.duration(600)} style={styles.header}>
@@ -227,7 +259,8 @@ const HomeScreen = ({ navigation }: any) => {
       </Animated.View>
 
       {/* Banner Slider (Banner Slider) */}
-      <BannerSlider onBannerPress={(id) => console.log('Banner pressed:', id)} />
+      <BannerSlider onBannerPress={handleBannerPress} />
+
 
       {/* Kategoriler bölümü (Categories section) */}
       <View style={styles.section}>
@@ -900,11 +933,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     textAlign: 'center',
   },
-  loadingContainer: {
-    paddingVertical: Spacing.xxl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
   // Öne Çıkan Ürünler stilleri (Featured Products styles)
   sectionHeader: {
     flexDirection: 'row',

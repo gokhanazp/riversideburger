@@ -34,14 +34,16 @@ const styles = StyleSheet.create({
   // Başarı toast stili (Success toast style)
   successToast: {
     width: '90%',
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.success,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg, // md → lg (daha yüksek)
+    paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.lg,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.secondary,
-    ...Shadows.medium,
-    minHeight: 70, // Minimum yükseklik (Minimum height)
+    borderLeftWidth: 6,
+    borderLeftColor: '#1E7E34',
+    ...Shadows.large,
+    elevation: 10,
+    zIndex: 9999,
+    minHeight: 70,
   },
 
   // Hata toast stili (Error toast style)
@@ -49,40 +51,45 @@ const styles = StyleSheet.create({
     width: '90%',
     backgroundColor: Colors.error,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg, // md → lg (daha yüksek)
+    paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.lg,
-    borderLeftWidth: 4,
+    borderLeftWidth: 6,
     borderLeftColor: '#C62828',
-    ...Shadows.medium,
-    minHeight: 70, // Minimum yükseklik (Minimum height)
+    ...Shadows.large,
+    elevation: 10,
+    zIndex: 9999,
+    minHeight: 70,
   },
 
   // Bilgi toast stili (Info toast style)
   infoToast: {
     width: '90%',
-    backgroundColor: Colors.river,
+    backgroundColor: Colors.info,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg, // md → lg (daha yüksek)
+    paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.lg,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.riverLight,
-    ...Shadows.medium,
-    minHeight: 70, // Minimum yükseklik (Minimum height)
+    borderLeftWidth: 6,
+    borderLeftColor: '#117A8B',
+    ...Shadows.large,
+    elevation: 10,
+    zIndex: 9999,
+    minHeight: 70,
   },
 
   // Toast başlık stili (Toast title style)
   toastTitle: {
-    fontSize: FontSizes.lg, // md → lg (daha büyük)
+    fontSize: FontSizes.lg,
     fontWeight: 'bold',
-    color: Colors.white,
+    color: '#FFFFFF',
     marginBottom: Spacing.xs,
   },
 
   // Toast mesaj stili (Toast message style)
   toastMessage: {
-    fontSize: FontSizes.md, // sm → md (daha büyük)
-    color: Colors.white,
-    opacity: 0.95, // 0.9 → 0.95 (daha belirgin)
+    fontSize: FontSizes.md,
+    color: '#FFFFFF',
+    opacity: 1,
+    fontWeight: '500',
   },
 });
 

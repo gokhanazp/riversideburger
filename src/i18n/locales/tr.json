@@ -1012,7 +1012,14 @@
       "buttonDeactivate": "Pasif Yap",
       "buttonActivate": "Aktif Yap",
       "buttonEdit": "Düzenle",
-      "buttonDelete": "Sil"
+      "buttonDelete": "Sil",
+      "labelLinkType": "Aksiyon Tipi (Tıklandığında ne olsun?)",
+      "labelSelectProduct": "Gidilecek Ürünü Seçin",
+      "labelSelectCategory": "Gidilecek Kategoriyi Seçin",
+      "linkTypeNone": "Yok",
+      "linkTypeProduct": "Ürün",
+      "linkTypeCategory": "Menü",
+      "linkTypeUrl": "Özel link"
     },
     "languageSettings": {
       "title": "Dil ve Para Birimi",

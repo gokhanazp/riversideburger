@@ -58,6 +58,14 @@ const AdminBanners = ({ navigation }: any) => {
     is_active: true,
   });
 
+  // Link seçimi için state'ler (States for link selection)
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [linkType, setLinkType] = useState<'none' | 'product' | 'category' | 'url'>('none');
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+
+
   // Resim yükleme state'leri (Image upload states)
   const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | string | null>(null);
@@ -73,7 +81,24 @@ const AdminBanners = ({ navigation }: any) => {
   // Sayfa yüklendiğinde banner'ları getir (Fetch banners on page load)
   useEffect(() => {
     fetchBanners();
+    fetchSelectionData();
   }, []);
+
+  // Seçim için ürün ve kategorileri getir (Fetch products and categories for selection)
+  const fetchSelectionData = async () => {
+    try {
+      const [productsRes, categoriesRes] = await Promise.all([
+        supabase.from('products').select('id, name').eq('is_active', true).order('name'),
+        supabase.from('menu_categories').select('id, name_en, name_tr').eq('is_active', true).order('display_order')
+      ]);
+
+      if (productsRes.data) setProducts(productsRes.data);
+      if (categoriesRes.data) setCategories(categoriesRes.data);
+    } catch (error) {
+      console.error('Error fetching selection data:', error);
+    }
+  };
+
 
   // Banner'ları getir (Fetch banners)
   const fetchBanners = async () => {
@@ -142,8 +167,23 @@ const AdminBanners = ({ navigation }: any) => {
       order_index: banner.order_index,
       is_active: banner.is_active,
     });
+
+    // Link tipini tespit et (Detect link type)
+    if (banner.button_link?.startsWith('product:')) {
+      setLinkType('product');
+      setSelectedProductId(banner.button_link.split(':')[1]);
+    } else if (banner.button_link?.startsWith('category:')) {
+      setLinkType('category');
+      setSelectedCategoryId(banner.button_link.split(':')[1]);
+    } else if (banner.button_link) {
+      setLinkType('url');
+    } else {
+      setLinkType('none');
+    }
+
     setShowEditModal(true);
   };
+
 
   // Resim seç (Select image)
   const handleSelectImage = async () => {
@@ -575,6 +615,94 @@ const AdminBanners = ({ navigation }: any) => {
                   placeholderTextColor="#999"
                 />
 
+                {/* Buton Link Tipi (Button Link Type) */}
+                <Text style={styles.label}>{t('admin.banners.labelLinkType')}</Text>
+                <View style={styles.linkTypeContainer}>
+                  {[
+                    { id: 'none', label: t('admin.banners.linkTypeNone') },
+                    { id: 'product', label: t('admin.banners.linkTypeProduct') },
+                    { id: 'category', label: t('admin.banners.linkTypeCategory') },
+                    { id: 'url', label: t('admin.banners.linkTypeUrl') }
+                  ].map((type) => (
+                    <TouchableOpacity
+                      key={type.id}
+                      style={[styles.linkTypeButton, linkType === type.id && styles.linkTypeButtonActive]}
+                      onPress={() => {
+                        setLinkType(type.id as any);
+                        if (type.id === 'none') {
+                           setFormData({ ...formData, button_link: '' });
+                           setSelectedProductId('');
+                           setSelectedCategoryId('');
+                        }
+                      }}
+                    >
+                      <Text style={[styles.linkTypeButtonText, linkType === type.id && styles.linkTypeButtonTextActive]}>
+                        {type.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Ürün Seçimi (Product Selection) */}
+                {linkType === 'product' && (
+                  <View style={styles.selectorContainer}>
+                    <Text style={styles.label}>{t('admin.banners.labelSelectProduct')}</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalSelector}>
+                      {products.map((product) => (
+                        <TouchableOpacity
+                          key={product.id}
+                          style={[styles.selectorChip, selectedProductId === product.id && styles.selectorChipActive]}
+                          onPress={() => {
+                            setSelectedProductId(product.id);
+                            setFormData({ ...formData, button_link: `product:${product.id}` });
+                          }}
+                        >
+                          <Text style={[styles.selectorChipText, selectedProductId === product.id && styles.selectorChipTextActive]}>
+                            {product.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {/* Kategori Seçimi (Category Selection) */}
+                {linkType === 'category' && (
+                  <View style={styles.selectorContainer}>
+                    <Text style={styles.label}>{t('admin.banners.labelSelectCategory')}</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalSelector}>
+                      {categories.map((cat) => (
+                        <TouchableOpacity
+                          key={cat.id}
+                          style={[styles.selectorChip, selectedCategoryId === cat.id && styles.selectorChipActive]}
+                          onPress={() => {
+                            setSelectedCategoryId(cat.id);
+                            setFormData({ ...formData, button_link: `category:${cat.id}` });
+                          }}
+                        >
+                          <Text style={[styles.selectorChipText, selectedCategoryId === cat.id && styles.selectorChipTextActive]}>
+                            {i18n.language === 'tr' ? cat.name_tr : cat.name_en}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+
+                {/* Özel URL (Custom URL) */}
+                {linkType === 'url' && (
+                  <TextInput
+                    style={styles.input}
+                    value={formData.button_link.startsWith('product:') || formData.button_link.startsWith('category:') ? '' : formData.button_link}
+                    onChangeText={(text) => setFormData({ ...formData, button_link: text })}
+                    placeholder="https://..."
+                    placeholderTextColor="#999"
+                    autoCapitalize="none"
+                  />
+                )}
+
+
                 {/* Sıra (Order) */}
                 <Text style={styles.label}>{t('admin.banners.labelOrder')}</Text>
                 <TextInput
@@ -897,6 +1025,65 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     fontWeight: 'bold',
     color: Colors.white,
+  },
+  linkTypeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginVertical: Spacing.sm,
+  },
+  linkTypeButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.round,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    backgroundColor: '#F8F9FA',
+  },
+  linkTypeButtonActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  linkTypeButtonText: {
+    fontSize: FontSizes.sm,
+    color: '#666',
+  },
+  linkTypeButtonTextActive: {
+    color: Colors.white,
+    fontWeight: 'bold',
+  },
+  selectorContainer: {
+    marginTop: Spacing.sm,
+    backgroundColor: '#F8F9FA',
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  horizontalSelector: {
+    flexDirection: 'row',
+    marginTop: Spacing.xs,
+  },
+  selectorChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    marginRight: Spacing.xs,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  selectorChipActive: {
+    backgroundColor: Colors.primary + '15',
+    borderColor: Colors.primary,
+  },
+  selectorChipText: {
+    fontSize: FontSizes.sm,
+    color: '#333',
+  },
+  selectorChipTextActive: {
+    color: Colors.primary,
+    fontWeight: 'bold',
   },
 });
 
