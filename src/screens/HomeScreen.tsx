@@ -380,23 +380,39 @@ const HomeScreen = ({ navigation }: any) => {
         )}
       </View>
 
-      {/* About Us bölümü (About Us section) */}
-      <View style={styles.section}>
-        <Animated.Text
-          entering={FadeInDown.delay(300).duration(600)}
-          style={styles.sectionTitle}
+      {/* Pro Branded About Section */}
+      <View style={styles.eliteAboutSection}>
+        <Animated.View 
+          entering={FadeInDown.delay(300).springify()}
+          style={styles.aboutImageWrapper}
         >
-          {contactInfo ? (i18n.language === 'tr' ? contactInfo.aboutTitleTr : contactInfo.aboutTitleEn) : t('home.aboutUs')}
-        </Animated.Text>
-        <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.aboutCard}>
           <Image
             source={{ uri: contactInfo?.aboutImage || 'https://riversideburgers.ca/wp-content/uploads/2020/12/83333940_125121939016697_1418790697863077606_n-1.jpg' }}
-            style={styles.aboutImage}
+            style={styles.eliteAboutImage}
           />
-          <View style={styles.aboutContent}>
-            <Text style={styles.aboutText}>
-              {contactInfo ? (i18n.language === 'tr' ? contactInfo.aboutDescTr : contactInfo.aboutDescEn) : 'Riverside Burgers was established in 2019. Our passion for fresh and high quality burgers led us to creating our Signature Burger, along with serving you everyone\'s favourite Classic Burgers. We take pride in making everything in house with the highest quality of meat and produces to keep it fresh, tasty and mouth-watering to keep you coming back for more!'}
-            </Text>
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.6)']}
+            style={styles.aboutImageOverlay}
+          />
+          <View style={styles.estBadge}>
+            <Text style={styles.estText}>EST.</Text>
+            <Text style={styles.estYear}>2019</Text>
+          </View>
+        </Animated.View>
+
+        <Animated.View 
+          entering={FadeInDown.delay(450).springify()}
+          style={styles.eliteAboutCard}
+        >
+          <Text style={styles.eliteAboutTitle}>
+            {contactInfo ? (i18n.language === 'tr' ? contactInfo.aboutTitleTr : contactInfo.aboutTitleEn) : t('home.aboutUs')}
+          </Text>
+          <Text style={styles.eliteAboutText}>
+            {contactInfo ? (i18n.language === 'tr' ? contactInfo.aboutDescTr : contactInfo.aboutDescEn) : 'Riverside Burgers was established in 2019. Our passion for fresh and high quality burgers led us to creating our Signature Burger, along with serving you everyone\'s favourite Classic Burgers. We take pride in making everything in house with the highest quality of meat and produces to keep it fresh, tasty and mouth-watering to keep you coming back for more!'}
+          </Text>
+          <View style={styles.aboutSignatureRow}>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureText}>Riverside Quality</Text>
           </View>
         </Animated.View>
       </View>
@@ -434,64 +450,65 @@ const HomeScreen = ({ navigation }: any) => {
         </Animated.View>
       </View>
 
-      {/* Müşteri Yorumları bölümü (Customer Reviews section) - Gerçek restoran yorumları */}
-      <View style={styles.section}>
-        <Animated.Text
-          entering={FadeInDown.delay(700).duration(600)}
-          style={styles.sectionTitle}
-        >
-          ⭐ {t('home.customerReviews')}
-        </Animated.Text>
-        <Animated.Text
-          entering={FadeInDown.delay(750).duration(600)}
-          style={styles.sectionSubtitle}
-        >
-          {t('home.customerReviewsSubtitle')}
-        </Animated.Text>
+      {/* Müşteri Yorumları Bölümü (Customer Reviews Section) - Elite Redesign */}
+      <View style={styles.eliteReviewSection}>
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.eliteSectionTitle}>{t('home.customerReviews')}</Text>
+            <Text style={styles.eliteSectionSubtitle}>{t('home.customerReviewsSubtitle')}</Text>
+          </View>
+        </View>
 
         {loadingReviews ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+            <ActivityIndicator size="small" color={Colors.primary} />
           </View>
         ) : restaurantReviews.length > 0 ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.reviewsScrollContent}
+            contentContainerStyle={styles.eliteReviewsScroll}
+            snapToInterval={310}
+            decelerationRate="fast"
           >
             {restaurantReviews.map((review, index) => (
               <Animated.View
                 key={review.id}
-                entering={FadeInDown.delay(800 + index * 50).duration(600)}
-                style={styles.reviewCard}
+                entering={FadeInDown.delay(700 + index * 100).springify()}
+                style={styles.eliteReviewCard}
               >
-                <View style={styles.reviewQuoteIcon}>
-                  <Ionicons name="chatbox-ellipses" size={32} color={Colors.primary} />
+                <View style={styles.reviewHeaderRow}>
+                  <View style={styles.reviewStars}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Ionicons
+                        key={star}
+                        name={star <= review.rating ? 'star' : 'star-outline'}
+                        size={14}
+                        color="#FFD700"
+                      />
+                    ))}
+                  </View>
+                  <View style={styles.verifiedBadge}>
+                    <Ionicons name="checkmark-seal" size={14} color={Colors.primary} />
+                    <Text style={styles.verifiedText}>Verified</Text>
+                  </View>
                 </View>
-                <View style={styles.starsContainer}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Ionicons
-                      key={star}
-                      name={star <= review.rating ? 'star' : 'star-outline'}
-                      size={18}
-                      color={Colors.accent}
-                    />
-                  ))}
-                </View>
+
                 {review.comment && (
-                  <Text style={styles.reviewText} numberOfLines={4}>
+                  <Text style={styles.eliteReviewText} numberOfLines={4}>
                     "{review.comment}"
                   </Text>
                 )}
-                <View style={styles.reviewFooter}>
-                  <View style={styles.reviewAvatar}>
-                    <Ionicons name="person" size={20} color={Colors.white} />
+
+                <View style={styles.eliteReviewFooter}>
+                  <View style={styles.eliteAvatar}>
+                    <Text style={styles.avatarText}>
+                      {review.user?.full_name?.charAt(0) || 'U'}
+                    </Text>
                   </View>
                   <View>
-                    <Text style={styles.reviewName}>
-                      {review.user?.full_name}
-                    </Text>
-                    <Text style={styles.reviewDate}>
+                    <Text style={styles.eliteReviewName}>{review.user?.full_name}</Text>
+                    <Text style={styles.eliteReviewDate}>
                       {new Date(review.created_at).toLocaleDateString(i18n.language === 'tr' ? 'tr-TR' : 'en-CA')}
                     </Text>
                   </View>
@@ -500,72 +517,68 @@ const HomeScreen = ({ navigation }: any) => {
             ))}
           </ScrollView>
         ) : (
-          <Animated.View
-            entering={FadeInDown.delay(800).duration(600)}
-            style={styles.emptyReviewsContainer}
-          >
-            <Ionicons name="chatbox-ellipses-outline" size={48} color="#CCC" />
-            <Text style={styles.emptyReviewsText}>{t('home.noReviews')}</Text>
-          </Animated.View>
+          <View style={styles.emptyReviewsPlaceholder}>
+            <Ionicons name="chatbubble-outline" size={40} color="#DDD" />
+            <Text style={styles.emptyText}>{t('home.noReviews')}</Text>
+          </View>
         )}
       </View>
 
-      {/* Özellikler bölümü (Features section) - Yeniden tasarlandı */}
-      <View style={styles.section}>
-        <Animated.Text
-          entering={FadeInDown.delay(950).duration(600)}
-          style={styles.sectionTitle}
-        >
-          {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyTitleTr : contactInfo.whyTitleEn) : t('home.whyRiversideBurgers')}
-        </Animated.Text>
-        <View style={styles.featuresContainer}>
-          <Animated.View entering={FadeInDown.delay(1000).duration(600)} style={styles.featureCard}>
-            <View style={styles.featureIconContainer}>
-              <Ionicons name="time" size={48} color={Colors.white} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>
+      {/* Özellikler Bölümü (Why Riverside Burgers) - Bento Grid Redesign */}
+      <View style={styles.bentoSection}>
+        <View style={styles.bentoHeader}>
+          <Text style={styles.bentoTitle}>
+            {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyTitleTr : contactInfo.whyTitleEn) : t('home.whyRiversideBurgers')}
+          </Text>
+          <View style={styles.titleUnderline} />
+        </View>
+
+        <View style={styles.bentoGrid}>
+          {/* Row 1: Two Columns */}
+          <View style={styles.bentoRow}>
+            <Animated.View 
+              entering={FadeInDown.delay(900).springify()} 
+              style={[styles.bentoCardSmall, { backgroundColor: '#FDF2F2' }]}
+            >
+              <View style={styles.bentoIconBox}>
+                <Ionicons name="timer-outline" size={28} color={Colors.primary} />
+              </View>
+              <Text style={styles.bentoCardTitle}>
                 {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature1TitleTr : contactInfo.whyFeature1TitleEn) : t('home.fastDelivery')}
               </Text>
-              <Text style={styles.featureText}>
-                {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature1DescTr : contactInfo.whyFeature1DescEn) : t('home.fastDeliveryDesc')}
-              </Text>
-              <View style={styles.featureBadge}>
-                <Text style={styles.featureBadgeText}>{t('home.fastDeliveryBadge')}</Text>
-              </View>
-            </View>
-          </Animated.View>
+              <Text style={styles.bentoCardDesc}>{t('home.fastDeliveryBadge')}</Text>
+            </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(1050).duration(600)} style={styles.featureCard}>
-            <View style={styles.featureIconContainer}>
-              <Ionicons name="shield-checkmark" size={48} color={Colors.white} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>
+            <Animated.View 
+              entering={FadeInDown.delay(1000).springify()} 
+              style={[styles.bentoCardSmall, { backgroundColor: '#F0F7FF' }]}
+            >
+              <View style={styles.bentoIconBox}>
+                <Ionicons name="shield-checkmark-outline" size={28} color="#007AFF" />
+              </View>
+              <Text style={styles.bentoCardTitle}>
                 {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature2TitleTr : contactInfo.whyFeature2TitleEn) : t('home.qualityGuarantee')}
               </Text>
-              <Text style={styles.featureText}>
-                {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature2DescTr : contactInfo.whyFeature2DescEn) : t('home.qualityGuaranteeDesc')}
-              </Text>
-              <View style={styles.featureBadge}>
-                <Text style={styles.featureBadgeText}>{t('home.qualityGuaranteeBadge')}</Text>
-              </View>
-            </View>
-          </Animated.View>
+              <Text style={styles.bentoCardDesc}>{t('home.qualityGuaranteeBadge')}</Text>
+            </Animated.View>
+          </View>
 
-          <Animated.View entering={FadeInDown.delay(1100).duration(600)} style={styles.featureCard}>
-            <View style={styles.featureIconContainer}>
-              <Ionicons name="star" size={48} color={Colors.white} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>
-                {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature3TitleTr : contactInfo.whyFeature3TitleEn) : t('home.fiveStarSatisfaction')}
-              </Text>
-              <Text style={styles.featureText}>
-                {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature3DescTr : contactInfo.whyFeature3DescEn) : t('home.fiveStarSatisfactionDesc')}
-              </Text>
-              <View style={styles.featureBadge}>
-                <Text style={styles.featureBadgeText}>{t('home.fiveStarSatisfactionBadge')}</Text>
+          {/* Row 2: Full Width */}
+          <Animated.View 
+            entering={FadeInDown.delay(1100).springify()} 
+            style={[styles.bentoCardLarge, { backgroundColor: '#FFF9F0' }]}
+          >
+            <View style={styles.bentoCardContent}>
+              <View style={styles.bentoIconBox}>
+                <Ionicons name="star-outline" size={32} color="#FF9500" />
+              </View>
+              <View style={styles.bentoTextGroup}>
+                <Text style={styles.bentoCardTitle}>
+                  {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature3TitleTr : contactInfo.whyFeature3TitleEn) : t('home.fiveStarSatisfaction')}
+                </Text>
+                <Text style={styles.bentoCardFullDesc}>
+                  {contactInfo ? (i18n.language === 'tr' ? contactInfo.whyFeature3DescTr : contactInfo.whyFeature3DescEn) : t('home.fiveStarSatisfactionDesc')}
+                </Text>
               </View>
             </View>
           </Animated.View>
@@ -940,79 +953,187 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
   },
-  // Müşteri Yorumları stilleri (Customer Reviews styles) - Yeniden tasarlandı
-  reviewsScrollContent: {
-    paddingRight: Spacing.lg,
-    backgroundColor: 'transparent',
+  // Elite Review Styles
+  eliteReviewSection: {
+    paddingVertical: Spacing.xl,
+    backgroundColor: '#FAFBFD',
   },
-  reviewCard: {
+  eliteSectionTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1A1A1A',
+    paddingHorizontal: Spacing.lg,
+    marginBottom: 4,
+  },
+  eliteSectionSubtitle: {
+    fontSize: 14,
+    color: '#888',
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  eliteReviewsScroll: {
+    paddingLeft: Spacing.lg,
+    paddingRight: Spacing.md,
+    paddingBottom: 10,
+  },
+  eliteReviewCard: {
     width: 300,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    marginRight: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
+    borderRadius: 24,
+    padding: 20,
+    marginRight: 16,
+    ...Shadows.small,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: '#F0F0F0',
   },
-  reviewQuoteIcon: {
+  reviewHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: Spacing.md,
   },
-  reviewFooter: {
+  reviewStars: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: Spacing.lg,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    gap: 4,
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  reviewAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.round,
-    backgroundColor: Colors.primary,
+  verifiedText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#15803D',
+    textTransform: 'uppercase',
+  },
+  eliteReviewText: {
+    fontSize: 15,
+    color: '#333',
+    lineHeight: 22,
+    fontWeight: '500',
+    marginBottom: 20,
+  },
+  eliteReviewFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F5F5F5',
+    paddingTop: 16,
+  },
+  eliteAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.sm,
+    marginRight: 12,
   },
-  reviewName: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
-    color: Colors.text,
+  avatarText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
-  reviewDate: {
-    fontSize: FontSizes.xs,
-    color: Colors.textSecondary,
+  eliteReviewName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  eliteReviewDate: {
+    fontSize: 11,
+    color: '#999',
     marginTop: 2,
   },
-  starsContainer: {
-    flexDirection: 'row',
-    gap: 4,
-    marginBottom: Spacing.md,
-  },
-  reviewText: {
-    fontSize: FontSizes.md,
-    color: Colors.text,
-    lineHeight: 22,
-    fontStyle: 'italic',
-  },
-  emptyReviewsContainer: {
+  emptyReviewsPlaceholder: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.xxl,
+    paddingVertical: 40,
   },
-  emptyReviewsText: {
-    fontSize: FontSizes.md,
-    color: '#999',
-    marginTop: Spacing.md,
+
+  // Bento Grid Styles (Why Riverside Burgers)
+  bentoSection: {
+    padding: Spacing.lg,
+    backgroundColor: Colors.white,
+  },
+  bentoHeader: {
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  bentoTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1A1A1A',
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  titleUnderline: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.primary,
+    borderRadius: 2,
+  },
+  bentoGrid: {
+    gap: 12,
+  },
+  bentoRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  bentoCardSmall: {
+    flex: 1,
+    borderRadius: 24,
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.small,
+  },
+  bentoCardLarge: {
+    width: '100%',
+    borderRadius: 24,
+    padding: 24,
+    ...Shadows.small,
+  },
+  bentoIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    ...Shadows.small,
+  },
+  bentoCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  bentoCardDesc: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#666',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  bentoCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  bentoTextGroup: {
+    flex: 1,
+  },
+  bentoCardFullDesc: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+    textAlign: 'left',
   },
 
   // Öne Çıkan Ürünler stilleri (Featured Products styles)
@@ -1206,6 +1327,274 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
+  // Elite Review Styles
+  eliteReviewSection: {
+    paddingVertical: Spacing.xl,
+    backgroundColor: '#FAFBFD',
+  },
+  eliteSectionTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1A1A1A',
+    paddingHorizontal: Spacing.lg,
+    marginBottom: 4,
+  },
+  eliteSectionSubtitle: {
+    fontSize: 14,
+    color: '#888',
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  eliteReviewsScroll: {
+    paddingLeft: Spacing.lg,
+    paddingRight: Spacing.md,
+    paddingBottom: 10,
+  },
+  eliteReviewCard: {
+    width: 300,
+    backgroundColor: Colors.white,
+    borderRadius: 24,
+    padding: 20,
+    marginRight: 16,
+    ...Shadows.small,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  reviewHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  reviewStars: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  verifiedText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#15803D',
+    textTransform: 'uppercase',
+  },
+  eliteReviewText: {
+    fontSize: 15,
+    color: '#333',
+    lineHeight: 22,
+    fontWeight: '500',
+    marginBottom: 20,
+  },
+  eliteReviewFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F5F5F5',
+    paddingTop: 16,
+  },
+  eliteAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1A1A1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  eliteReviewName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  eliteReviewDate: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 2,
+  },
+  emptyReviewsPlaceholder: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+
+  // Bento Grid Styles (Why Riverside Burgers)
+  bentoSection: {
+    padding: Spacing.lg,
+    backgroundColor: Colors.white,
+  },
+  bentoHeader: {
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  bentoTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1A1A1A',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  titleUnderline: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.primary,
+    borderRadius: 2,
+  },
+  bentoGrid: {
+    gap: 12,
+  },
+  bentoRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  bentoCardSmall: {
+    flex: 1,
+    borderRadius: 24,
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.small,
+  },
+  bentoCardLarge: {
+    width: '100%',
+    borderRadius: 24,
+    padding: 24,
+    ...Shadows.small,
+  },
+  bentoIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    ...Shadows.small,
+  },
+  bentoCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  bentoCardDesc: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#666',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  bentoCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  bentoTextGroup: {
+    flex: 1,
+  },
+  bentoCardFullDesc: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+    textAlign: 'left',
+  },
+
+  // Elite About Section Styles
+  eliteAboutSection: {
+    padding: Spacing.lg,
+    backgroundColor: Colors.white,
+    marginTop: 10,
+  },
+  aboutImageWrapper: {
+    width: '100%',
+    height: 300,
+    borderRadius: 32,
+    overflow: 'hidden',
+    ...Shadows.medium,
+  },
+  eliteAboutImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  aboutImageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  estBadge: {
+    position: 'absolute',
+    top: 24,
+    right: 24,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.2)',
+    ...Shadows.medium,
+  },
+  estText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: 'rgba(255,255,255,0.8)',
+  },
+  estYear: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FFF',
+  },
+  eliteAboutCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 24,
+    marginTop: -60,
+    marginHorizontal: 16,
+    ...Shadows.large,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  eliteAboutTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1A1A1A',
+    marginBottom: 12,
+  },
+  eliteAboutText: {
+    fontSize: 15,
+    color: '#555',
+    lineHeight: 24,
+    fontWeight: '500',
+  },
+  aboutSignatureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    gap: 12,
+  },
+  signatureLine: {
+    width: 30,
+    height: 1,
+    backgroundColor: Colors.primary,
+  },
+  signatureText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: Colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
 });
 
 export default HomeScreen;
