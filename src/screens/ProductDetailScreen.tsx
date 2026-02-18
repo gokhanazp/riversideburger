@@ -202,6 +202,8 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
         Toast.show({
           type: 'error',
           text1: t('product.maxSelection'),
+          position: 'top',
+          topOffset: 60,
         });
         return;
       }
@@ -227,6 +229,8 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
     Toast.show({
       type: 'success',
       text1: '🍔 ' + t('cart.addedToCart'),
+      position: 'top',
+      topOffset: 60,
     });
 
     navigation.goBack();

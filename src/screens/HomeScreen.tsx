@@ -144,6 +144,8 @@ const HomeScreen = ({ navigation }: any) => {
       type: 'success',
       text1: '✅ ' + t('cart.addedToCart'),
       text2: product.name,
+      position: 'top',
+      topOffset: 60,
     });
   };
 

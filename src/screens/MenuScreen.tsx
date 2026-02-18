@@ -29,6 +29,7 @@ import { getProducts, getCategories } from '../services/productService';
 import { Product, Category } from '../types/database.types';
 import { formatPrice } from '../services/currencyService';
 import { getProductReviewCount } from '../services/reviewService';
+import Toast from 'react-native-toast-message';
 
 const MenuScreen = ({ navigation, route }: any) => {
   const { t, i18n } = useTranslation();
@@ -178,7 +179,17 @@ const MenuScreen = ({ navigation, route }: any) => {
               <Text style={styles.productPrice}>{formatPrice(item.price)}</Text>
               <TouchableOpacity 
                 style={styles.addButton} 
-                onPress={(e) => { e.stopPropagation(); addItem(menuItem); }}
+                onPress={(e) => { 
+                  e.stopPropagation(); 
+                  addItem(menuItem); 
+                  Toast.show({
+                    type: 'success',
+                    text1: menuItem.name,
+                    text2: t('cart.itemAdded'),
+                    position: 'top',
+                    topOffset: 60,
+                  });
+                }}
               >
                 <Ionicons name="add" size={24} color="#FFF" />
               </TouchableOpacity>
