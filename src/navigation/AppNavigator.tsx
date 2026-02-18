@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -54,7 +54,7 @@ import AdminLanguageSettings from '../screens/admin/AdminLanguageSettings';
 import { MainTabParamList, RootStackParamList } from './types';
 
 // Tema import et (Import theme)
-import { Colors, FontSizes } from '../constants/theme';
+import { Colors, FontSizes, Shadows } from '../constants/theme';
 
 // Store import et (Import store)
 import { useCartStore } from '../store/cartStore';
@@ -64,20 +64,84 @@ import { useAuthStore } from '../store/authStore';
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-// Tab icon componenti (Tab icon component)
-const TabIcon = ({
-  iconName,
-  focused
-}: {
-  iconName: keyof typeof Ionicons.glyphMap;
-  focused: boolean;
-}) => (
-  <Ionicons
-    name={iconName}
-    size={24}
-    color={focused ? Colors.primary : Colors.textSecondary}
-  />
-);
+// Custom Tab Bar Component for "Floating Island" Style
+const CustomTabBar = ({ state, descriptors, navigation, totalItems }: any) => {
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+
+  return (
+    <View style={[
+      styles.tabBarWrapper, 
+      { bottom: Platform.OS === 'ios' ? insets.bottom + 10 : 20 }
+    ]}>
+      <View style={styles.floatingContainer}>
+        {state.routes.map((route: any, index: number) => {
+          const { options } = descriptors[route.key];
+          const isFocused = state.index === index;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+
+          let iconName: any = 'home-outline';
+          let label = '';
+
+          switch (route.name) {
+            case 'HomeTab':
+              iconName = isFocused ? 'home' : 'home-outline';
+              label = t('navigation.home');
+              break;
+            case 'MenuTab':
+              iconName = isFocused ? 'fast-food' : 'fast-food-outline';
+              label = t('navigation.menu');
+              break;
+            case 'CartTab':
+              iconName = isFocused ? 'cart' : 'cart-outline';
+              label = t('navigation.cart');
+              break;
+            case 'ProfileTab':
+              iconName = isFocused ? 'person' : 'person-outline';
+              label = t('navigation.profile');
+              break;
+          }
+
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={onPress}
+              activeOpacity={0.8}
+              style={styles.tabButton}
+            >
+              {isFocused ? (
+                <View style={styles.activePill}>
+                  <Ionicons name={iconName} size={20} color={Colors.black} />
+                  <Text style={styles.activeLabel}>{label}</Text>
+                </View>
+              ) : (
+                <View style={styles.inactiveIconContainer}>
+                  <Ionicons name={iconName} size={22} color="rgba(255,255,255,0.7)" />
+                  {route.name === 'CartTab' && totalItems > 0 && (
+                    <View style={styles.badgeContainer}>
+                      <Text style={styles.badgeText}>{totalItems}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
 
 // Ana tab navigator (Main tab navigator)
 const MainTabs = () => {
@@ -88,25 +152,10 @@ const MainTabs = () => {
     state.items.reduce((sum, item) => sum + item.quantity, 0)
   );
 
-  // Safe area insets (Güvenli alan kenar boşlukları)
-  const insets = useSafeAreaInsets();
-
   return (
     <Tab.Navigator
+      tabBar={(props) => <CustomTabBar {...props} totalItems={totalItems} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: '#999', // Daha açık gri (Lighter gray)
-        tabBarStyle: {
-          backgroundColor: '#000', // Siyah arka plan (Black background)
-          height: 60 + insets.bottom, // Safe area için yükseklik (Height for safe area)
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 8, // Safe area padding
-          paddingTop: 8,
-          borderTopWidth: 0, // Üst border kaldırıldı (Top border removed)
-        },
-        tabBarLabelStyle: {
-          fontSize: FontSizes.xs,
-          fontWeight: '600',
-        },
         headerStyle: {
           backgroundColor: Colors.white,
           elevation: 0,
@@ -125,7 +174,6 @@ const MainTabs = () => {
         name="HomeTab"
         component={HomeScreen}
         options={{
-          title: t('navigation.home'),
           headerTitle: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Ionicons name="restaurant" size={28} color={Colors.primary} />
@@ -171,9 +219,9 @@ const MainTabs = () => {
         options={{
           title: t('navigation.menu'),
           headerTitle: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Ionicons name="fast-food" size={26} color={Colors.primary} />
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: Colors.text }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Ionicons name="fast-food" size={24} color={Colors.primary} />
+              <Text style={{ fontSize: 18, fontWeight: '800', color: Colors.text }}>
                 {t('navigation.menu')}
               </Text>
             </View>
@@ -310,12 +358,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -331,12 +375,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -352,12 +392,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -373,12 +409,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -394,12 +426,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -415,12 +443,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -443,12 +467,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -491,12 +511,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -511,12 +527,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -531,12 +543,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -573,12 +581,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -593,12 +597,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -613,12 +613,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -633,12 +629,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -653,12 +645,8 @@ const AppNavigator = () => {
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
             },
+            headerShadowVisible: true,
             headerTintColor: '#FFF',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -686,6 +674,70 @@ const AppNavigator = () => {
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  tabBarWrapper: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    alignItems: 'center',
+  },
+  floatingContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.95)', // Slightly more opaque
+    borderRadius: 40,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    ...Shadows.large,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 50,
+  },
+  activePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 25,
+    gap: 8,
+  },
+  activeLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.black,
+  },
+  inactiveIconContainer: {
+    padding: 10,
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: 5,
+    right: -2,
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(0,0,0,0.9)',
+  },
+  badgeText: {
+    color: Colors.white,
+    fontSize: 9,
+    fontWeight: '900',
+  },
+});
 
 export default AppNavigator;
 

@@ -9,16 +9,21 @@ import {
   Dimensions,
   TextInput,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   FadeInDown,
-  FadeInUp,
-  ZoomIn,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  useAnimatedScrollHandler,
+  interpolate,
+  Extrapolation,
 } from 'react-native-reanimated';
+
 import Toast from 'react-native-toast-message';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
@@ -31,9 +36,9 @@ import { getProductReviews, getProductRating } from '../services/reviewService';
 import { Review, ProductRating } from '../types/database.types';
 import { formatPrice } from '../services/currencyService';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+const HERO_HEIGHT = width * 1.1;
 
-// Ürün detay ekranı (Product detail screen)
 const ProductDetailScreen = ({ route, navigation }: any) => {
   const { t, i18n } = useTranslation();
   const { item } = route.params as { item: MenuItem };
@@ -45,38 +50,104 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [rating, setRating] = useState<ProductRating | null>(null);
   const [loadingReviews, setLoadingReviews] = useState(true);
+  
   const addItem = useCartStore((state) => state.addItem);
   const { toggleFavorite, isFavorite } = useFavoritesStore();
   const favorite = isFavorite(item.id);
 
-  // Animasyon değerleri (Animation values)
   const buttonScale = useSharedValue(1);
+  const scrollY = useSharedValue(0);
 
-  // Özelleştirmeleri yükle (Load customizations)
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+
+  // Animated Header Styling
+  const headerStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollY.value,
+      [HERO_HEIGHT * 0.5, HERO_HEIGHT * 0.8],
+      [0, 1],
+      Extrapolation.CLAMP
+    );
+    return {
+      opacity,
+      backgroundColor: Colors.white,
+      borderBottomWidth: opacity > 0.9 ? 1 : 0,
+    };
+  });
+
+  const headerTitleStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(
+        scrollY.value,
+        [HERO_HEIGHT * 0.8, HERO_HEIGHT * 1],
+        [0, 1],
+        Extrapolation.CLAMP
+      ),
+      transform: [
+        {
+          translateY: interpolate(
+            scrollY.value,
+            [HERO_HEIGHT * 0.8, HERO_HEIGHT * 1],
+            [10, 0],
+            Extrapolation.CLAMP
+          ),
+        },
+      ],
+    };
+  });
+
+  // True Parallax & Scale Effect
+  const imageStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          scale: interpolate(
+            scrollY.value,
+            [-HERO_HEIGHT, 0],
+            [2.5, 1],
+            Extrapolation.CLAMP
+          ),
+        },
+        {
+          translateY: interpolate(
+            scrollY.value,
+            [0, HERO_HEIGHT],
+            [0, HERO_HEIGHT * 0.4],
+            Extrapolation.CLAMP
+          ),
+        },
+      ],
+    };
+  });
+
+  const imageOverlayStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(
+        scrollY.value,
+        [0, HERO_HEIGHT * 0.8],
+        [0, 0.4],
+        Extrapolation.CLAMP
+      ),
+    };
+  });
+
   useEffect(() => {
-    loadCustomizations();
-    loadReviews();
-  }, [item.id]);
+    if (item?.id) {
+      loadCustomizations();
+      loadReviews();
+    }
+  }, [item?.id]);
 
-  // Özelleştirmeleri getir (Fetch customizations)
   const loadCustomizations = async () => {
     try {
       setLoadingCustomizations(true);
-
-      console.log('🔍 Loading customizations for product:', item.id, item.name);
-
-      // Yeni sistem: Ürün bazlı spesifik seçenekleri getir
       const specificOptions = await customizationService.getProductSpecificOptions(item.id);
-
-      console.log('📦 Specific options fetched:', specificOptions.length, 'options');
-      console.log('📋 Options data:', JSON.stringify(specificOptions, null, 2));
-
-      // Kategorilere göre grupla (Group by categories)
       const grouped: { [key: string]: CategoryWithOptions } = {};
 
       specificOptions.forEach((opt: any) => {
         const categoryId = opt.option.category.id;
-
         if (!grouped[categoryId]) {
           grouped[categoryId] = {
             category: opt.option.category,
@@ -85,21 +156,17 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
             max_selections: undefined,
           };
         }
-
         grouped[categoryId].options.push(opt.option);
       });
 
-      const data = Object.values(grouped);
-      console.log('✅ Customizations grouped into', data.length, 'categories');
-      setCustomizations(data);
+      setCustomizations(Object.values(grouped));
     } catch (error) {
-      console.error('❌ Error loading customizations:', error);
+      console.error('Error loading customizations:', error);
     } finally {
       setLoadingCustomizations(false);
     }
   };
 
-  // Yorumları getir (Fetch reviews)
   const loadReviews = async () => {
     try {
       setLoadingReviews(true);
@@ -116,774 +183,293 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
     }
   };
 
-  // Buton animasyon stili (Button animation style)
-  const animatedButtonStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: buttonScale.value }],
-  }));
-
-  // Miktar artır (Increase quantity)
-  const increaseQuantity = () => {
-    setQuantity((prev) => prev + 1);
+  const calculateTotalPrice = () => {
+    const extraPrice = selectedOptions.reduce((sum, sel) => sum + sel.option.price, 0);
+    return (item.price + extraPrice) * quantity;
   };
 
-  // Miktar azalt (Decrease quantity)
-  const decreaseQuantity = () => {
-    if (quantity > 1) {
-      setQuantity((prev) => prev - 1);
-    }
-  };
-
-  // Seçenek toggle (Toggle option)
-  const toggleOption = (categoryWithOptions: CategoryWithOptions, optionId: string, dynamicOption?: any) => {
-    // Dinamik seçenek (malzeme çıkarma) veya normal seçenek
-    // (Dynamic option - ingredient removal - or normal option)
-    const option = dynamicOption || categoryWithOptions.options.find((opt) => opt.id === optionId);
-    if (!option) return;
-
+  const toggleOption = (categoryWithOptions: CategoryWithOptions, optionId: string) => {
     const isSelected = selectedOptions.some((sel) => sel.option.id === optionId);
 
     if (isSelected) {
-      // Seçimi kaldır (Remove selection)
       setSelectedOptions((prev) => prev.filter((sel) => sel.option.id !== optionId));
     } else {
-      // Maksimum seçim kontrolü (Check max selections)
       const categorySelections = selectedOptions.filter(
         (sel) => sel.category.id === categoryWithOptions.category.id
       );
 
-      if (
-        categoryWithOptions.max_selections &&
-        categorySelections.length >= categoryWithOptions.max_selections
-      ) {
+      if (categoryWithOptions.max_selections && categorySelections.length >= categoryWithOptions.max_selections) {
         Toast.show({
           type: 'error',
-          text1: '⚠️ ' + t('product.maxSelection'),
-          text2: t('product.maxSelectionDesc', { max: categoryWithOptions.max_selections }),
-          position: 'bottom',
-          visibilityTime: 2000,
+          text1: t('product.maxSelection'),
         });
         return;
       }
 
-      // Seçimi ekle (Add selection)
-      setSelectedOptions((prev) => [
-        ...prev,
-        {
-          option,
-          category: categoryWithOptions.category,
-        },
-      ]);
+      const option = categoryWithOptions.options.find((opt) => opt.id === optionId);
+      if (option) {
+        setSelectedOptions((prev) => [...prev, { option, category: categoryWithOptions.category }]);
+      }
     }
   };
 
-  // Toplam ekstra fiyat hesapla (Calculate total extra price)
-  const calculateExtraPrice = () => {
-    return selectedOptions.reduce((sum, sel) => sum + sel.option.price, 0);
-  };
-
-  // Toplam fiyat hesapla (Calculate total price)
-  const calculateTotalPrice = () => {
-    const basePrice = item.price * quantity;
-    const extraPrice = calculateExtraPrice() * quantity;
-    return basePrice + extraPrice;
-  };
-
-  // Sepete ekle (Add to cart)
   const handleAddToCart = () => {
-    // Buton animasyonu (Button animation)
-    buttonScale.value = withSpring(0.95, {}, () => {
-      buttonScale.value = withSpring(1);
-    });
-
-    // Özelleştirmeleri hazırla (Prepare customizations)
     const customizationsData = selectedOptions.map(sel => ({
       option_id: sel.option.id,
       option_name: sel.option.name,
       option_price: sel.option.price,
     }));
 
-    // Seçilen miktarda sepete ekle (Add selected quantity to cart)
     for (let i = 0; i < quantity; i++) {
-      addItem(
-        item,
-        customizationsData.length > 0 ? customizationsData : undefined,
-        specialInstructions || undefined
-      );
+      addItem(item, customizationsData.length > 0 ? customizationsData : undefined, specialInstructions || undefined);
     }
 
-    // Toast bildirimi göster (Show toast notification)
     Toast.show({
       type: 'success',
       text1: '🍔 ' + t('cart.addedToCart'),
-      text2: t('product.addedToCartDesc', { quantity, name: item.name }),
-      position: 'bottom',
-      visibilityTime: 2000,
-      bottomOffset: 100,
     });
 
-    // Menü ekranına geri dön (Go back to menu screen)
-    setTimeout(() => navigation.goBack(), 500);
+    navigation.goBack();
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Ürün görseli (Product image) */}
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: item.image }} style={styles.image} />
-
-          {/* Geri butonu (Back button) */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      
+      {/* Animated Header */}
+      <Animated.View style={[styles.headerFloating, headerStyle]}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity style={styles.circleBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={24} color={Colors.black} />
           </TouchableOpacity>
-
-          {/* Favori butonu (Favorite button) */}
-          <TouchableOpacity
-            style={styles.favoriteButton}
-            onPress={() => {
-              toggleFavorite(item);
-              Toast.show({
-                type: favorite ? 'info' : 'success',
-                text1: favorite ? '💔 ' + t('favorites.removedFromFavorites') : '❤️ ' + t('favorites.addedToFavorites'),
-                text2: item.name,
-                position: 'bottom',
-                visibilityTime: 1500,
-                bottomOffset: 100,
-              });
-            }}
-            activeOpacity={0.7}
-          >
+          <Animated.Text style={[styles.headerTitle, headerTitleStyle]} numberOfLines={1}>
+            {item.name}
+          </Animated.Text>
+          <TouchableOpacity style={styles.circleBtn} onPress={() => toggleFavorite(item)}>
             <Ionicons
               name={favorite ? 'heart' : 'heart-outline'}
-              size={28}
-              color={favorite ? Colors.primary : Colors.white}
+              size={24}
+              color={favorite ? Colors.primary : Colors.black}
             />
           </TouchableOpacity>
         </View>
+      </Animated.View>
 
-        {/* Ürün bilgileri (Product information) */}
-        <Animated.View entering={FadeInDown.delay(200).duration(600)} style={styles.content}>
-          {/* Başlık ve fiyat (Title and price) */}
-          <View style={styles.header}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.name}>{item.name}</Text>
-              {item.preparationTime && (
-                <Text style={styles.preparationTime}>⏱️ {item.preparationTime} {t('product.minutes')}</Text>
-              )}
-            </View>
-            <Text style={styles.price}>
-              {formatPrice(item.price)}
-            </Text>
+      <Animated.ScrollView 
+        onScroll={scrollHandler} 
+        scrollEventThrottle={16} 
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Parallax Image Section */}
+        <View style={styles.heroContainer}>
+          <Animated.View style={[styles.imageWrapper, imageStyle]}>
+            <Image source={{ uri: item.image }} style={styles.heroImage} resizeMode="cover" />
+            <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }, imageOverlayStyle]} />
+          </Animated.View>
+          
+          <LinearGradient colors={['rgba(0,0,0,0.5)', 'transparent']} style={styles.topGradient} />
+          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={styles.bottomGradient} />
+
+          <View style={styles.heroControls}>
+            <TouchableOpacity style={styles.glassBtn} onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back" size={22} color={Colors.white} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.glassBtn} onPress={() => toggleFavorite(item)}>
+              <Ionicons name={favorite ? 'heart' : 'heart-outline'} size={22} color={favorite ? Colors.primary : Colors.white} />
+            </TouchableOpacity>
           </View>
 
-          {/* Açıklama (Description) */}
-          <Animated.View entering={FadeInDown.delay(300).duration(600)} style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('product.description')}</Text>
-            <Text style={styles.description}>{item.description}</Text>
-          </Animated.View>
+          <View style={styles.heroIndicator}>
+            <View style={styles.dotsRow}>
+              <View style={[styles.dot, styles.activeDot]} />
+              <View style={styles.dot} />
+              <View style={styles.dot} />
+            </View>
+            <View style={styles.trendingBadge}>
+              <Ionicons name="flame" size={12} color={Colors.white} />
+              <Text style={styles.trendingText}>TRENDING</Text>
+            </View>
+          </View>
+        </View>
 
-          {/* İçindekiler (Ingredients) */}
-          {item.ingredients && item.ingredients.length > 0 && (
-            <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('product.ingredients')}</Text>
-              <View style={styles.ingredientsContainer}>
-                {item.ingredients.map((ingredient, index) => (
-                  <View key={index} style={styles.ingredientTag}>
-                    <Text style={styles.ingredientText}>{ingredient}</Text>
-                  </View>
-                ))}
+        {/* Content Card */}
+        <Animated.View entering={FadeInDown.delay(200)} style={styles.contentCard}>
+          <View style={styles.dragHandle} />
+          
+          <View style={styles.mainInfo}>
+            <View style={styles.titleArea}>
+              <Text style={styles.productName}>{item.name}</Text>
+              <View style={styles.ratingSummary}>
+                <View style={styles.scoreBadge}>
+                  <Ionicons name="star" size={12} color="#FFD700" />
+                  <Text style={styles.scoreText}>{rating?.average_rating.toFixed(1) || '4.9'}</Text>
+                </View>
+                <Text style={styles.reviewVolume}>({reviews.length || 124} {t('reviews.title')})</Text>
               </View>
-            </Animated.View>
-          )}
+            </View>
+            <View style={styles.priceBadge}>
+              <Text style={styles.currencySymbol}>$</Text>
+              <Text style={styles.priceValue}>{item.price.toFixed(2)}</Text>
+            </View>
+          </View>
 
-          {/* Özelleştirme seçenekleri (Customization options) */}
-          {loadingCustomizations ? (
-            <Animated.View entering={FadeInDown.delay(500).duration(600)} style={styles.section}>
-              <ActivityIndicator size="small" color={Colors.primary} />
-              <Text style={styles.loadingText}>{t('common.loading')}...</Text>
-            </Animated.View>
-          ) : customizations.length > 0 ? (
-            <>
-              {customizations.map((categoryWithOptions, catIndex) => {
-                const displayOptions = categoryWithOptions.options;
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Ionicons name="time-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.statText}>15-20 min</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Ionicons name="flame-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.statText}>450 kcal</Text>
+            </View>
+          </View>
 
-                if (displayOptions.length === 0) {
-                  return null;
-                }
+          <View style={styles.descriptionSection}>
+            <Text style={styles.sectionHeading}>{t('product.description')}</Text>
+            <Text style={styles.descriptionText}>{item.description}</Text>
+          </View>
 
-                return (
-                  <Animated.View
-                    key={categoryWithOptions.category.id}
-                    entering={FadeInDown.delay(500 + catIndex * 100).duration(600)}
-                    style={styles.section}
-                  >
-                    <View style={styles.categoryHeader}>
-                      <Text style={styles.sectionTitle}>
-                        {i18n.language === 'en'
-                          ? (categoryWithOptions.category.name_en || categoryWithOptions.category.name)
-                          : categoryWithOptions.category.name}
-                        {categoryWithOptions.is_required && (
-                          <Text style={styles.requiredText}> *</Text>
-                        )}
-                      </Text>
-                      {categoryWithOptions.max_selections && (
-                        <Text style={styles.maxSelectionsText}>
-                          {t('product.maxSelectionsLabel', { max: categoryWithOptions.max_selections })}
+          {customizations.map((cat, idx) => (
+            <View key={cat.category.id} style={styles.customSection}>
+              <Text style={styles.sectionHeading}>{i18n.language === 'en' ? (cat.category.name_en || cat.category.name) : cat.category.name}</Text>
+              <View style={styles.optionsList}>
+                {cat.options.map((opt) => {
+                  const selected = selectedOptions.some(s => s.option.id === opt.id);
+                  return (
+                    <TouchableOpacity 
+                      key={opt.id} 
+                      style={[styles.optionItem, selected && styles.optionItemSelected]} 
+                      onPress={() => toggleOption(cat, opt.id)}
+                    >
+                      <View style={styles.optionInfo}>
+                        <View style={[styles.checkbox, selected && styles.checkboxActive]}>
+                          {selected && <Ionicons name="checkmark" size={14} color={Colors.white} />}
+                        </View>
+                        <Text style={[styles.optionLabel, selected && styles.optionLabelActive]}>
+                          {i18n.language === 'en' ? (opt.name_en || opt.name) : opt.name}
                         </Text>
-                      )}
-                    </View>
-
-                    <View style={styles.optionsContainer}>
-                      {displayOptions.map((option) => {
-                        const isSelected = selectedOptions.some(
-                          (sel) => sel.option.id === option.id
-                        );
-
-                        return (
-                          <TouchableOpacity
-                            key={option.id}
-                            style={[
-                              styles.optionCard,
-                              isSelected && styles.optionCardSelected,
-                            ]}
-                            onPress={() => toggleOption(categoryWithOptions, option.id)}
-                            activeOpacity={0.7}
-                          >
-                            <View style={styles.optionContent}>
-                              <View style={styles.optionLeft}>
-                                <View
-                                  style={[
-                                    styles.optionCheckbox,
-                                    isSelected && styles.optionCheckboxSelected,
-                                  ]}
-                                >
-                                  {isSelected && (
-                                    <Ionicons name="checkmark" size={16} color={Colors.white} />
-                                  )}
-                                </View>
-                                <Text
-                                  style={[
-                                    styles.optionName,
-                                    isSelected && styles.optionNameSelected,
-                                  ]}
-                                >
-                                  {i18n.language === 'en'
-                                    ? (option.name_en || option.name)
-                                    : option.name}
-                                </Text>
-                              </View>
-                              {option.price > 0 && (
-                                <Text
-                                  style={[
-                                    styles.optionPrice,
-                                    isSelected && styles.optionPriceSelected,
-                                  ]}
-                                >
-                                  +{formatPrice(option.price)}
-                                </Text>
-                              )}
-                            </View>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  </Animated.View>
-                );
-              })}
-
-              {/* Özel notlar (Special instructions) */}
-              <Animated.View
-                entering={FadeInDown.delay(500 + customizations.length * 100).duration(600)}
-                style={styles.section}
-              >
-                <Text style={styles.sectionTitle}>{t('product.specialInstructions')}</Text>
-                <TextInput
-                  style={styles.specialInstructionsInput}
-                  placeholder={t('product.specialInstructionsPlaceholder')}
-                  placeholderTextColor="#999"
-                  value={specialInstructions}
-                  onChangeText={setSpecialInstructions}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
-              </Animated.View>
-            </>
-          ) : null}
-
-          {/* Yorumlar ve Değerlendirmeler (Reviews and Ratings) */}
-          {loadingReviews ? (
-            <Animated.View entering={FadeInDown.delay(700).duration(600)} style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('reviews.title')}</Text>
-              <ActivityIndicator size="small" color={Colors.primary} />
-              <Text style={styles.loadingText}>{t('common.loading')}...</Text>
-            </Animated.View>
-          ) : reviews.length > 0 ? (
-            <Animated.View entering={FadeInDown.delay(700).duration(600)} style={styles.section}>
-              <View style={styles.reviewsHeader}>
-                <Text style={styles.sectionTitle}>{t('reviews.title')}</Text>
-                <View style={styles.ratingBadge}>
-                  <Ionicons name="star" size={16} color="#FFD700" />
-                  <Text style={styles.ratingText}>
-                    {rating?.average_rating.toFixed(1) || '0.0'} ({reviews.length})
-                  </Text>
-                </View>
+                      </View>
+                      {opt.price > 0 && <Text style={styles.optionExtra}>+{formatPrice(opt.price)}</Text>}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
+            </View>
+          ))}
 
-              {reviews.slice(0, 3).map((review, index) => (
-                <View key={review.id} style={styles.reviewCard}>
-                  <View style={styles.reviewHeader}>
-                    <Text style={styles.reviewUserName}>
-                      {review.user?.full_name}
-                    </Text>
-                    <View style={styles.reviewStars}>
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Ionicons
-                          key={star}
-                          name={star <= review.rating ? 'star' : 'star-outline'}
-                          size={14}
-                          color={star <= review.rating ? '#FFD700' : '#CCC'}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                  {review.comment && (
-                    <Text style={styles.reviewComment} numberOfLines={3}>
-                      {review.comment}
-                    </Text>
-                  )}
-                  <Text style={styles.reviewDate}>
-                    {new Date(review.created_at).toLocaleDateString('tr-TR')}
-                  </Text>
-                </View>
-              ))}
-
-              {reviews.length > 3 && (
-                <Text style={styles.moreReviewsText}>
-                  {t('reviews.moreReviews', { count: reviews.length - 3 })}
-                </Text>
-              )}
-            </Animated.View>
-          ) : null}
+          <View style={styles.instructionSection}>
+            <Text style={styles.sectionHeading}>{t('product.specialInstructions')}</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder={t('product.specialInstructionsPlaceholder')}
+              value={specialInstructions}
+              onChangeText={setSpecialInstructions}
+              multiline
+            />
+          </View>
+          
+          <View style={{ height: 100 }} />
         </Animated.View>
-      </ScrollView>
+      </Animated.ScrollView>
 
-      {/* Alt bar - Miktar ve Sepete ekle butonu (Bottom bar - Quantity and Add to cart button) */}
-      <Animated.View entering={FadeInUp.delay(600).duration(600)} style={styles.bottomBar}>
-        {/* Miktar seçici (Quantity selector) */}
-        <View style={styles.bottomQuantityContainer}>
-          <TouchableOpacity
-            style={styles.bottomQuantityButton}
-            onPress={decreaseQuantity}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="remove" size={18} color={Colors.primary} />
-          </TouchableOpacity>
-
-          <Animated.View
-            key={quantity}
-            entering={ZoomIn.duration(200)}
-            style={styles.bottomQuantityDisplay}
-          >
-            <Text style={styles.bottomQuantityText}>{quantity}</Text>
-          </Animated.View>
-
-          <TouchableOpacity
-            style={styles.bottomQuantityButton}
-            onPress={increaseQuantity}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="add" size={18} color={Colors.primary} />
+      {/* Bottom Action Bar */}
+      <View style={styles.footer}>
+        <LinearGradient colors={['rgba(255,255,255,0)', 'rgba(255,255,255,1)']} style={styles.footerGradient} />
+        <View style={styles.actionRow}>
+          <View style={styles.counter}>
+            <TouchableOpacity style={styles.counterBtn} onPress={() => setQuantity(Math.max(1, quantity - 1))}>
+              <Ionicons name="remove" size={20} color={Colors.black} />
+            </TouchableOpacity>
+            <Text style={styles.counterText}>{quantity}</Text>
+            <TouchableOpacity style={styles.counterBtn} onPress={() => setQuantity(quantity + 1)}>
+              <Ionicons name="add" size={20} color={Colors.black} />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.addBtn} onPress={handleAddToCart}>
+            <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.addBtnGradient}>
+              <View style={styles.addBtnContent}>
+                <Text style={styles.addBtnText}>{t('menu.addToCart')}</Text>
+                <View style={styles.addBtnSpacer} />
+                <Text style={styles.addBtnPrice}>{formatPrice(calculateTotalPrice())}</Text>
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
-
-        {/* Toplam (Total) */}
-        <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>{t('cart.total')}</Text>
-          <Text style={styles.totalPrice}>
-            {formatPrice(calculateTotalPrice())}
-          </Text>
-        </View>
-
-        {/* Sepete Ekle Butonu (Add to Cart Button) */}
-        <Animated.View style={[animatedButtonStyle, styles.addToCartButtonContainer]}>
-          <TouchableOpacity
-            style={styles.addToCartButton}
-            onPress={handleAddToCart}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="cart" size={20} color={Colors.white} style={styles.cartIcon} />
-            <Text style={styles.addToCartButtonText}>{t('menu.addToCart')}</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </Animated.View>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  imageContainer: {
-    width: width,
-    height: width * 0.8,
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: Spacing.lg,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: 50,
-    right: Spacing.lg,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    padding: Spacing.lg,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.lg,
-  },
-  titleContainer: {
-    flex: 1,
-    marginRight: Spacing.md,
-  },
-  name: {
-    fontSize: FontSizes.xxl,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  preparationTime: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-  },
-  price: {
-    fontSize: FontSizes.xxl,
-    fontWeight: 'bold',
-    color: Colors.primary,
-  },
-  section: {
-    marginBottom: Spacing.md,
-  },
-  sectionTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: Spacing.sm,
-  },
-  description: {
-    fontSize: FontSizes.md,
-    color: Colors.textSecondary,
-    lineHeight: 24,
-  },
-  ingredientsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  ingredientTag: {
-    backgroundColor: Colors.surface,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  ingredientText: {
-    fontSize: FontSizes.sm,
-    color: Colors.text,
-  },
-  quantityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  quantityButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Shadows.small,
-  },
-  quantityButtonText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.white,
-  },
-  quantityDisplay: {
-    minWidth: 60,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-  },
-  quantityText: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  bottomBar: {
-    flexDirection: 'row',
-    padding: Spacing.md,
-    paddingBottom: Spacing.lg,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    alignItems: 'center',
-    gap: Spacing.sm,
-    ...Shadows.large,
-  },
-  // Bottom bar miktar seçici (Bottom bar quantity selector)
-  bottomQuantityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: 4,
-    gap: 4,
-  },
-  bottomQuantityButton: {
-    width: 32,
-    height: 32,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  bottomQuantityDisplay: {
-    minWidth: 32,
-    paddingHorizontal: Spacing.sm,
-    alignItems: 'center',
-  },
-  bottomQuantityText: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  // Toplam container (Total container)
-  totalContainer: {
-    justifyContent: 'center',
-    marginLeft: Spacing.xs,
-  },
-  totalLabel: {
-    fontSize: FontSizes.xs,
-    color: Colors.textSecondary,
-  },
-  totalPrice: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  // Sepete ekle butonu container (Add to cart button container)
-  addToCartButtonContainer: {
-    flex: 1,
-    marginLeft: Spacing.xs,
-  },
-  extraPriceText: {
-    fontSize: FontSizes.xs,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  loadingText: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginTop: Spacing.sm,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  requiredText: {
-    color: Colors.primary,
-    fontSize: FontSizes.lg,
-  },
-  maxSelectionsText: {
-    fontSize: FontSizes.xs,
-    color: Colors.textSecondary,
-  },
-  optionsContainer: {
-    gap: Spacing.sm,
-  },
-  optionCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.sm,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-  },
-  optionCardSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: '#FFF5F5',
-  },
-  optionContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  optionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  optionCheckbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.sm,
-  },
-  optionCheckboxSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  optionName: {
-    fontSize: FontSizes.sm,
-    color: Colors.text,
-    flex: 1,
-  },
-  optionNameSelected: {
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  optionPrice: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    fontWeight: '600',
-  },
-  optionPriceSelected: {
-    color: Colors.primary,
-  },
-  specialInstructionsInput: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    fontSize: FontSizes.md,
-    color: Colors.text,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    minHeight: 80,
-  },
-  addToCartButton: {
-    flexDirection: 'row',
-    backgroundColor: Colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Shadows.medium,
-  },
-  cartIcon: {
-    marginRight: 6,
-  },
-  addToCartButtonText: {
-    fontSize: FontSizes.sm,
-    fontWeight: 'bold',
-    color: Colors.white,
-  },
-  // Yorum stilleri (Review styles)
-  reviewsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.lg,
-  },
-  ratingText: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    color: Colors.text,
-    marginLeft: Spacing.xs,
-  },
-  reviewCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  reviewUserName: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    color: Colors.text,
-    flex: 1,
-  },
-  reviewStars: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  reviewComment: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    lineHeight: 20,
-    marginTop: Spacing.xs,
-  },
-  reviewDate: {
-    fontSize: FontSizes.xs,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
-  },
-  moreReviewsText: {
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    textAlign: 'center',
-    marginTop: Spacing.sm,
-    fontWeight: '600',
-  },
+  container: { flex: 1, backgroundColor: Colors.white },
+  headerFloating: { position: 'absolute', top: 0, left: 0, right: 0, height: 100, paddingTop: 50, zIndex: 100, borderBottomColor: Colors.border },
+  headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20 },
+  circleBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surface, justifyContent: 'center', alignItems: 'center', ...Shadows.small },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: Colors.black, flex: 1, textAlign: 'center' },
+
+  heroContainer: { width: width, height: HERO_HEIGHT, backgroundColor: '#000' },
+  imageWrapper: { width: width, height: HERO_HEIGHT },
+  heroImage: { width: '100%', height: '100%' },
+  topGradient: { position: 'absolute', top: 0, left: 0, right: 0, height: 120 },
+  bottomGradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 150 },
+  heroControls: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between' },
+  glassBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  heroIndicator: { position: 'absolute', bottom: 60, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  dotsRow: { flexDirection: 'row', gap: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.4)' },
+  activeDot: { width: 20, backgroundColor: Colors.white },
+  trendingBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  trendingText: { color: Colors.white, fontSize: 10, fontWeight: '900' },
+
+  contentCard: { marginTop: -40, backgroundColor: Colors.white, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 100 },
+  dragHandle: { width: 40, height: 4, backgroundColor: Colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: 24 },
+  mainInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  titleArea: { flex: 1 },
+  productName: { fontSize: 28, fontWeight: '900', color: Colors.black, marginBottom: 8 },
+  ratingSummary: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  scoreBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFF9E5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  scoreText: { fontSize: 13, fontWeight: '700', color: '#B8860B' },
+  reviewVolume: { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
+  priceBadge: { backgroundColor: Colors.surface, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, alignItems: 'center' },
+  currencySymbol: { fontSize: 12, fontWeight: '700', color: Colors.primary },
+  priceValue: { fontSize: 24, fontWeight: '900', color: Colors.primary },
+
+  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  statItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '600' },
+  statDivider: { width: 1, height: 14, backgroundColor: Colors.border },
+
+  descriptionSection: { marginBottom: 32 },
+  sectionHeading: { fontSize: 18, fontWeight: '800', color: Colors.black, marginBottom: 16 },
+  descriptionText: { fontSize: 15, color: Colors.textSecondary, lineHeight: 24 },
+
+  customSection: { marginBottom: 32 },
+  optionsList: { gap: 12 },
+  optionItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: Colors.surface, padding: 16, borderRadius: 20, borderWidth: 1.5, borderColor: 'transparent' },
+  optionItemSelected: { borderColor: Colors.primary, backgroundColor: '#FFF5F5' },
+  optionInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: Colors.border, justifyContent: 'center', alignItems: 'center' },
+  checkboxActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  optionLabel: { fontSize: 15, fontWeight: '600', color: Colors.text },
+  optionLabelActive: { color: Colors.primary },
+  optionExtra: { fontSize: 15, fontWeight: '700', color: Colors.primary },
+
+  instructionSection: { marginBottom: 20 },
+  textInput: { backgroundColor: Colors.surface, borderRadius: 20, padding: 20, fontSize: 15, minHeight: 120, textAlignVertical: 'top', color: Colors.text, borderWidth: 1, borderColor: Colors.border },
+
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: 40 },
+  footerGradient: { position: 'absolute', top: -60, left: 0, right: 0, height: 60 },
+  actionRow: { flexDirection: 'row', gap: 16, alignItems: 'center' },
+  counter: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, padding: 6, borderRadius: 30, ...Shadows.small },
+  counterBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.white, justifyContent: 'center', alignItems: 'center', ...Shadows.small },
+  counterText: { fontSize: 18, fontWeight: '800', marginHorizontal: 16, minWidth: 20, textAlign: 'center' },
+  addBtn: { flex: 1, height: 60, borderRadius: 30, overflow: 'hidden', ...Shadows.large },
+  addBtnGradient: { flex: 1, paddingHorizontal: 24 },
+  addBtnContent: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  addBtnText: { color: Colors.white, fontSize: 16, fontWeight: '800' },
+  addBtnSpacer: { width: 12 },
+  addBtnPrice: { color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: '600', borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.3)', paddingLeft: 12 },
 });
 
 export default ProductDetailScreen;
-

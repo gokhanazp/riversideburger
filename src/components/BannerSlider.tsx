@@ -12,8 +12,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
+import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { supabase } from '../lib/supabase';
+import reanimated, { FadeInDown } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
 const BANNER_HEIGHT = 400;
@@ -34,7 +35,6 @@ interface BannerSliderProps {
   onBannerPress?: (banner: Banner) => void;
 }
 
-
 const BannerSlider: React.FC<BannerSliderProps> = ({ onBannerPress }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [banners, setBanners] = useState<Banner[]>([]);
@@ -43,8 +43,6 @@ const BannerSlider: React.FC<BannerSliderProps> = ({ onBannerPress }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const [containerWidth, setContainerWidth] = useState(width);
 
-
-  // Banner'ları database'den getir (Fetch banners from database)
   useEffect(() => {
     fetchBanners();
   }, []);
@@ -52,31 +50,22 @@ const BannerSlider: React.FC<BannerSliderProps> = ({ onBannerPress }) => {
   const fetchBanners = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching banners...');
-
       const { data, error } = await supabase
         .from('banners')
         .select('*')
         .eq('is_active', true)
         .order('order_index', { ascending: true });
 
-      if (error) {
-        console.error('❌ Fetch error:', error);
-        throw error;
-      }
-
-      console.log('✅ Banners fetched:', data?.length || 0);
+      if (error) throw error;
       setBanners(data || []);
     } catch (error: any) {
-      console.error('❌ Error fetching banners:', error);
-      // Hata durumunda boş array
+      console.error('Error fetching banners:', error);
       setBanners([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Sayfa değiştirme fonksiyonu (Change page function)
   const scrollIndex = (index: number) => {
     if (banners.length === 0 || !flatListRef.current) return;
     try {
@@ -90,130 +79,81 @@ const BannerSlider: React.FC<BannerSliderProps> = ({ onBannerPress }) => {
     }
   };
 
-  const handlePrev = () => {
-    const prevIndex = activeIndex === 0 ? banners.length - 1 : activeIndex - 1;
-    scrollIndex(prevIndex);
-  };
-
   const handleNext = () => {
     const nextIndex = (activeIndex + 1) % banners.length;
     scrollIndex(nextIndex);
   };
 
-  // Otomatik kaydırma (Auto scroll)
   useEffect(() => {
     if (banners.length <= 1) return;
-
     const interval = setInterval(() => {
       handleNext();
-    }, 5000); // 5 saniyede bir değiş (Change every 5 seconds)
-
+    }, 5000);
     return () => clearInterval(interval);
   }, [activeIndex, banners.length]);
 
-
-  // Banner item render (Banner item render)
   const renderBanner = ({ item }: { item: Banner }) => (
-    <TouchableOpacity
-      style={[styles.bannerContainer, { width: containerWidth }]}
-      onPress={() => onBannerPress?.(item)}
-      activeOpacity={0.9}
-    >
-
-      {/* Arka plan görseli (Background image) */}
-      <Image source={{ uri: item.image_url }} style={styles.bannerImage} />
-
-      {/* Gradient overlay */}
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.7)']}
-        style={styles.gradient}
-      />
-
-      {/* İçerik (Content) */}
-      <View style={styles.bannerContent}>
-        {/* Başlık ve açıklama (Title and description) */}
-        <View style={styles.textContainer}>
-          {item.subtitle && <Text style={styles.subtitle}>{item.subtitle}</Text>}
-          <Text style={styles.title}>{item.title}</Text>
-
-          {/* Sipariş butonu (Order button) - Tıklanabilir alan sorununu çözmek için içeriği View içine aldık */}
-          {item.button_text && (
-            <View style={styles.orderButtonContainer}>
-              <TouchableOpacity
-                style={styles.orderButton}
-                activeOpacity={0.8}
-                onPress={() => onBannerPress?.(item)}
-              >
-                <Text style={styles.orderButtonText}>{item.button_text}</Text>
-                <Ionicons name="arrow-forward" size={20} color={Colors.white} />
-              </TouchableOpacity>
-            </View>
-          )}
-
+    <View style={[styles.bannerWrapper, { width: containerWidth }]}>
+      <TouchableOpacity
+        style={styles.bannerContainer}
+        onPress={() => onBannerPress?.(item)}
+        activeOpacity={0.9}
+      >
+        <Image source={{ uri: item.image_url }} style={styles.bannerImage} />
+        <LinearGradient
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.6)']}
+          style={styles.gradient}
+        />
+        <View style={styles.bannerContent}>
+          <View style={styles.textContainer}>
+            {item.subtitle && (
+              <Text style={styles.subtitle}>{item.subtitle}</Text>
+            )}
+            <Text style={styles.title}>{item.title}</Text>
+            {item.button_text && (
+              <View style={styles.btnContainer}>
+                 <Text style={styles.orderButtonText}>{item.button_text}</Text>
+                 <Ionicons name="arrow-forward" size={14} color="#FFF" />
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-
+      </TouchableOpacity>
+    </View>
   );
 
-  // Pagination dots render (Pagination dots render)
   const renderPagination = () => (
     <View style={styles.paginationContainer}>
       {banners.map((_, index) => {
-        const inputRange = [
-          (index - 1) * containerWidth,
-          index * containerWidth,
-          (index + 1) * containerWidth,
-        ];
-
-        const dotWidth = scrollX.interpolate({
-          inputRange,
-          outputRange: [8, 24, 8],
-          extrapolate: 'clamp',
-        });
-
         const opacity = scrollX.interpolate({
-          inputRange,
-          outputRange: [0.3, 1, 0.3],
+          inputRange: [
+            (index - 1) * containerWidth,
+            index * containerWidth,
+            (index + 1) * containerWidth,
+          ],
+          outputRange: [0.4, 1, 0.4],
           extrapolate: 'clamp',
         });
 
         return (
-          <TouchableOpacity
+          <Animated.View
             key={index}
-            onPress={() => scrollIndex(index)}
-            activeOpacity={0.7}
-            style={styles.dotTouchArea}
-          >
-            <Animated.View
-              style={[
-                styles.paginationDot,
-                {
-                  width: dotWidth,
-                  opacity,
-                },
-              ]}
-            />
-          </TouchableOpacity>
+            style={[styles.paginationDot, { opacity }]}
+          />
         );
       })}
     </View>
   );
 
-
-  // Yükleniyor durumu (Loading state)
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="small" color={Colors.primary} />
       </View>
     );
   }
 
-  // Banner yoksa gösterme (Don't show if no banners)
-  if (banners.length === 0) {
-    return null;
-  }
+  if (banners.length === 0) return null;
 
   return (
     <View 
@@ -227,15 +167,7 @@ const BannerSlider: React.FC<BannerSliderProps> = ({ onBannerPress }) => {
         keyExtractor={(item) => item.id}
         horizontal
         pagingEnabled
-        snapToInterval={containerWidth}
-        snapToAlignment="start"
-        decelerationRate="fast"
         showsHorizontalScrollIndicator={false}
-        getItemLayout={(_, index) => ({
-          length: containerWidth,
-          offset: containerWidth * index,
-          index,
-        })}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
           { useNativeDriver: false }
@@ -248,47 +180,29 @@ const BannerSlider: React.FC<BannerSliderProps> = ({ onBannerPress }) => {
         }}
         scrollEventThrottle={16}
       />
-
-      {/* Navigasyon Okları (Navigation Arrows) */}
-      {banners.length > 1 && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-          <TouchableOpacity
-            style={[styles.arrowButton, styles.arrowButtonLeft]}
-            onPress={handlePrev}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-back" size={24} color={Colors.white} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.arrowButton, styles.arrowButtonRight]}
-            onPress={handleNext}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-forward" size={24} color={Colors.white} />
-          </TouchableOpacity>
-        </View>
-      )}
-
       {renderPagination()}
     </View>
   );
 };
 
-
 const styles = StyleSheet.create({
   container: {
     height: BANNER_HEIGHT,
-    marginBottom: Spacing.lg,
   },
   loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  bannerContainer: {
-    width: width,
+  bannerWrapper: {
+    paddingHorizontal: 16,
     height: BANNER_HEIGHT,
-    position: 'relative',
+  },
+  bannerContainer: {
+    flex: 1,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#EEE',
+    ...Shadows.small,
   },
   bannerImage: {
     width: '100%',
@@ -300,103 +214,55 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: '70%',
+    height: '100%',
   },
   bannerContent: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    padding: Spacing.xl,
-  },
-  discountBadge: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    alignSelf: 'flex-start',
-    marginBottom: Spacing.md,
-  },
-  discountText: {
-    color: Colors.white,
-    fontSize: FontSizes.sm,
-    fontWeight: 'bold',
+    left: 24,
+    bottom: 32,
+    right: 24,
   },
   textContainer: {
-    gap: Spacing.xs,
+    gap: 8,
   },
   subtitle: {
-    color: Colors.white,
-    fontSize: FontSizes.md,
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
     opacity: 0.9,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   title: {
-    color: Colors.white,
-    fontSize: FontSizes.xxl + 8,
-    fontWeight: 'bold',
-    marginBottom: Spacing.xs,
+    color: '#FFF',
+    fontSize: 32,
+    fontWeight: '900',
+    lineHeight: 38,
+    marginBottom: 8,
   },
-  description: {
-    color: Colors.white,
-    fontSize: FontSizes.md,
-    opacity: 0.8,
-    marginBottom: Spacing.md,
-  },
-  orderButton: {
+  btnContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    alignSelf: 'flex-start',
-    gap: Spacing.sm,
+    gap: 4,
   },
   orderButtonText: {
-    color: Colors.white,
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   paginationContainer: {
     flexDirection: 'row',
     position: 'absolute',
-    bottom: Spacing.lg,
-    alignSelf: 'center',
-    gap: Spacing.xs,
+    bottom: 12,
+    right: 32,
+    gap: 6,
   },
   paginationDot: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.white,
-  },
-  dotTouchArea: {
-    padding: Spacing.xs,
-  },
-
-  arrowButton: {
-    position: 'absolute',
-    top: '50%',
-    marginTop: -20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  arrowButtonLeft: {
-    left: Spacing.md,
-  },
-  arrowButtonRight: {
-    right: Spacing.md,
-  },
-  orderButtonContainer: {
-    alignSelf: 'flex-start',
-    marginTop: Spacing.sm,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFF',
   },
 });
 
-
 export default BannerSlider;
-

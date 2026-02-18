@@ -205,10 +205,10 @@ const CartScreen = ({ navigation }: any) => {
         quantity: item.quantity,
         price: item.price,
         subtotal: item.price * item.quantity,
-        customizations: item.selectedOptions?.map((opt) => ({
-          option_id: opt.id,
-          option_name: opt.name,
-          option_price: opt.price,
+        customizations: item.customizations?.map((opt) => ({
+          option_id: opt.option_id,
+          option_name: opt.option_name,
+          option_price: opt.option_price,
         })),
         specialInstructions: item.specialInstructions,
       }));
@@ -276,63 +276,61 @@ const CartScreen = ({ navigation }: any) => {
     setItemToDelete(null);
   };
 
-  // Sepet öğesi kartı componenti (Cart item card component)
-  const CartItemCard = ({ item }: { item: CartItem }) => (
-    <View style={styles.cartCard}>
-      <Image source={{ uri: item.image }} style={styles.cartImage} />
-      <View style={styles.cartInfo}>
-        <Text style={styles.cartName}>{item.name}</Text>
-
-        {/* Özelleştirmeler (Customizations) */}
-        {item.customizations && item.customizations.length > 0 && (
-          <View style={styles.customizationsContainer}>
-            {item.customizations.map((custom, idx) => (
-              <Text key={idx} style={styles.customizationText}>
-                • {custom.option_name}
-                {custom.option_price > 0 && ` (+${formatPrice(custom.option_price)})`}
-              </Text>
-            ))}
+  // Elite sepet öğesi kartı (Elite Cart item card component)
+  const EliteCartItem = ({ item }: { item: CartItem }) => (
+    <View style={styles.eliteCard}>
+      <View style={styles.cardMainContent}>
+        <Image source={{ uri: item.image }} style={styles.eliteImage} />
+        <View style={styles.eliteInfo}>
+          <View style={styles.eliteHeaderRow}>
+            <Text style={styles.eliteName} numberOfLines={2}>{item.name}</Text>
+            <TouchableOpacity
+              onPress={() => handleRemoveItem(item.id, item.name)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="trash-outline" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
           </View>
-        )}
 
-        {/* Özel notlar (Special instructions) */}
-        {item.specialInstructions && (
-          <Text style={styles.specialInstructionsText}>
-            📝 {item.specialInstructions}
-          </Text>
-        )}
+          {/* Özelleştirmeler (Customizations) */}
+          {((item.customizations?.length ?? 0) > 0 || item.specialInstructions) && (
+            <View style={styles.eliteCustomizations}>
+              {item.customizations?.map((custom, idx) => (
+                <Text key={idx} style={styles.eliteCustomizationText}>
+                  + {custom.option_name}
+                </Text>
+              ))}
+              {item.specialInstructions && (
+                <Text style={styles.eliteNoteText}>
+                  Note: {item.specialInstructions}
+                </Text>
+              )}
+            </View>
+          )}
 
-        <Text style={styles.cartPrice}>
-          {formatPrice(item.price)}
-        </Text>
-        <View style={styles.quantityContainer}>
-          {/* Azalt butonu (Decrease button) */}
-          <TouchableOpacity
-            style={styles.quantityButton}
-            onPress={() => updateQuantity(item.id, item.quantity - 1)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.quantityButtonText}>-</Text>
-          </TouchableOpacity>
-          <Text style={styles.quantityText}>{item.quantity}</Text>
-          {/* Artır butonu (Increase button) */}
-          <TouchableOpacity
-            style={styles.quantityButton}
-            onPress={() => updateQuantity(item.id, item.quantity + 1)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.quantityButtonText}>+</Text>
-          </TouchableOpacity>
+          <View style={styles.eliteFooterRow}>
+            <Text style={styles.elitePrice}>
+              {formatPrice(item.price * item.quantity)}
+            </Text>
+            
+            <View style={styles.eliteQuantityContainer}>
+              <TouchableOpacity
+                style={styles.eliteQtyBtn}
+                onPress={() => updateQuantity(item.id, item.quantity - 1)}
+              >
+                <Ionicons name="remove" size={16} color={Colors.black} />
+              </TouchableOpacity>
+              <Text style={styles.eliteQtyText}>{item.quantity}</Text>
+              <TouchableOpacity
+                style={styles.eliteQtyBtn}
+                onPress={() => updateQuantity(item.id, item.quantity + 1)}
+              >
+                <Ionicons name="add" size={16} color={Colors.black} />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </View>
-      {/* Sil butonu (Delete button) */}
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => handleRemoveItem(item.id, item.name)}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="trash-outline" size={22} color="#FF3B30" />
-      </TouchableOpacity>
     </View>
   );
 
@@ -340,17 +338,17 @@ const CartScreen = ({ navigation }: any) => {
   const EmptyCart = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconContainer}>
-        <Ionicons name="cart-outline" size={100} color="#E0E0E0" />
+        <Ionicons name="basket-outline" size={80} color={Colors.primary} style={{ opacity: 0.8 }} />
       </View>
       <Text style={styles.emptyTitle}>{t('cart.empty')}</Text>
       <Text style={styles.emptySubtitle}>{t('cart.emptyDescription')}</Text>
       <TouchableOpacity
-        style={styles.emptyButton}
+        style={styles.shopNowButton}
         onPress={() => navigation.navigate('MenuTab')}
-        activeOpacity={0.8}
+        activeOpacity={0.9}
       >
-        <Ionicons name="fast-food" size={20} color={Colors.white} />
-        <Text style={styles.emptyButtonText}>{t('navigation.menu')}</Text>
+        <Text style={styles.shopNowText}>{t('navigation.menu')}</Text>
+        <Ionicons name="arrow-forward" size={18} color={Colors.white} />
       </TouchableOpacity>
     </View>
   );
@@ -364,7 +362,7 @@ const CartScreen = ({ navigation }: any) => {
           {/* Sepet listesi (Cart list) */}
           <FlatList
             data={items}
-            renderItem={({ item }) => <CartItemCard item={item} />}
+            renderItem={({ item }) => <EliteCartItem item={item} />}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.cartList}
             showsVerticalScrollIndicator={false}
@@ -647,91 +645,102 @@ const CartScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#F8F9FA',
   },
   cartList: {
-    padding: Spacing.md,
+    padding: Spacing.lg,
+    paddingBottom: 200,
   },
-  cartCard: {
-    flexDirection: 'row',
+  // Elite Card Styles
+  eliteCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
-    padding: Spacing.md,
+    borderRadius: 20,
+    marginBottom: 20,
+    padding: 12,
     ...Shadows.small,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
-  cartImage: {
-    width: 80,
-    height: 80,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surface,
+  cardMainContent: {
+    flexDirection: 'row',
   },
-  cartInfo: {
+  eliteImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+  },
+  eliteInfo: {
     flex: 1,
-    marginLeft: Spacing.md,
+    marginLeft: 14,
     justifyContent: 'space-between',
+    paddingVertical: 4,
   },
-  cartName: {
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    color: Colors.text,
+  eliteHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
-  customizationsContainer: {
-    marginTop: 4,
-    marginBottom: 4,
+  eliteName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    flex: 1,
+    marginRight: 8,
+    lineHeight: 22,
   },
-  customizationText: {
-    fontSize: 11,
+  eliteCustomizations: {
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  eliteCustomizationText: {
+    fontSize: 12,
     color: '#666',
+    marginTop: 1,
+  },
+  eliteNoteText: {
+    fontSize: 12,
+    color: Colors.primary,
     fontStyle: 'italic',
     marginTop: 2,
   },
-  specialInstructionsText: {
-    fontSize: 11,
-    color: '#666',
-    fontStyle: 'italic',
+  eliteFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 4,
-    marginBottom: 4,
   },
-  cartPrice: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.primary,
+  elitePrice: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.black,
   },
-  quantityContainer: {
+  eliteQuantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F5F5F7',
+    borderRadius: 30, // Pill shape
+    padding: 4,
+    gap: 8,
   },
-  quantityButton: {
-    width: 32,
-    height: 32,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.surface,
+  eliteQtyBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
+    ...Shadows.small,
   },
-  quantityButtonText: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  quantityText: {
-    fontSize: FontSizes.md,
+  eliteQtyText: {
+    fontSize: 14,
     fontWeight: '600',
-    color: Colors.text,
-    marginHorizontal: Spacing.md,
-    minWidth: 30,
+    color: Colors.black,
+    minWidth: 16,
     textAlign: 'center',
   },
-  deleteButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.sm,
-    backgroundColor: '#FFF5F5',
-    borderRadius: 8,
-    width: 40,
-    height: 40,
-  },
+
+  // Empty State Styles
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -739,99 +748,137 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
   emptyIconContainer: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: '#F5F5F5',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#FEF2F2', // Light red bg
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: 32,
   },
   emptyTitle: {
-    fontSize: FontSizes.xxl,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: Spacing.sm,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 8,
   },
   emptySubtitle: {
-    fontSize: FontSizes.md,
-    color: Colors.textSecondary,
+    fontSize: 16,
+    color: '#888',
     textAlign: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: 40,
+    lineHeight: 24,
   },
-  emptyButton: {
+  shopNowButton: {
     flexDirection: 'row',
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.xl,
+    backgroundColor: Colors.black,
+    paddingVertical: 18,
+    paddingHorizontal: 40,
+    borderRadius: 30,
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: 12,
     ...Shadows.medium,
   },
-  emptyButtonText: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
+  shopNowText: {
+    fontSize: 16,
+    fontWeight: '700',
     color: Colors.white,
   },
+
+  // Footer Styles
   footer: {
     backgroundColor: Colors.white,
-    padding: Spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     ...Shadows.large,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
-  summaryRow: {
+  addressSection: {
+    marginBottom: 20,
+  },
+  addressHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  addressHeaderText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  selectedAddressCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#EDEEF2',
+  },
+  addressCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
   },
-  summaryLabel: {
-    fontSize: FontSizes.md,
-    color: Colors.textSecondary,
+  addressCardLeft: {
+    flex: 1,
   },
-  summaryValue: {
-    fontSize: FontSizes.md,
-    color: Colors.text,
+  addressTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.black,
+    marginBottom: 4,
   },
-  totalRow: {
-    marginTop: Spacing.sm,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  totalLabel: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  totalValue: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold',
-    color: Colors.primary,
-  },
-  totalPriceContainer: {
-    alignItems: 'flex-end',
-  },
-  originalPrice: {
-    fontSize: FontSizes.sm,
-    color: '#999',
-    textDecorationLine: 'line-through',
+  addressName: {
+    fontSize: 13,
+    color: '#555',
     marginBottom: 2,
   },
-  pointsSection: {
-    backgroundColor: '#FFF9E6',
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginVertical: Spacing.sm,
+  addressText: {
+    fontSize: 13,
+    color: '#888',
+    lineHeight: 18,
+  },
+  addressPhone: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+  },
+  addAddressButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#FFD700',
+    borderColor: '#EDEEF2',
+    borderStyle: 'dashed',
+    gap: 8,
+  },
+  addAddressText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+
+  pointsSection: {
+    marginBottom: 20,
+    backgroundColor: '#FFF9C4', // Very light yellow for points context
+    borderRadius: 16,
+    padding: 16,
   },
   pointsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: 12,
   },
   pointsHeaderLeft: {
     flexDirection: 'row',
@@ -839,86 +886,121 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   pointsHeaderText: {
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#856404',
   },
   clearPointsText: {
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  noPointsText: {
-    fontSize: FontSizes.sm,
-    color: '#666',
-    textAlign: 'center',
-    fontStyle: 'italic',
+    fontSize: 12,
+    color: '#856404',
+    textDecorationLine: 'underline',
   },
   pointsInputContainer: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+    gap: 12,
   },
   pointsInput: {
     flex: 1,
     backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: BorderRadius.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    fontSize: FontSizes.md,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    fontSize: 14,
   },
   useAllButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
+    backgroundColor: '#856404',
+    borderRadius: 12,
+    paddingHorizontal: 16,
     justifyContent: 'center',
   },
   useAllButtonText: {
     color: Colors.white,
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   pointsDiscountRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: Spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: '#FFD700',
+    marginTop: 12,
   },
   pointsDiscountLabel: {
-    fontSize: FontSizes.md,
-    color: '#666',
-    fontWeight: '600',
+    fontSize: 14,
+    color: '#856404',
   },
   pointsDiscountValue: {
-    fontSize: FontSizes.md,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#E63946',
+    color: '#856404',
   },
-  checkoutButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.md,
+  noPointsText: {
+    fontSize: 13,
+    color: '#856404',
+    textAlign: 'center',
+  },
+
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 15,
+    color: '#666',
+  },
+  summaryValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  totalRow: {
+    marginTop: 12,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    marginBottom: 20,
+    alignItems: 'flex-end',
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  totalPriceContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+  },
+  originalPrice: {
+    fontSize: 16,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+  totalValue: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: Colors.primary,
+  },
+
+  checkoutButton: {
+    backgroundColor: Colors.black,
+    borderRadius: 20,
+    paddingVertical: 20,
+    alignItems: 'center',
+    ...Shadows.medium,
   },
   checkoutButtonDisabled: {
-    backgroundColor: '#CCC',
     opacity: 0.7,
   },
   checkoutButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   checkoutButtonText: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '800',
     color: Colors.white,
+    letterSpacing: 0.5,
   },
   loadingOverlay: {
     position: 'absolute',
@@ -932,184 +1014,110 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.xl,
+    borderRadius: 20,
+    padding: 24,
     alignItems: 'center',
     ...Shadows.large,
   },
   loadingText: {
-    marginTop: Spacing.md,
-    fontSize: FontSizes.md,
-    color: Colors.text,
+    marginTop: 16,
+    fontSize: 16,
+    color: '#1A1A1A',
     fontWeight: '600',
   },
-  // Adres bölümü stilleri (Address section styles)
-  addressSection: {
-    backgroundColor: '#F0F8FF',
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  addressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: Spacing.sm,
-  },
-  addressHeaderText: {
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    color: '#333',
-  },
-  selectedAddressCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.sm,
-    padding: Spacing.sm,
-    borderWidth: 1,
-    borderColor: '#DDD',
-  },
-  addressCardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  addressCardLeft: {
-    flex: 1,
-  },
-  addressTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    color: Colors.primary,
-    marginBottom: 2,
-  },
-  addressName: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 2,
-  },
-  addressText: {
-    fontSize: FontSizes.sm,
-    color: '#666',
-    marginBottom: 1,
-  },
-  addressPhone: {
-    fontSize: FontSizes.sm,
-    color: '#666',
-    marginTop: 2,
-  },
-  addAddressButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.sm,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    borderStyle: 'dashed',
-  },
-  addAddressText: {
-    fontSize: FontSizes.md,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  // Adres modal stilleri (Address modal styles)
+  // Address Modal Styles
   modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
   },
   addressModal: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    width: '100%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
     maxHeight: '80%',
-    ...Shadows.large,
   },
   addressModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    marginBottom: 20,
   },
   addressModalTitle: {
-    fontSize: FontSizes.lg,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#1A1A1A',
   },
   addressModalList: {
     maxHeight: 400,
   },
   addressModalItem: {
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#EDEEF2',
+    borderRadius: 16,
+    marginBottom: 12,
   },
   addressModalItemSelected: {
-    backgroundColor: '#F0F8FF',
+    borderColor: Colors.primary,
+    backgroundColor: '#FFF0F0',
   },
   addressModalItemContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flex: 1,
   },
   addressModalItemLeft: {
     flex: 1,
   },
   addressModalItemTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    color: Colors.primary,
-    marginBottom: 2,
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.black,
+    marginBottom: 4,
   },
   addressModalItemName: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 14,
+    color: '#555',
     marginBottom: 2,
   },
   addressModalItemText: {
-    fontSize: FontSizes.sm,
-    color: '#666',
+    fontSize: 13,
+    color: '#888',
     marginBottom: 1,
   },
   emptyAddressList: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.xl,
+    padding: 32,
   },
   emptyAddressText: {
-    fontSize: FontSizes.md,
+    fontSize: 16,
     color: '#999',
-    marginTop: Spacing.sm,
+    marginTop: 12,
   },
   addNewAddressButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    padding: Spacing.md,
+    padding: 16,
+    marginTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#EEE',
   },
   addNewAddressText: {
-    fontSize: FontSizes.md,
+    fontSize: 16,
     color: Colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
 
 export default CartScreen;
-

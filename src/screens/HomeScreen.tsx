@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, TextInput, ActivityIndicator, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,7 @@ import BannerSlider from '../components/BannerSlider';
 import { supabase } from '../lib/supabase';
 import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
+import { LinearGradient } from 'expo-linear-gradient';
 import Toast from 'react-native-toast-message';
 import { formatPrice } from '../services/currencyService';
 import { getCategories } from '../services/productService';
@@ -42,12 +43,13 @@ const HomeScreen = ({ navigation }: any) => {
   const [restaurantReviews, setRestaurantReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
   const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Store'lar (Stores)
   const { addItem } = useCartStore();
   const { favorites, toggleFavorite } = useFavoritesStore();
 
-  // Sayfa yüklendiğinde öne çıkan ürünleri, kategorileri ve restoran yorumlarını getir (Fetch featured products, categories and restaurant reviews on page load)
+  // Sayfa yüklendiğinde öne çıkan ürünleri, kategorileri ve restoran yorumlarını getir
   useEffect(() => {
     fetchFeaturedProducts();
     fetchCategories();
@@ -55,7 +57,6 @@ const HomeScreen = ({ navigation }: any) => {
     loadContactInfo();
   }, []);
 
-  // İletişim bilgilerini yükle (Load contact information)
   const loadContactInfo = async () => {
     try {
       const info = await getContactInfo();
@@ -65,223 +66,210 @@ const HomeScreen = ({ navigation }: any) => {
     }
   };
 
-  // Öne çıkan ürünleri getir (Fetch featured products)
   const fetchFeaturedProducts = async () => {
     try {
       setLoadingProducts(true);
-      console.log('🔍 Fetching featured products...');
-
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('is_featured', true)
         .eq('stock_status', 'in_stock')
         .order('display_order', { ascending: true })
-        .order('created_at', { ascending: false })
         .limit(6);
-
-      if (error) {
-        console.error('❌ Fetch error:', error);
-        throw error;
-      }
-
-      console.log('✅ Featured products fetched:', data?.length || 0);
+      if (error) throw error;
       setFeaturedProducts(data || []);
     } catch (error: any) {
-      console.error('❌ Error fetching featured products:', error);
+      console.error('Error fetching featured products:', error);
     } finally {
       setLoadingProducts(false);
     }
   };
 
-  // Kategorileri getir (Fetch categories)
   const fetchCategories = async () => {
     try {
       setLoadingCategories(true);
-      console.log('🔍 Fetching categories for HomeScreen...');
       const data = await getCategories();
-      console.log('✅ Categories fetched:', data.length);
-      setCategories(data.slice(0, 6)); // İlk 6 kategoriyi göster (Show first 6 categories)
-    } catch (error: any) {
-      console.error('❌ Error fetching categories:', error);
+      setCategories(data.slice(0, 6));
+    } catch (error) {
+      console.error('Error fetching categories:', error);
     } finally {
       setLoadingCategories(false);
     }
   };
 
-  // Restoran yorumlarını getir (Fetch restaurant reviews)
   const fetchRestaurantReviews = async () => {
     try {
       setLoadingReviews(true);
       const data = await getRestaurantReviews();
-      setRestaurantReviews(data.slice(0, 5)); // İlk 5 yorumu göster (Show first 5 reviews)
-    } catch (error: any) {
-      console.error('Error fetching restaurant reviews:', error);
+      setRestaurantReviews(data.slice(0, 5));
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
     } finally {
       setLoadingReviews(false);
     }
   };
 
-  // Kategori ismini mevcut dile göre al (Get category name based on current language)
   const getCategoryName = (category: Category): string => {
     return i18n.language === 'tr' ? category.name_tr : category.name_en;
   };
 
-  // Kategorilere tıklandığında menü ekranına yönlendir (Navigate to menu screen on category click)
   const handleCategoryPress = (categoryId: string) => {
-    console.log('🎯 Navigating to MenuTab with category:', categoryId);
     navigation.navigate('MenuTab', { categoryId });
   };
 
-  // Ürüne tıklandığında detay sayfasına git (Navigate to product detail)
   const handleProductPress = (product: Product) => {
-    // Product'ı MenuItem formatına çevir (Convert Product to MenuItem format)
-    const menuItem = {
+    const menuItem: any = {
       id: product.id,
       name: product.name,
       description: product.description,
       price: product.price,
       category: product.category,
       image: product.image_url,
-      rating: 4.5, // Varsayılan rating (Default rating)
-      reviews: 0, // Varsayılan review sayısı (Default review count)
-      ingredients: product.ingredients || [], // Malzemeler (Ingredients)
+      available: product.stock_status === 'in_stock',
+      rating: 4.5,
+      reviews: 0,
+      ingredients: product.ingredients || [],
     };
     navigation.navigate('ProductDetail', { item: menuItem });
   };
 
-  // Sepete ekle (Add to cart)
   const handleAddToCart = (product: Product) => {
     addItem({
       id: product.id,
       name: product.name,
       price: product.price,
       image: product.image_url,
-      quantity: 1,
-    });
-
+    } as any);
     Toast.show({
       type: 'success',
       text1: '✅ ' + t('cart.addedToCart'),
       text2: product.name,
-      position: 'bottom',
-      visibilityTime: 2000,
-      bottomOffset: 100,
     });
   };
 
-  // Favorilere ekle/çıkar (Toggle favorite)
   const handleToggleFavorite = (product: Product) => {
-    toggleFavorite(product);
-    const isFavorite = favorites.some((fav) => fav.id === product.id);
-
-    Toast.show({
-      type: isFavorite ? 'info' : 'success',
-      text1: isFavorite ? '💔 ' + t('favorites.removedFromFavorites') : '❤️ ' + t('favorites.addedToFavorites'),
-      text2: product.name,
-      position: 'bottom',
-      visibilityTime: 2000,
-      bottomOffset: 100,
-    });
+    const menuItem: any = {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category: product.category,
+      image: product.image_url,
+      available: product.stock_status === 'in_stock',
+    };
+    toggleFavorite(menuItem);
   };
 
-  // Banner tıklandığında (When banner is pressed)
   const handleBannerPress = async (banner: any) => {
     const link = banner.button_link;
     if (!link) return;
-
-    console.log('🚩 Banner action:', link);
-
     if (link.startsWith('product:')) {
       const productId = link.split(':')[1];
-      // Ürünü database'den çek veya navigation ile git (Fetch product from DB or go with ID)
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('id', productId)
-          .single();
-
-        if (data && !error) {
-          handleProductPress(data);
-        }
-      } catch (err) {
-        console.error('Error fetching banner product:', err);
-      }
+      const { data } = await supabase.from('products').select('*').eq('id', productId).single();
+      if (data) handleProductPress(data);
     } else if (link.startsWith('category:')) {
-      const categoryId = link.split(':')[1];
-      handleCategoryPress(categoryId);
+      handleCategoryPress(link.split(':')[1]);
     } else if (link.startsWith('http')) {
-      Linking.openURL(link).catch(err => console.error('Error opening banner URL:', err));
+      Linking.openURL(link);
     }
   };
 
-  // Kategori kartı componenti (Category card component)
-  const CategoryCard = ({
-    category,
-    index
-  }: {
-    category: Category;
-    index: number;
-  }) => (
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      navigation.navigate('MenuTab', { searchQuery: searchQuery.trim() });
+    } else {
+      navigation.navigate('MenuTab');
+    }
+  };
+
+  const CategoryCard = ({ category, index }: { category: Category; index: number }) => (
     <TouchableOpacity
-      style={styles.categoryCard}
+      style={styles.modernCategoryCard}
       onPress={() => handleCategoryPress(category.id)}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
-      <Animated.View
-        entering={FadeInDown.delay(index * 100).springify()}
-        style={styles.categoryCardContent}
-      >
-        <View style={styles.categoryIconContainer}>
-          <Ionicons name={category.icon as any} size={32} color={Colors.primary} />
-        </View>
-        <Text style={styles.categoryName}>{getCategoryName(category)}</Text>
+      <Animated.View entering={FadeInDown.delay(100 + index * 100).springify()} style={styles.categoryCardContent}>
+        <LinearGradient
+          colors={index % 2 === 0 ? ['#FFF', '#FDF2F2'] : ['#FFF', '#F0F7FF']}
+          style={styles.modernCategoryIconContainer}
+        >
+          <Ionicons name={category.icon as any} size={28} color={Colors.primary} />
+        </LinearGradient>
+        <Text style={styles.modernCategoryName} numberOfLines={1}>{getCategoryName(category)}</Text>
       </Animated.View>
     </TouchableOpacity>
   );
 
   return (
-
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header bölümü (Header section) */}
-      <Animated.View entering={FadeInUp.duration(600)} style={styles.header}>
-        <View style={styles.headerTop}>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{ paddingTop: 16 }}
+      >
+        {/* Simple Branded Header - Internal */}
+        <View style={styles.brandedHeader}>
           <View>
-            <Text style={styles.restaurantName}>RIVERSIDE</Text>
-            <Text style={styles.restaurantSubname}>BURGERS</Text>
+            <Text style={styles.greetingText}>{t('home.welcome') || 'Hello,'}</Text>
+            <Text style={styles.brandNameText}>Riverside Burgers 🍔</Text>
           </View>
-          <TouchableOpacity style={styles.locationButton}>
-            <Ionicons name="location-outline" size={20} color={Colors.text} />
-            <Text style={styles.locationText}>Toronto</Text>
+          <TouchableOpacity 
+            style={styles.profileCircle}
+            onPress={() => navigation.navigate('Profile')}
+          >
+            <Ionicons name="person" size={20} color={Colors.white} />
           </TouchableOpacity>
         </View>
-      </Animated.View>
 
-      {/* Banner Slider (Banner Slider) */}
-      <BannerSlider onBannerPress={handleBannerPress} />
+        <View style={styles.heroBanner}>
+          <BannerSlider onBannerPress={handleBannerPress} />
+        </View>
 
+        {/* Minimalist Search Area */}
+        <View style={styles.searchWrapper}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons name="search" size={20} color={Colors.textSecondary} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('home.searchPlaceholder') || 'Search your favorites...'}
+              placeholderTextColor={Colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
+            <TouchableOpacity style={styles.filterInline} onPress={handleSearch}>
+               <Ionicons name="options-outline" size={20} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
       {/* Kategoriler bölümü (Categories section) */}
-      <View style={styles.section}>
-        <Animated.Text
-          entering={FadeInDown.delay(200).duration(600)}
-          style={styles.sectionTitle}
-        >
-          {t('home.ourMenu')}
-        </Animated.Text>
+      <View style={styles.modernSection}>
+        <View style={[styles.sectionHeader, { paddingRight: Spacing.lg }]}>
+          <Text style={styles.modernSectionTitle}>{t('home.ourMenu')}</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('MenuTab')}>
+            <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
+          </TouchableOpacity>
+        </View>
+        
         {loadingCategories ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+          <View style={styles.loadingPlaceholder}>
+            <ActivityIndicator size="small" color={Colors.primary} />
           </View>
         ) : (
-          <View style={styles.categoriesGrid}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.modernCategoriesScroll}
+          >
             {categories.map((category, index) => (
               <CategoryCard key={category.id} category={category} index={index} />
             ))}
-          </View>
+          </ScrollView>
         )}
       </View>
+
 
       {/* Önerilen Ürünler bölümü (Recommended Products section) */}
       <View style={styles.section}>
@@ -675,61 +663,152 @@ const HomeScreen = ({ navigation }: any) => {
         </View>
       </View>
     </ScrollView>
+  </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.surface,
   },
-  header: {
-    padding: Spacing.lg,
-    paddingTop: Spacing.xl,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  headerTop: {
+  brandedHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 20,
   },
-  restaurantName: {
-    fontSize: FontSizes.xxl + 8,
+  greetingText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  brandNameText: {
+    fontSize: 22,
     fontWeight: '900',
     color: Colors.black,
-    letterSpacing: 2,
   },
-  restaurantSubname: {
-    fontSize: FontSizes.xl,
-    fontWeight: '900',
-    color: Colors.primary,
-    letterSpacing: 2,
+  profileCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.small,
   },
-  locationButton: {
+  searchWrapper: {
+    paddingHorizontal: 24,
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
+    backgroundColor: '#F5F5F7',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 56,
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: Colors.black,
+    fontWeight: '500',
+  },
+  filterInline: {
+    paddingLeft: 12,
+    borderLeftWidth: 1,
+    borderLeftColor: '#DDD',
+  },
+  heroBanner: {
+    marginHorizontal: 0,
+    marginBottom: 0,
+    position: 'relative',
+  },
+  locationFloat: {
+    position: 'absolute',
+    bottom: -15,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.white,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    ...Shadows.medium,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   locationText: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    color: Colors.text,
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.black,
   },
   section: {
     padding: Spacing.lg,
   },
+  modernSection: {
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.sm,
+  },
   sectionTitle: {
     fontSize: FontSizes.xl,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  modernSectionTitle: {
+    fontSize: FontSizes.lg + 2,
+    fontWeight: '800',
+    color: Colors.text,
+    paddingHorizontal: Spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: Spacing.md,
   },
+  modernCategoriesScroll: {
+    paddingLeft: Spacing.lg,
+    paddingRight: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  modernCategoryCard: {
+    alignItems: 'center',
+    marginRight: Spacing.lg,
+    width: 80,
+  },
+  modernCategoryIconContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+    ...Shadows.small,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  modernCategoryName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.text,
+    textAlign: 'center',
+  },
+  loadingPlaceholder: {
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
   categoriesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -935,18 +1014,11 @@ const styles = StyleSheet.create({
   },
 
   // Öne Çıkan Ürünler stilleri (Featured Products styles)
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
   sectionSubtitle: {
     fontSize: FontSizes.md,
     color: Colors.textSecondary,
-    marginTop: Spacing.xs,
     marginBottom: Spacing.md,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   viewAllButton: {
     flexDirection: 'row',
@@ -974,18 +1046,20 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.md,
   },
   productCard: {
-    width: 200,
+    width: 220,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     marginRight: Spacing.md,
     overflow: 'hidden',
     ...Shadows.medium,
+    borderWidth: 1,
+    borderColor: '#F5F5F5',
   },
   productImage: {
     width: '100%',
-    height: 180, // Yükseklik artırıldı (Height increased from 150 to 180)
+    height: 180,
     backgroundColor: '#F0F0F0',
-    resizeMode: 'cover', // Görselin tam kapsaması için (For full image coverage)
+    resizeMode: 'cover',
   },
   favoriteButton: {
     position: 'absolute',
@@ -998,6 +1072,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...Shadows.small,
+    zIndex: 2,
   },
   recommendedBadge: {
     position: 'absolute',
@@ -1006,11 +1081,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: Colors.accent,
+    backgroundColor: 'rgba(230, 57, 70, 0.9)',
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: BorderRadius.sm,
-    ...Shadows.small,
+    zIndex: 2,
   },
   recommendedText: {
     fontSize: 10,
@@ -1023,7 +1098,7 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: FontSizes.md,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: Colors.text,
     marginBottom: Spacing.xs,
   },
@@ -1041,14 +1116,14 @@ const styles = StyleSheet.create({
   },
   productPrice: {
     fontSize: FontSizes.lg,
-    fontWeight: 'bold',
+    fontWeight: '900',
     color: Colors.primary,
   },
   addToCartButton: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.round,
-    backgroundColor: Colors.primary,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.black,
     justifyContent: 'center',
     alignItems: 'center',
     ...Shadows.small,
@@ -1075,6 +1150,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.black,
     padding: Spacing.xl,
     marginTop: Spacing.lg,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
   },
   footerSection: {
     marginBottom: Spacing.xl,
@@ -1126,6 +1203,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     textAlign: 'center',
   },
+
 });
 
 export default HomeScreen;

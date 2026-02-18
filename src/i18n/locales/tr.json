@@ -76,7 +76,7 @@
   },
   "navigation": {
     "home": "Ana Sayfa",
-    "menu": "Menü",
+    "menu": "Menu",
     "cart": "Sepet",
     "orders": "Siparişler",
     "profile": "Profil",
@@ -110,9 +110,12 @@
     "qualityGuaranteeBadge": "✓ %100 Kalite",
     "fiveStarSatisfaction": "5 Yıldız Memnuniyet",
     "fiveStarSatisfactionDesc": "Binlerce mutlu müşteri yorumu",
-    "fiveStarSatisfactionBadge": "⭐ 4.9/5 Puan"
+    "fiveStarSatisfactionBadge": "⭐ 4.9/5 Puan",
+    "explore": "KEŞFET",
+    "delicacies": "Gurme Lezzetler"
   },
   "menu": {
+    "title": "Menu",
     "allCategories": "Tüm Kategoriler",
     "noItems": "Bu kategoride ürün bulunamadı",
     "addToCart": "Sepete Ekle",
@@ -383,7 +386,7 @@
   },
   "navigation": {
     "home": "Ana Sayfa",
-    "menu": "Menü",
+    "menu": "Menu",
     "cart": "Sepet",
     "profile": "Profil",
     "orderHistory": "📦 Sipariş Geçmişi",

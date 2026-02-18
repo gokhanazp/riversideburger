@@ -11,18 +11,17 @@ import {
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
+  StatusBar,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   FadeInDown,
-  ZoomIn,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
+  FadeInRight,
+  Layout,
 } from 'react-native-reanimated';
-import Toast from 'react-native-toast-message';
 import { useTranslation } from 'react-i18next';
-import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
+import { Colors, Spacing, Shadows, BorderRadius } from '../constants/theme';
 import { MenuItem } from '../types';
 import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
@@ -31,114 +30,97 @@ import { Product, Category } from '../types/database.types';
 import { formatPrice } from '../services/currencyService';
 import { getProductReviewCount } from '../services/reviewService';
 
-// Menü ekranı (Menu screen)
 const MenuScreen = ({ navigation, route }: any) => {
   const { t, i18n } = useTranslation();
   const { width } = useWindowDimensions();
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [reviewCounts, setReviewCounts] = useState<{ [key: string]: number }>({});
 
-  // View Mode: true = grid, false = list
-  const [isGridView, setIsGridView] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>(route?.params?.categoryId || 'all');
+  const [searchQuery, setSearchQuery] = useState(route?.params?.searchQuery || '');
+  const [isGridView, setIsGridView] = useState(false);
 
   const addItem = useCartStore((state) => state.addItem);
   const { toggleFavorite, isFavorite } = useFavoritesStore();
 
-  // Responsive Grid Hesaplama
-  const isTablet = width >= 768;
-  const isLargeTablet = width >= 1024;
+  const numColumns = isGridView ? (width >= 768 ? 3 : 2) : 1;
 
-  // Tablette 3, büyük tablette 4, mobilde 2 kolon
-  const numColumns = isGridView ? (isLargeTablet ? 4 : (isTablet ? 3 : 2)) : 1;
-  const gap = Spacing.sm; // Boşluğu azalttık (Reduced gap)
-
-  // Kategori ismini mevcut dile göre al (Get category name based on current language)
-  const getCategoryName = (category: Category): string => {
-    return i18n.language === 'tr' ? category.name_tr : category.name_en;
-  };
-
-  // Ürünleri ve kategorileri yükle (Load products and categories)
+  // Data loading optimization to prevent double-render
   const loadData = async () => {
+    if (loading && products.length > 0) return; // Prevent unnecessary execution
+
     try {
       setLoading(true);
       const [productsData, categoriesData] = await Promise.all([
         getProducts(),
         getCategories(),
       ]);
+
+      // Fetch reviews in parallel
+      const counts: { [key: string]: number } = {};
+      await Promise.all(
+        productsData.map(async (product) => {
+          counts[product.id] = await getProductReviewCount(product.id);
+        })
+      );
+
+      // Batch updates
       setProducts(productsData);
       setCategories(categoriesData);
-
-      // Yorum sayılarını yükle (Load review counts)
-      loadReviewCounts(productsData);
+      setReviewCounts(counts);
     } catch (error) {
       console.error('Error loading data:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Hata',
-        text2: 'Ürünler yüklenirken bir hata oluştu',
-      });
     } finally {
       setLoading(false);
     }
   };
 
-  // Yorum sayılarını yükle (Load review counts)
-  const loadReviewCounts = async (productsData: Product[]) => {
-    try {
-      const counts: { [key: string]: number } = {};
-      await Promise.all(
-        productsData.map(async (product) => {
-          const count = await getProductReviewCount(product.id);
-          counts[product.id] = count;
-        })
-      );
-      setReviewCounts(counts);
-    } catch (error) {
-      console.error('Error loading review counts:', error);
-    }
-  };
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  // Yenileme (Refresh)
+  useEffect(() => {
+    if (route?.params?.categoryId) setSelectedCategory(route.params.categoryId);
+    if (route?.params?.searchQuery) setSearchQuery(route.params.searchQuery);
+  }, [route?.params?.categoryId, route?.params?.searchQuery]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   };
 
-  // İlk yüklemede verileri çek (Load data on mount)
-  useEffect(() => {
-    loadData();
-  }, []);
+  const getCategoryName = (category: Category): string => {
+    return i18n.language === 'tr' ? category.name_tr : category.name_en;
+  };
 
-  // Route parametresinden gelen kategoriyi ayarla (Set category from route params)
-  useEffect(() => {
-    if (route?.params?.categoryId) {
-      console.log('🎯 Category ID from HomeScreen:', route.params.categoryId);
-      setSelectedCategory(route.params.categoryId);
-    }
-  }, [route?.params?.categoryId]);
-
-  // Seçili kategoriye ve arama sorgusuna göre menü öğelerini filtrele (Filter menu items by category and search query)
   const filteredItems = products.filter((item) => {
-    // Kategori filtresi (Category filter)
     const categoryMatch = selectedCategory === 'all' || item.category_id === selectedCategory;
-
-    // Arama filtresi (Search filter)
-    const searchMatch =
-      searchQuery === '' ||
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
-
+    const searchMatch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
     return categoryMatch && searchMatch;
   });
 
-  // Sepete ekle butonu işlevi (Add to cart button handler)
-  const handleAddToCart = (item: Product) => {
+  const CategoryTab = ({ category, label, icon }: { category: string; label: string; icon?: string }) => {
+    const isActive = selectedCategory === category;
+    return (
+      <TouchableOpacity
+        style={[styles.categoryTab, isActive && styles.categoryTabActive]}
+        onPress={() => setSelectedCategory(category)}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.categoryTabText, isActive && styles.categoryTabTextActive]}>
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const EliteProductCard = ({ item, index }: { item: Product; index: number }) => {
     const menuItem: MenuItem = {
       id: item.id,
       name: item.name,
@@ -149,193 +131,57 @@ const MenuScreen = ({ navigation, route }: any) => {
       preparationTime: item.preparation_time || 15,
       available: item.is_active,
       rating: 4.5,
-      reviews: 0,
-    };
-
-    addItem(menuItem);
-    Toast.show({
-      type: 'success',
-      text1: '✅ ' + t('cart.addedToCart'),
-      text2: item.name,
-      position: 'bottom',
-      visibilityTime: 2000,
-      bottomOffset: 100,
-    });
-  };
-
-  // Kategori butonu componenti (Category button component)
-  const CategoryButton = ({ category, label, icon }: { category: string; label: string; icon?: string }) => {
-    const isActive = selectedCategory === category;
-
-    return (
-      <TouchableOpacity
-        style={{
-          paddingHorizontal: 18,
-          paddingVertical: 14,
-          borderRadius: 25,
-          backgroundColor: isActive ? '#E63946' : '#F8F9FA',
-          marginRight: 12,
-          borderWidth: 2,
-          borderColor: isActive ? '#E63946' : '#DEE2E6',
-          minWidth: 90,
-          height: 50,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-        }}
-        onPress={() => setSelectedCategory(category)}
-        activeOpacity={0.7}
-      >
-        {icon && (
-          <Ionicons
-            name={icon as any}
-            size={18}
-            color={isActive ? '#FFFFFF' : '#000000'}
-          />
-        )}
-        <Text
-          allowFontScaling={false}
-          style={{
-            fontSize: 14,
-            fontWeight: isActive ? '800' : '700',
-            color: isActive ? '#FFFFFF' : '#000000',
-            textAlign: 'center',
-            includeFontPadding: false,
-          }}
-        >
-          {label}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
-  // Menü öğesi kartı componenti (Menu item card component)
-  const MenuItemCard = ({ item, index }: { item: Product; index: number }) => {
-    const menuItem: MenuItem = {
-      id: item.id,
-      name: item.name,
-      description: item.description || '',
-      price: item.price,
-      image: item.image_url,
-      category: 'burger',
-      preparationTime: item.preparation_time || 15,
-      available: item.is_active,
-      rating: 4.5, // Assuming a default or fetching from item if available
-      reviews: reviewCounts[item.id] || 0, // Using fetched review counts
-      ingredients: item.ingredients || [],
+      reviews: reviewCounts[item.id] || 0,
     };
 
     const favorite = isFavorite(item.id);
-    const scale = useSharedValue(1);
-
-    const animatedButtonStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: scale.value }],
-    }));
-
-    const handleAddPress = (e: any) => {
-      e.stopPropagation();
-      scale.value = withSpring(0.9, {}, () => {
-        scale.value = withSpring(1);
-      });
-      handleAddToCart(item);
-    };
-
-    // Grid stilini hesapla
-    const gridStyle = isGridView ? {
-      flex: 1,
-      maxWidth: (100 / numColumns) + '%' as any,
-    } : {};
 
     return (
-      <Animated.View
-        entering={FadeInDown.delay(index * 100).springify()}
-        style={[isGridView ? styles.gridCardContainer : undefined, gridStyle]}
+      <Animated.View 
+        entering={FadeInDown.delay(index * 50).springify()}
+        style={isGridView ? { flex: 1 / numColumns, margin: 6 } : { marginBottom: 16 }}
       >
         <TouchableOpacity
-          style={[styles.menuCard, isGridView && styles.menuCardGrid]}
+          style={isGridView ? styles.gridCard : styles.listCard}
           onPress={() => navigation.navigate('ProductDetail', { item: menuItem })}
           activeOpacity={0.9}
         >
-          <Image
-            source={{ uri: item.image_url }}
-            style={[
-              isGridView ? styles.menuImageGrid : styles.menuImage,
-              // Tablette görsel yüksekliğini artır (Increase image height on tablet)
-              isGridView && isTablet && { height: 180 }
-            ]}
-          />
+          {/* Image Section */}
+          <View style={isGridView ? styles.gridImageContainer : styles.listImageContainer}>
+             <Image source={{ uri: item.image_url }} style={styles.productImage} />
+             <TouchableOpacity 
+                style={styles.favoriteBadge} 
+                onPress={(e) => { e.stopPropagation(); toggleFavorite(menuItem); }}
+              >
+                <Ionicons name={favorite ? 'heart' : 'heart-outline'} size={18} color={favorite ? '#FF4B4B' : '#FFF'} />
+              </TouchableOpacity>
+              {(menuItem.reviews ?? 0) > 0 && (
+                <View style={styles.ratingBadge}>
+                  <Ionicons name="star" size={10} color="#FFD700" />
+                  <Text style={styles.ratingText}>{menuItem.reviews}</Text>
+                </View>
+              )}
+          </View>
 
-          <TouchableOpacity
-            style={[styles.favoriteButton, isGridView && { padding: 6, top: 4, right: 4 }]}
-            onPress={(e) => {
-              e.stopPropagation();
-              toggleFavorite(menuItem);
-              Toast.show({
-                type: favorite ? 'info' : 'success',
-                text1: favorite ? '💔 ' + t('favorites.removedFromFavorites') : '❤️ ' + t('favorites.addedToFavorites'),
-                text2: item.name,
-                position: 'bottom',
-                visibilityTime: 1500,
-                bottomOffset: 100,
-              });
-            }}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={favorite ? 'heart' : 'heart-outline'}
-              size={isGridView ? 16 : 24}
-              color={favorite ? Colors.primary : Colors.white}
-            />
-          </TouchableOpacity>
+          {/* Info Section */}
+          <View style={styles.cardInfo}>
+            <View>
+               <Text style={styles.productName} numberOfLines={isGridView ? 1 : 2}>{item.name}</Text>
+               {!isGridView && (
+                 <Text style={styles.productDescription} numberOfLines={2}>
+                   {item.description}
+                 </Text>
+               )}
+            </View>
 
-          <View style={[styles.menuInfo, isGridView && styles.menuInfoGrid]}>
-            <Text
-              style={[styles.menuName, isGridView && styles.menuNameGrid]}
-              numberOfLines={1}
-            >
-              {item.name}
-            </Text>
-
-            {!isGridView && (
-              <Text style={styles.menuDescription} numberOfLines={2}>
-                {item.description || ''}
-              </Text>
-            )}
-
-            {!isGridView && reviewCounts[item.id] > 0 && (
-              <View style={styles.reviewCountContainer}>
-                <Ionicons name="star" size={14} color="#FFB800" />
-                <Text style={styles.reviewCountText}>
-                  {reviewCounts[item.id]} {t('product.reviews')}
-                </Text>
-              </View>
-            )}
-
-            <View style={[styles.menuFooter, isGridView && { marginTop: 4, justifyContent: 'space-between' }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.menuPrice, isGridView && styles.menuPriceGrid]}>
-                  {formatPrice(item.price)}
-                </Text>
-
-                {!isGridView && item.preparation_time && (
-                  <Text style={styles.preparationTime}>⏱️ {item.preparation_time} {t('product.minutes')}</Text>
-                )}
-              </View>
-
-              <Animated.View style={animatedButtonStyle}>
-                <TouchableOpacity
-                  style={[styles.addButton, isGridView && styles.addButtonGrid]}
-                  onPress={handleAddPress}
-                  activeOpacity={0.7}
-                >
-                  {isGridView ? (
-                    <Ionicons name="add" size={20} color={isGridView ? Colors.white : '#000'} />
-                  ) : (
-                    <Text style={styles.addButtonText}>{t('menu.addToCart')}</Text>
-                  )}
-                </TouchableOpacity>
-              </Animated.View>
+            <View style={styles.cardFooter}>
+              <Text style={styles.productPrice}>{formatPrice(item.price)}</Text>
+              <TouchableOpacity 
+                style={styles.addButton} 
+                onPress={(e) => { e.stopPropagation(); addItem(menuItem); }}
+              >
+                <Ionicons name="add" size={24} color="#FFF" />
+              </TouchableOpacity>
             </View>
           </View>
         </TouchableOpacity>
@@ -343,335 +189,296 @@ const MenuScreen = ({ navigation, route }: any) => {
     );
   };
 
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>{t('common.loading')}</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      {/* Header: Arama + Toggle */}
-      <View style={styles.headerControls}>
-        <Animated.View
-          entering={FadeInDown.duration(400)}
-          style={styles.searchContainer}
-        >
-          <Ionicons name="search" size={20} color={Colors.textSecondary} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t('home.searchPlaceholder')}
-            placeholderTextColor={Colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {searchQuery.length > 0 && (
-            <Animated.View entering={ZoomIn.duration(200)}>
-              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-                <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
-              </TouchableOpacity>
-            </Animated.View>
-          )}
-        </Animated.View>
+      <StatusBar barStyle="dark-content" />
+      
+      {/* Avant-Garde Header */}
+      <View style={styles.eliteHeader}>
+        <View style={styles.headerRow}>
+          <View style={styles.searchBarElite}>
+            <Ionicons name="search" size={20} color="#1A1A1A" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('home.searchPlaceholder')}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor="#999"
+            />
+          </View>
+          <TouchableOpacity 
+            onPress={() => setIsGridView(!isGridView)} 
+            style={styles.viewToggle}
+            activeOpacity={0.7}
+          >
+            <Ionicons name={isGridView ? 'list' : 'grid'} size={22} color="#1A1A1A" />
+          </TouchableOpacity>
+        </View>
 
-        {/* Toggle Button */}
-        <TouchableOpacity
-          onPress={() => setIsGridView(!isGridView)}
-          style={styles.viewSwitchButton}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name={isGridView ? 'list' : 'grid'}
-            size={22}
-            color={Colors.primary}
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* Kategoriler */}
-      <View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesContainer}
-          contentContainerStyle={styles.categoriesContent}
-        >
-          <CategoryButton
-            category="all"
-            label={t('menu.allCategories')}
-            icon="apps-outline"
-          />
-          {categories.map((cat) => {
-            const label = getCategoryName(cat);
-            return (
-              <CategoryButton
-                key={cat.id}
-                category={cat.id}
-                label={label}
-                icon={cat.icon}
+        {/* Minimalist Categories */}
+        <View style={styles.categoryContainer}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={styles.categoryScroll}
+          >
+            <CategoryTab category="all" label={t('menu.allCategories')} />
+            {categories.map((cat) => (
+              <CategoryTab 
+                key={cat.id} 
+                category={cat.id} 
+                label={getCategoryName(cat)} 
               />
-            );
-          })}
-        </ScrollView>
+            ))}
+          </ScrollView>
+        </View>
       </View>
 
-      {/* Menü Listesi */}
-      {filteredItems.length > 0 ? (
+      {loading ? (
+        <View style={styles.centerLoading}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : (
         <FlatList
-          key={isGridView ? `grid-${numColumns}` : 'list'}
+          key={isGridView ? 'grid' : 'list'}
           data={filteredItems}
-          renderItem={({ item, index }) => <MenuItemCard item={item} index={index} />}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.menuList}
-          showsVerticalScrollIndicator={false}
+          renderItem={({ item, index }) => <EliteProductCard item={item} index={index} />}
           numColumns={numColumns}
-          columnWrapperStyle={isGridView ? { gap: Spacing.sm } : undefined} // Gap spacing
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listPadding}
+          showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[Colors.primary]}
-              tintColor={Colors.primary}
+            <RefreshControl 
+                refreshing={refreshing} 
+                onRefresh={onRefresh} 
+                tintColor={Colors.primary} 
             />
           }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="restaurant-outline" size={80} color="#E0E0E0" />
+              <Text style={styles.emptyTitle}>{t('menu.noItems')}</Text>
+            </View>
+          }
         />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="search-outline" size={64} color={Colors.textSecondary} />
-          <Text style={styles.emptyTitle}>{t('menu.noItems')}</Text>
-          <Text style={styles.emptyText}>
-            {searchQuery ? `"${searchQuery}"` : t('menu.noItems')}
-          </Text>
-        </View>
       )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F8F9FB' // Slightly cooler gray
   },
-  centerContent: {
+  eliteHeader: {
+    backgroundColor: '#FFF',
+    paddingTop: 12,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    ...Shadows.small,
+    zIndex: 10,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 16,
+  },
+  viewToggle: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    ...Shadows.small,
   },
-  loadingText: {
-    marginTop: Spacing.md,
-    fontSize: FontSizes.md,
-    color: Colors.textSecondary,
-  },
-
-  // Header Controls (Search + Toggle)
-  headerControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: Spacing.sm,
-    paddingRight: Spacing.md,
-  },
-  searchContainer: {
+  searchBarElite: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
-    marginHorizontal: Spacing.md,
-    marginBottom: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: '#F5F5F7',
     height: 48,
-    ...Shadows.small,
+    borderRadius: 16,
+    paddingHorizontal: 16,
   },
   searchIcon: {
-    marginRight: Spacing.sm,
+    marginRight: 10,
+    opacity: 0.6,
   },
   searchInput: {
     flex: 1,
-    height: '100%',
-    fontSize: FontSizes.md,
-    color: Colors.text,
+    fontSize: 15,
+    color: '#1A1A1A',
+    fontWeight: '500',
   },
-  clearButton: {
-    padding: Spacing.xs,
+  categoryContainer: {
+    paddingBottom: 12,
   },
-  viewSwitchButton: {
-    width: 48,
-    height: 48,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
+  categoryScroll: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  categoryTab: {
+    marginRight: 0,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#FFF',
     borderWidth: 1,
-    borderColor: Colors.border,
-    ...Shadows.small,
+    borderColor: '#EEE',
   },
-
-  categoriesContainer: {
-    backgroundColor: Colors.white,
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.xs,
+  categoryTabActive: {
+    backgroundColor: '#1A1A1A',
+    borderColor: '#1A1A1A',
   },
-  categoriesContent: {
-    paddingHorizontal: Spacing.md,
+  categoryTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8E8E93',
   },
-  menuList: {
-    padding: Spacing.md,
+  categoryTabTextActive: {
+    color: '#FFF',
+  },
+  tabIndicator: {
+    display: 'none', // Removed invalid line-style indicator
+  },
+  listPadding: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 100,
   },
-
-  // DEFAULT Styles (List View)
-  menuCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
-    position: 'relative',
-    overflow: 'hidden',
-    ...Shadows.small,
+  // Cards
+  listCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 12,
+    ...Shadows.medium,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
-  menuImage: {
+  gridCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 10,
+    flex: 1,
+    minHeight: 240,
+    ...Shadows.medium,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  listImageContainer: {
+    width: 110,
+    height: 110,
+    borderRadius: 18,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#F5F5F7',
+  },
+  gridImageContainer: {
     width: '100%',
-    height: 240,
-    backgroundColor: Colors.white,
+    aspectRatio: 1,
+    borderRadius: 18,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#F5F5F7',
+    marginBottom: 12,
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
     resizeMode: 'cover',
   },
-  menuInfo: {
-    padding: Spacing.lg,
+  favoriteBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.4)', // Glassmorphism dark
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  menuName: {
-    fontSize: FontSizes.xl,
-    fontWeight: '600',
-    color: Colors.text,
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  menuDescription: {
-    fontSize: FontSizes.sm,
-    color: '#666',
-    marginBottom: Spacing.md,
-    lineHeight: 20,
-    fontWeight: '400',
-  },
-  reviewCountContainer: {
+  ratingBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 4,
+    ...Shadows.small,
   },
-  reviewCountText: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginLeft: 6,
-    letterSpacing: 0.2,
+  ratingText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1A1A1A',
   },
-  menuFooter: {
+  cardInfo: {
+    flex: 1,
+    paddingLeft: 16,
+    paddingVertical: 4,
+    justifyContent: 'space-between',
+  },
+  productName: {
+    fontSize: 17, // Larger title
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 4,
+    letterSpacing: -0.5,
+  },
+  productDescription: {
+    fontSize: 13,
+    color: '#8E8E93',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
   },
-  menuPrice: {
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
-    color: Colors.text,
-    letterSpacing: 0,
-  },
-  preparationTime: {
-    fontSize: 10,
-    color: '#999',
-    marginTop: 2,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+  productPrice: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1A1A1A',
   },
   addButton: {
-    borderWidth: 1,
-    borderColor: '#000',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: 'transparent',
+    backgroundColor: '#1A1A1A',
+    width: 40,
+    height: 40,
+    borderRadius: 20, // Perfectly rounded
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.medium,
   },
-  addButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#000',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: BorderRadius.round,
-    padding: Spacing.sm,
-    zIndex: 1,
-  },
-  emptyContainer: {
+  centerLoading: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.xl,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 100,
   },
   emptyTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.sm,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#999',
+    marginTop: 16,
   },
-  emptyText: {
-    fontSize: FontSizes.md,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-
-  // GRID Styles (Compact)
-  gridCardContainer: {
-    flex: 1,
-    marginBottom: Spacing.sm,
-  },
-  menuCardGrid: {
-    marginBottom: 0,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.white,
-    minHeight: 170, // Dikey uzunluğu kısalttık (Reduced height)
-  },
-  menuImageGrid: {
-    width: '100%',
-    height: 140, // Slightly taller for better proportions
-    backgroundColor: Colors.white,
-    resizeMode: 'cover',
-  },
-  menuInfoGrid: {
-    padding: 8, // Less padding
-  },
-  menuNameGrid: {
-    fontSize: 13, // Smaller font
-    lineHeight: 18,
-    marginBottom: 4,
-  },
-  menuPriceGrid: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  addButtonGrid: {
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    borderRadius: 8,
-    width: 32, // Smaller button
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.primary, // Grid'de renkli kalsın (Keep primary color in grid)
-    borderWidth: 0, // Çerçeveyi kaldır (Remove border in grid)
-  }
 });
 
 export default MenuScreen;

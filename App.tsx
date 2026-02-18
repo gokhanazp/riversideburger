@@ -40,8 +40,8 @@ const STRIPE_PUBLISHABLE_KEY =
 // Ana uygulama componenti (Main application component)
 export default function App() {
   const { initialize, isLoading, user } = useAuthStore();
-  const notificationListener = useRef<any>();
-  const responseListener = useRef<any>();
+  const notificationListener = useRef<any>(null);
+  const responseListener = useRef<any>(null);
 
   // Uygulama başladığında auth durumunu kontrol et ve admin ayarlarını yükle
   // (Check auth state on app start and load admin settings)

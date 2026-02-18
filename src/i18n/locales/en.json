@@ -110,9 +110,12 @@
     "qualityGuaranteeBadge": "✓ 100% Quality",
     "fiveStarSatisfaction": "5 Star Satisfaction",
     "fiveStarSatisfactionDesc": "Thousands of happy customer reviews",
-    "fiveStarSatisfactionBadge": "⭐ 4.9/5 Rating"
+    "fiveStarSatisfactionBadge": "⭐ 4.9/5 Rating",
+    "explore": "EXPLORE",
+    "delicacies": "Gourmet Delights"
   },
   "menu": {
+    "title": "Menu",
     "allCategories": "All Categories",
     "noItems": "No items found in this category",
     "addToCart": "Add to Cart",
