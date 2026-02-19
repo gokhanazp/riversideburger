@@ -13,6 +13,7 @@ import MenuScreen from '../screens/MenuScreen';
 import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
+import FavoritesScreen from '../screens/FavoritesScreen';
 
 // Auth ekranları (Auth screens)
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -502,6 +503,13 @@ const AppNavigator = () => {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="Favorites"
+          component={FavoritesScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
 
         {/* Admin Ekranları (Admin Screens) */}
         <Stack.Screen
@@ -577,7 +585,7 @@ const AppNavigator = () => {
           name="AdminUsers"
           component={AdminUsers}
           options={{
-            title: '👥 Kullanıcı Yönetimi',
+            title: t('admin.users.title'),
             headerShown: true,
             headerStyle: {
               backgroundColor: Colors.primary,
@@ -658,7 +666,7 @@ const AppNavigator = () => {
           name="AdminReviews"
           component={AdminReviews}
           options={{
-            title: '⭐ Yorum Yönetimi',
+            title: t('admin.reviews.title'),
             headerShown: false, // Kendi header'ını kullanıyor
           }}
         />
@@ -666,7 +674,7 @@ const AppNavigator = () => {
           name="AdminLanguageSettings"
           component={AdminLanguageSettings}
           options={{
-            title: '🌍 Dil ve Para Birimi',
+            title: t('admin.languageSettings.title'),
             headerShown: false, // Kendi header'ını kullanıyor
           }}
         />

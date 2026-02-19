@@ -252,7 +252,7 @@ const AdminCategories = () => {
           <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {i18n.language === 'tr' ? 'Menü Kategorileri' : 'Menu Categories'}
+          {t('admin.categories.title')}
         </Text>
         <TouchableOpacity onPress={handleAddCategory} style={styles.addButton}>
           <Ionicons name="add" size={24} color="#FFF" />

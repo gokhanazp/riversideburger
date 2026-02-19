@@ -294,6 +294,7 @@
     "profileInfoSubtitle": "Edit your personal information",
     "myAddresses": "My Addresses",
     "myAddressesSubtitle": "Manage your delivery addresses",
+    "favoritesTabSubtitle": "Saved items list",
     "paymentMethods": "Payment Methods",
     "paymentMethodsSubtitle": "Your saved cards",
     "ordersSection": "Orders",

@@ -7,18 +7,23 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Dimensions,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
 import Toast from 'react-native-toast-message';
 import { formatPrice } from '../../services/currencyService';
 
-// Admin Dashboard Ekranı (Admin Dashboard Screen)
+const { width } = Dimensions.get('window');
+
+// Admin Dashboard Ekranı (Admin Dashboard Screen) - Elite Redesign
 const AdminDashboard = ({ navigation }: any) => {
   const { t, i18n } = useTranslation();
-  // State'ler (States)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
@@ -28,69 +33,32 @@ const AdminDashboard = ({ navigation }: any) => {
     totalUsers: 0,
     totalProducts: 0,
     todayOrders: 0,
-    pendingReviews: 0, // Bekleyen yorumlar (Pending reviews)
+    pendingReviews: 0,
   });
 
-  // Sayfa başlığını ayarla (Set page title)
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: t('admin.screenTitles.adminDashboard'),
+      headerShown: false,
     });
-  }, [navigation, t, i18n.language]);
+  }, [navigation]);
 
-  // Sayfa yüklendiğinde istatistikleri getir (Fetch stats on page load)
   useEffect(() => {
     fetchStats();
   }, []);
 
-  // İstatistikleri getir (Fetch statistics)
   const fetchStats = async () => {
     try {
       setLoading(true);
-
-      // Toplam sipariş sayısı (Total orders count)
-      const { count: totalOrders } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true });
-
-      // Bekleyen sipariş sayısı (Pending orders count)
-      const { count: pendingOrders } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      // Toplam gelir (Total revenue)
-      const { data: revenueData } = await supabase
-        .from('orders')
-        .select('total_amount')
-        .eq('status', 'delivered');
-
+      const { count: totalOrders } = await supabase.from('orders').select('*', { count: 'exact', head: true });
+      const { count: pendingOrders } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      const { data: revenueData } = await supabase.from('orders').select('total_amount').eq('status', 'delivered');
       const totalRevenue = revenueData?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
-
-      // Toplam kullanıcı sayısı (Total users count)
-      const { count: totalUsers } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true });
-
-      // Toplam ürün sayısı (Total products count)
-      const { count: totalProducts } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true });
-
-      // Bugünkü siparişler (Today's orders)
+      const { count: totalUsers } = await supabase.from('users').select('*', { count: 'exact', head: true });
+      const { count: totalProducts } = await supabase.from('products').select('*', { count: 'exact', head: true });
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const { count: todayOrders } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', today.toISOString());
-
-      // Bekleyen yorumlar (Pending reviews)
-      const { count: pendingReviews } = await supabase
-        .from('reviews')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_approved', false)
-        .eq('is_rejected', false);
+      const { count: todayOrders } = await supabase.from('orders').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString());
+      const { count: pendingReviews } = await supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('is_approved', false).eq('is_rejected', false);
 
       setStats({
         totalOrders: totalOrders || 0,
@@ -103,378 +71,350 @@ const AdminDashboard = ({ navigation }: any) => {
       });
     } catch (error: any) {
       console.error('Error fetching stats:', error);
-      Toast.show({
-        type: 'error',
-        text1: t('admin.error'),
-        text2: t('admin.errorLoadingStats'),
-      });
+      Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.errorLoadingStats') });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Yenileme (Refresh)
   const onRefresh = () => {
     setRefreshing(true);
     fetchStats();
   };
 
-  // İstatistik kartı componenti (Stat card component)
-  const StatCard = ({
-    iconName,
-    title,
-    value,
-    color,
-    onPress,
-  }: {
-    iconName: keyof typeof Ionicons.glyphMap;
-    title: string;
-    value: string | number;
-    color: string;
-    onPress?: () => void;
-  }) => (
-    <TouchableOpacity
-      style={[styles.statCard, { borderLeftColor: color }]}
-      onPress={onPress}
-      activeOpacity={onPress ? 0.7 : 1}
-      disabled={!onPress}
+  // Modern Stat Card - Bento Style
+  const StatCard = ({ icon, title, value, color, onPress, index, wide = false }: any) => (
+    <Animated.View 
+        entering={FadeInDown.delay(index * 100).springify()}
+        style={[styles.statBox, wide ? styles.statBoxWide : styles.statBoxSmall]}
     >
-      <View style={[styles.statIconContainer, { backgroundColor: color + '20' }]}>
-        <Ionicons name={iconName} size={28} color={color} />
-      </View>
-      <View style={styles.statContent}>
-        <Text style={styles.statValue}>{value}</Text>
-        <Text style={styles.statTitle}>{title}</Text>
-      </View>
-      {onPress && <Ionicons name="chevron-forward" size={20} color="#999" />}
-    </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.statBoxTouch} 
+        onPress={onPress} 
+        activeOpacity={0.8}
+        disabled={!onPress}
+      >
+        <View style={[styles.statIconCircle, { backgroundColor: color + '15' }]}>
+            <Ionicons name={icon} size={22} color={color} />
+        </View>
+        <View style={styles.statTextGroup}>
+            <Text style={styles.statCardValue} numberOfLines={1}>{value}</Text>
+            <Text style={styles.statCardTitle}>{title}</Text>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 
-  // Menü kartı componenti (Menu card component)
-  const MenuCard = ({
-    iconName,
-    title,
-    subtitle,
-    color,
-    onPress,
-  }: {
-    iconName: keyof typeof Ionicons.glyphMap;
-    title: string;
-    subtitle: string;
-    color: string;
-    onPress: () => void;
-  }) => (
-    <TouchableOpacity style={styles.menuCard} onPress={onPress} activeOpacity={0.7}>
-      <View style={[styles.menuIconContainer, { backgroundColor: color + '20' }]}>
-        <Ionicons name={iconName} size={32} color={color} />
-      </View>
-      <Text style={styles.menuTitle}>{title}</Text>
-      <Text style={styles.menuSubtitle}>{subtitle}</Text>
-    </TouchableOpacity>
+  // Modern Action Card
+  const ActionCard = ({ icon, title, color, onPress, index }: any) => (
+    <Animated.View entering={FadeInUp.delay(500 + index * 50).springify()} style={styles.actionItem}>
+        <TouchableOpacity style={styles.actionBtn} onPress={onPress}>
+            <LinearGradient
+                colors={['#fff', '#f9f9f9']}
+                style={styles.actionGradient}
+            >
+                <View style={[styles.actionIconBox, { backgroundColor: color + '10' }]}>
+                    <Ionicons name={icon} size={24} color={color} />
+                </View>
+                <Text style={styles.actionTitle} numberOfLines={2}>{title}</Text>
+            </LinearGradient>
+        </TouchableOpacity>
+    </Animated.View>
   );
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.center}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>{t('admin.loading')}</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
-    >
-      {/* Başlık (Header) */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>{t('admin.dashboardTitle')}</Text>
-          <Text style={styles.headerSubtitle}>{t('admin.dashboardSubtitle')}</Text>
-        </View>
-        <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
-          <Ionicons name="refresh" size={24} color={Colors.primary} />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.white} />}
+      >
+        {/* Elite Header */}
+        <LinearGradient
+            colors={['#1a1a1a', '#333333']}
+            style={styles.header}
+        >
+            <View style={styles.headerTop}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBack}>
+                    <Ionicons name="arrow-back" size={24} color={Colors.white} />
+                </TouchableOpacity>
+                <View style={styles.headerTitleUnit}>
+                    <Text style={styles.welcomeText}>Welcome Master,</Text>
+                    <Text style={styles.dashboardTitle}>{t('admin.dashboardTitle')}</Text>
+                </View>
+                <TouchableOpacity style={styles.avatarCircle} onPress={onRefresh}>
+                    <Ionicons name="refresh" size={20} color={Colors.white} />
+                </TouchableOpacity>
+            </View>
 
-      {/* İstatistikler (Statistics) */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('admin.statisticsTitle')}</Text>
-        <View style={styles.statsGrid}>
-          <StatCard
-            iconName="receipt"
-            title={t('admin.totalOrders')}
-            value={stats.totalOrders}
-            color="#E63946"
-            onPress={() => navigation.navigate('AdminOrders')}
-          />
-          <StatCard
-            iconName="time"
-            title={t('admin.pendingOrders')}
-            value={stats.pendingOrders}
-            color="#FF6B35"
-            onPress={() => navigation.navigate('AdminOrders', { filter: 'pending' })}
-          />
-          <StatCard
-            iconName="cash"
-            title={t('admin.totalRevenue')}
-            value={formatPrice(stats.totalRevenue)}
-            color="#28A745"
-          />
-          <StatCard
-            iconName="calendar"
-            title={t('admin.todayOrders')}
-            value={stats.todayOrders}
-            color="#007BFF"
-          />
-          <StatCard
-            iconName="people"
-            title={t('admin.totalUsers')}
-            value={stats.totalUsers}
-            color="#6F42C1"
-            onPress={() => navigation.navigate('AdminUsers')}
-          />
-          <StatCard
-            iconName="fast-food"
-            title={t('admin.totalProducts')}
-            value={stats.totalProducts}
-            color="#FD7E14"
-            onPress={() => navigation.navigate('AdminProducts')}
-          />
-          <StatCard
-            iconName="star"
-            title={t('admin.pendingReviews')}
-            value={stats.pendingReviews}
-            color="#FFD700"
-            onPress={() => navigation.navigate('AdminReviews')}
-          />
-        </View>
-      </View>
+            {/* Top Metrics Row */}
+            <View style={styles.revenueRow}>
+                <View>
+                    <Text style={styles.revLabel}>{t('admin.totalRevenue')}</Text>
+                    <Text style={styles.revValue}>{formatPrice(stats.totalRevenue)}</Text>
+                </View>
+                <View style={styles.revBadge}>
+                    <Ionicons name="trending-up" size={14} color={Colors.success} />
+                    <Text style={styles.revBadgeText}>+12%</Text>
+                </View>
+            </View>
+        </LinearGradient>
 
-      {/* Hızlı Erişim Menüsü (Quick Access Menu) */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('admin.quickActions')}</Text>
-        <View style={styles.menuGrid}>
-          <MenuCard
-            iconName="receipt-outline"
-            title={t('admin.manageOrders')}
-            subtitle={t('admin.manageOrdersSubtitle')}
-            color="#E63946"
-            onPress={() => navigation.navigate('AdminOrders')}
-          />
-          <MenuCard
-            iconName="fast-food-outline"
-            title={t('admin.manageProducts')}
-            subtitle={t('admin.manageProductsSubtitle')}
-            color="#FF6B35"
-            onPress={() => navigation.navigate('AdminProducts')}
-          />
-          <MenuCard
-            iconName="albums-outline"
-            title={t('admin.manageCategories')}
-            subtitle={t('admin.manageCategoriesSubtitle')}
-            color="#28A745"
-            onPress={() => navigation.navigate('AdminCategories')}
-          />
-          <MenuCard
-            iconName="restaurant-outline"
-            title={t('admin.extraIngredients')}
-            subtitle={t('admin.extraIngredientsSubtitle')}
-            color="#9C27B0"
-            onPress={() => navigation.navigate('AdminProductOptions')}
-          />
-          <MenuCard
-            iconName="people-outline"
-            title={t('admin.manageUsers')}
-            subtitle={t('admin.manageUsersSubtitle')}
-            color="#6F42C1"
-            onPress={() => navigation.navigate('AdminUsers')}
-          />
-          <MenuCard
-            iconName="images-outline"
-            title={t('admin.bannersMenu')}
-            subtitle={t('admin.bannersSubtitle')}
-            color="#007BFF"
-            onPress={() => navigation.navigate('AdminBanners')}
-          />
-          <MenuCard
-            iconName="notifications-outline"
-            title={t('admin.notificationsMenu')}
-            subtitle={t('admin.notificationsSubtitle')}
-            color="#FD7E14"
-            onPress={() => navigation.navigate('AdminNotifications')}
-          />
-          <MenuCard
-            iconName="star-outline"
-            title={t('admin.manageReviews')}
-            subtitle={t('admin.manageReviewsSubtitle')}
-            color="#FFD700"
-            onPress={() => navigation.navigate('AdminReviews')}
-          />
-          <MenuCard
-            iconName="language-outline"
-            title={t('admin.languageSettingsMenu')}
-            subtitle={t('admin.languageSettingsSubtitle')}
-            color="#17A2B8"
-            onPress={() => navigation.navigate('AdminLanguageSettings')}
-          />
-          <MenuCard
-            iconName="call-outline"
-            title={t('admin.contactSettingsMenu')}
-            subtitle={t('admin.contactSettingsSubtitle')}
-            color="#FF6B35"
-            onPress={() => navigation.navigate('AdminContactSettings')}
-          />
-          <MenuCard
-            iconName="settings-outline"
-            title={t('admin.settingsMenu')}
-            subtitle={t('admin.settingsSubtitle')}
-            color="#28A745"
-            onPress={() => navigation.navigate('AdminSettings')}
-          />
-          <MenuCard
-            iconName="stats-chart-outline"
-            title="Raporlar"
-            subtitle="İstatistikler"
-            color="#17A2B8"
-            onPress={() => {
-              Toast.show({
-                type: 'info',
-                text1: '📊 Raporlar',
-                text2: 'Yakında eklenecek!',
-              });
-            }}
-          />
+        <View style={styles.content}>
+            {/* Highlights - Bento Grid */}
+            <Text style={styles.sectionHeader}>{t('admin.statisticsTitle')}</Text>
+            <View style={styles.bentoGrid}>
+                <StatCard
+                    index={1}
+                    icon="receipt"
+                    title={t('admin.totalOrders')}
+                    value={stats.totalOrders}
+                    color="#E63946"
+                    wide
+                    onPress={() => navigation.navigate('AdminOrders')}
+                />
+                <StatCard
+                    index={2}
+                    icon="time"
+                    title={t('admin.pendingOrders')}
+                    value={stats.pendingOrders}
+                    color="#FF6B35"
+                    onPress={() => navigation.navigate('AdminOrders', { filter: 'pending' })}
+                />
+                <StatCard
+                    index={3}
+                    icon="star"
+                    title={t('admin.pendingReviews')}
+                    value={stats.pendingReviews}
+                    color="#FFD700"
+                    onPress={() => navigation.navigate('AdminReviews')}
+                />
+                <StatCard
+                    index={4}
+                    icon="calendar"
+                    title={t('admin.todayOrders')}
+                    value={stats.todayOrders}
+                    color="#007BFF"
+                />
+                <StatCard
+                    index={5}
+                    icon="people"
+                    title={t('admin.totalUsers')}
+                    value={stats.totalUsers}
+                    color="#6F42C1"
+                    onPress={() => navigation.navigate('AdminUsers')}
+                />
+            </View>
+
+            {/* Quick Actions */}
+            <Text style={styles.sectionHeader}>{t('admin.quickActions')}</Text>
+            <View style={styles.actionsGrid}>
+                <ActionCard index={0} icon="receipt-outline" title={t('admin.orders.title')} color="#E63946" onPress={() => navigation.navigate('AdminOrders')} />
+                <ActionCard index={1} icon="fast-food-outline" title={t('admin.products.title')} color="#FF6B35" onPress={() => navigation.navigate('AdminProducts')} />
+                <ActionCard index={2} icon="albums-outline" title={t('admin.categories.title')} color="#28A745" onPress={() => navigation.navigate('AdminCategories')} />
+                <ActionCard index={3} icon="restaurant-outline" title={t('admin.extraIngredients')} color="#9C27B0" onPress={() => navigation.navigate('AdminProductOptions')} />
+                <ActionCard index={4} icon="images-outline" title={t('admin.banners.title')} color="#007BFF" onPress={() => navigation.navigate('AdminBanners')} />
+                <ActionCard index={5} icon="notifications-outline" title={t('admin.notifications.title')} color="#FD7E14" onPress={() => navigation.navigate('AdminNotifications')} />
+                <ActionCard index={6} icon="star-outline" title={t('admin.reviews.title')} color="#FFD700" onPress={() => navigation.navigate('AdminReviews')} />
+                <ActionCard index={7} icon="call-outline" title={t('admin.contactSettingsMenu')} color="#17A2B8" onPress={() => navigation.navigate('AdminContactSettings')} />
+                <ActionCard index={8} icon="settings-outline" title={t('admin.settingsMenu')} color="#6c757d" onPress={() => navigation.navigate('AdminSettings')} />
+                <ActionCard index={9} icon="people-outline" title={t('admin.users.title')} color="#6F42C1" onPress={() => navigation.navigate('AdminUsers')} />
+            </View>
         </View>
-      </View>
-    </ScrollView>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F8F9FA',
   },
-  scrollContent: {
-    padding: Spacing.md,
-  },
-  loadingContainer: {
+  center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-  },
-  loadingText: {
-    marginTop: Spacing.md,
-    fontSize: FontSizes.md,
-    color: Colors.text,
+    backgroundColor: '#1a1a1a',
   },
   header: {
+    paddingTop: 60,
+    paddingBottom: 40,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    ...Shadows.medium,
+  },
+  headerTop: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
   },
-  headerTitle: {
-    fontSize: FontSizes.xxl,
-    fontWeight: 'bold',
-    color: Colors.primary,
-  },
-  headerSubtitle: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
-  refreshButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.white,
+  headerBack: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.small,
   },
-  section: {
-    marginBottom: Spacing.xl,
-  },
-  sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: Spacing.md,
-  },
-  statsGrid: {
-    gap: Spacing.md,
-  },
-  statCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    borderLeftWidth: 4,
-    ...Shadows.small,
-  },
-  statIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  statContent: {
+  headerTitleUnit: {
     flex: 1,
+    marginHorizontal: 16,
   },
-  statValue: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold',
-    color: '#333',
+  welcomeText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  statTitle: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
+  dashboardTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: Colors.white,
     marginTop: 2,
   },
-  menuGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  menuCard: {
-    width: '48%',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    ...Shadows.small,
-  },
-  menuIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  avatarCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
   },
-  menuTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+  revenueRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginTop: 30,
   },
-  menuSubtitle: {
-    fontSize: FontSizes.sm,
+  revLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '500',
+  },
+  revValue: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: Colors.white,
+    marginTop: 4,
+  },
+  revBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(40, 167, 69, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+    marginBottom: 8,
+  },
+  revBadgeText: {
+    color: Colors.success,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  content: {
+    paddingHorizontal: 20,
+    marginTop: -20,
+  },
+  sectionHeader: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginTop: 32,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  bentoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statBox: {
+    backgroundColor: Colors.white,
+    borderRadius: 24,
+    ...Shadows.small,
+    overflow: 'hidden',
+  },
+  statBoxWide: {
+    width: '100%',
+    padding: 20,
+  },
+  statBoxSmall: {
+    width: (width - 52) / 2,
+    padding: 16,
+  },
+  statBoxTouch: {
+    width: '100%',
+  },
+  statIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statTextGroup: {},
+  statCardValue: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: Colors.text,
+  },
+  statCardTitle: {
+    fontSize: 12,
     color: Colors.textSecondary,
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  actionItem: {
+    width: (width - 60) / 3,
+  },
+  actionBtn: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    ...Shadows.small,
+  },
+  actionGradient: {
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  actionIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  actionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#444',
     textAlign: 'center',
   },
 });
 
 export default AdminDashboard;
+
 

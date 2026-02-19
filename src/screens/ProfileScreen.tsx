@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, FlatList, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, FlatList, Linking, StatusBar, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown, FadeInUp, FadeInLeft, ZoomIn } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { useCartStore } from '../store/cartStore';
@@ -12,24 +14,22 @@ import { useTranslation } from 'react-i18next';
 import { formatPrice } from '../services/currencyService';
 import { getContactInfo, getPhoneLink, getEmailLink, ContactInfo } from '../services/contactService';
 
-// Profil ekranı (Profile screen)
+const { width } = Dimensions.get('window');
+
+// Profil ekranı (Profile screen) - Elite Redesign
 const ProfileScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'profile' | 'favorites'>('profile');
-  const { favorites, toggleFavorite } = useFavoritesStore();
-  const addItem = useCartStore((state) => state.addItem);
+  const { favorites } = useFavoritesStore();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [userPoints, setUserPoints] = useState<number>(0);
   const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
 
-  // Kullanıcı puanlarını yükle (Load user points)
   useEffect(() => {
     if (isAuthenticated && user) {
       loadUserPoints();
     }
   }, [isAuthenticated, user]);
 
-  // İletişim bilgilerini yükle (Load contact information)
   useEffect(() => {
     loadContactInfo();
   }, []);
@@ -53,7 +53,6 @@ const ProfileScreen = ({ navigation }: any) => {
     }
   };
 
-  // Çıkış yap (Logout)
   const handleLogout = async () => {
     try {
       await logout();
@@ -71,169 +70,120 @@ const ProfileScreen = ({ navigation }: any) => {
     }
   };
 
-  // Menü öğesi componenti (Menu item component)
+  // Modern Menü öğesi (Modern Menu Item)
   const MenuItem = ({
     iconName,
     title,
     subtitle,
-    onPress
+    onPress,
+    index
   }: {
     iconName: keyof typeof Ionicons.glyphMap;
     title: string;
     subtitle?: string;
     onPress?: () => void;
+    index: number;
   }) => (
-    <TouchableOpacity
-      style={styles.menuItem}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.menuItemLeft}>
-        <View style={styles.iconContainer}>
-          <Ionicons name={iconName} size={24} color={Colors.primary} />
-        </View>
-        <View>
-          <Text style={styles.menuTitle}>{title}</Text>
-          {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
-        </View>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
-    </TouchableOpacity>
-  );
-
-  // Favori ürün kartı (Favorite item card)
-  const FavoriteCard = ({ item }: { item: MenuItemType }) => (
-    <TouchableOpacity
-      style={styles.favoriteCard}
-      onPress={() => navigation.navigate('ProductDetail', { item })}
-      activeOpacity={0.9}
-    >
-      <Image source={{ uri: item.image }} style={styles.favoriteImage} />
-
-      {/* Favori butonu (Favorite button) */}
+    <Animated.View entering={FadeInLeft.delay(100 * index).springify()}>
       <TouchableOpacity
-        style={styles.favoriteBadge}
-        onPress={(e) => {
-          e.stopPropagation();
-          toggleFavorite(item);
-          Toast.show({
-            type: 'info',
-            text1: `💔 ${t('profile.removedFromFavorites')}`,
-            text2: item.name,
-            position: 'bottom',
-            visibilityTime: 1500,
-            bottomOffset: 100,
-          });
-        }}
+        style={styles.modernMenuItem}
+        onPress={onPress}
         activeOpacity={0.7}
       >
-        <Ionicons name="heart" size={20} color={Colors.primary} />
+        <View style={styles.menuItemLeft}>
+          <View style={[styles.modernIconContainer, { backgroundColor: Colors.surface }]}>
+            <Ionicons name={iconName} size={22} color={Colors.primary} />
+          </View>
+          <View>
+            <Text style={styles.modernMenuTitle}>{title}</Text>
+            {subtitle && <Text style={styles.modernMenuSubtitle}>{subtitle}</Text>}
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
       </TouchableOpacity>
-
-      <View style={styles.favoriteInfo}>
-        <Text style={styles.favoriteName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.favoritePrice}>{formatPrice(item.price)}</Text>
-        <TouchableOpacity
-          style={styles.favoriteAddButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            addItem(item);
-            Toast.show({
-              type: 'success',
-              text1: `🍔 ${t('profile.addedToCart')}`,
-              text2: item.name,
-              position: 'bottom',
-              visibilityTime: 1500,
-              bottomOffset: 100,
-            });
-          }}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="add" size={20} color={Colors.white} />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
+    </Animated.View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Tab seçici (Tab selector) */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'profile' && styles.tabActive]}
-          onPress={() => setActiveTab('profile')}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name="person"
-            size={20}
-            color={activeTab === 'profile' ? Colors.primary : Colors.textSecondary}
-          />
-          <Text style={[styles.tabText, activeTab === 'profile' && styles.tabTextActive]}>
-            {t('profile.tab')}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'favorites' && styles.tabActive]}
-          onPress={() => setActiveTab('favorites')}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name="heart"
-            size={20}
-            color={activeTab === 'favorites' ? Colors.primary : Colors.textSecondary}
-          />
-          <Text style={[styles.tabText, activeTab === 'favorites' && styles.tabTextActive]}>
-            {t('profile.favoritesTab', { count: favorites.length })}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {activeTab === 'profile' ? (
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Profil başlığı (Profile header) */}
-          <View style={styles.header}>
-            <View style={styles.avatarContainer}>
-              <Ionicons name="person" size={48} color={Colors.white} />
-            </View>
-            {isAuthenticated && user ? (
-              <>
-                <Text style={styles.userName}>{user.full_name || t('common.user')}</Text>
-                <Text style={styles.userEmail}>{user.email}</Text>
-
-                {/* Puan Kartı (Points Card) */}
-                <View style={styles.pointsCard}>
-                  <View style={styles.pointsIconContainer}>
-                    <Ionicons name="star" size={24} color="#FFD700" />
-                  </View>
-                  <View style={styles.pointsInfo}>
-                    <Text style={styles.pointsLabel}>{t('profile.totalPoints')}</Text>
-                    <Text style={styles.pointsValue}>{t('profile.points', { points: userPoints.toFixed(2) })}</Text>
-                    <Text style={styles.pointsSubtext}>{t('profile.pointsDiscount')}</Text>
-                  </View>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Spacing.xl }}>
+        {/* Elite Profile Header */}
+        <View style={styles.headerContainer}>
+          <LinearGradient
+            colors={['#1a1a1a', '#333333']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerGradient}
+          >
+            <View style={styles.headerContent}>
+              <Animated.View entering={ZoomIn.duration(600)} style={styles.avatarBorder}>
+                <View style={styles.avatarBg}>
+                  <Ionicons name="person" size={40} color={Colors.textSecondary} />
                 </View>
-              </>
-            ) : (
-              <>
-                <Text style={styles.userName}>{t('profile.guestUser')}</Text>
-                <Text style={styles.userEmail}>{t('profile.guestMessage')}</Text>
-                <TouchableOpacity
-                  style={styles.loginButton}
-                  onPress={() => navigation.navigate('Login')}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.loginButtonText}>{t('profile.loginRegister')}</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
+                {isAuthenticated && (
+                    <View style={styles.onlineBadge} />
+                )}
+              </Animated.View>
+              
+              <View style={styles.userTextContainer}>
+                {isAuthenticated && user ? (
+                  <>
+                    <Animated.Text entering={FadeInDown.delay(200)} style={styles.eliteUserName}>
+                      {user.full_name || t('common.user')}
+                    </Animated.Text>
+                    <Animated.Text entering={FadeInDown.delay(300)} style={styles.eliteUserEmail}>
+                      {user.email}
+                    </Animated.Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.eliteUserName}>{t('profile.guestUser')}</Text>
+                    <Text style={styles.eliteUserEmail}>{t('profile.guestMessage')}</Text>
+                    <TouchableOpacity
+                      style={styles.eliteLoginBtn}
+                      onPress={() => navigation.navigate('Login')}
+                    >
+                      <Text style={styles.eliteLoginBtnText}>{t('profile.loginRegister')}</Text>
+                      <Ionicons name="arrow-forward" size={16} color={Colors.white} />
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </View>
+          </LinearGradient>
 
-          {/* Admin Panel (Admin Panel) - Sadece admin kullanıcılar için */}
+          {/* Loyalty Card - Overlapping */}
+          {isAuthenticated && user && (
+            <Animated.View entering={FadeInUp.delay(400)} style={styles.loyaltyPosition}>
+              <LinearGradient
+                colors={['#E63946', '#FF6B35']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.loyaltyCard}
+              >
+                <View style={styles.loyaltyInfo}>
+                  <Text style={styles.loyaltyLabel}>{t('profile.totalPoints')}</Text>
+                  <Text style={styles.loyaltyValue}>{userPoints.toFixed(0)} <Text style={styles.loyaltyUnit}>PTS</Text></Text>
+                  <Text style={styles.loyaltySubtext}>{t('profile.pointsDiscount')}</Text>
+                </View>
+                <View style={styles.loyaltyIconBox}>
+                  <Ionicons name="star" size={32} color="rgba(255,255,255,0.4)" />
+                </View>
+              </LinearGradient>
+            </Animated.View>
+          )}
+        </View>
+
+        <View style={[styles.mainContent, { marginTop: isAuthenticated ? 70 : 0 }]}>
+          {/* Admin Panel */}
           {isAuthenticated && user?.role === 'admin' && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('profile.adminPanel')}</Text>
-              <View style={styles.card}>
+            <View style={styles.modernSection}>
+              <Text style={styles.modernSectionTitle}>{t('profile.adminPanel')}</Text>
+              <View style={styles.modernCard}>
                 <MenuItem
+                  index={1}
                   iconName="shield-checkmark"
                   title={t('profile.adminDashboard')}
                   subtitle={t('profile.adminDashboardSubtitle')}
@@ -243,218 +193,131 @@ const ProfileScreen = ({ navigation }: any) => {
             </View>
           )}
 
-          {/* Hesap bölümü (Account section) */}
+          {/* Account Settings */}
           {isAuthenticated && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('profile.accountSection')}</Text>
-              <View style={styles.card}>
+            <View style={styles.modernSection}>
+              <Text style={styles.modernSectionTitle}>{t('profile.accountSection')}</Text>
+              <View style={styles.modernCard}>
                 <MenuItem
+                  index={2}
                   iconName="person-outline"
                   title={t('profile.profileInfo')}
                   subtitle={t('profile.profileInfoSubtitle')}
                   onPress={() => navigation.navigate('ProfileEdit')}
                 />
                 <MenuItem
+                  index={3}
                   iconName="location-outline"
                   title={t('profile.myAddresses')}
                   subtitle={t('profile.myAddressesSubtitle')}
                   onPress={() => navigation.navigate('AddressList')}
                 />
                 <MenuItem
-                  iconName="card-outline"
-                  title={t('profile.paymentMethods')}
-                  subtitle={t('profile.paymentMethodsSubtitle')}
+                  index={4}
+                  iconName="heart-outline"
+                  title={t('favorites.title')}
+                  subtitle={`${favorites.length} ${t('profile.favoritesTabSubtitle') || 'items saved'}`}
+                  onPress={() => navigation.navigate('Favorites')}
                 />
               </View>
             </View>
           )}
 
-          {/* Siparişler bölümü (Orders section) */}
+          {/* Orders & History */}
           {isAuthenticated && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('profile.ordersSection')}</Text>
-              <View style={styles.card}>
-                <MenuItem
-                  iconName="receipt-outline"
-                  title={t('profile.orderHistory')}
-                  subtitle={t('profile.orderHistorySubtitle')}
-                  onPress={() => navigation.navigate('OrderHistory')}
-                />
-                <MenuItem
-                  iconName="star-outline"
-                  title={t('profile.pointsHistory')}
-                  subtitle={t('profile.pointsHistorySubtitle')}
-                  onPress={() => navigation.navigate('PointsHistory')}
-                />
-                <MenuItem
-                  iconName="chatbox-ellipses-outline"
-                  title={t('profile.restaurantReview')}
-                  subtitle={t('profile.restaurantReviewSubtitle')}
-                  onPress={() => navigation.navigate('RestaurantReview')}
-                />
+              <View style={styles.modernSection}>
+                <Text style={styles.modernSectionTitle}>{t('profile.ordersSection')}</Text>
+                <View style={styles.modernCard}>
+                  <MenuItem
+                    index={5}
+                    iconName="receipt-outline"
+                    title={t('profile.orderHistory')}
+                    subtitle={t('profile.orderHistorySubtitle')}
+                    onPress={() => navigation.navigate('OrderHistory')}
+                  />
+                  <MenuItem
+                      index={6}
+                      iconName="star-outline"
+                      title={t('profile.pointsHistory')}
+                      subtitle={t('profile.pointsHistorySubtitle')}
+                      onPress={() => navigation.navigate('PointsHistory')}
+                  />
+                  <MenuItem
+                      index={7}
+                      iconName="chatbox-ellipses-outline"
+                      title={t('profile.restaurantReview')}
+                      subtitle={t('profile.restaurantReviewSubtitle')}
+                      onPress={() => navigation.navigate('RestaurantReview')}
+                  />
+                </View>
               </View>
-            </View>
           )}
 
-          {/* Ayarlar bölümü (Settings section) */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('profile.settingsSection')}</Text>
-            <View style={styles.card}>
+          {/* Other Settings */}
+          <View style={styles.modernSection}>
+            <Text style={styles.modernSectionTitle}>{t('profile.settingsSection')}</Text>
+            <View style={styles.modernCard}>
               <MenuItem
+                index={8}
                 iconName="notifications-outline"
                 title={t('profile.notifications')}
                 subtitle={t('profile.notificationsSubtitle')}
                 onPress={() => navigation.navigate('Notifications')}
               />
               <MenuItem
+                index={9}
                 iconName="help-circle-outline"
                 title={t('profile.helpSupport')}
                 subtitle={t('profile.helpSupportSubtitle')}
                 onPress={() => navigation.navigate('HelpSupport')}
               />
               <MenuItem
+                index={10}
                 iconName="shield-outline"
                 title={t('profile.privacyPolicy')}
                 onPress={() => navigation.navigate('PrivacyPolicy')}
               />
-              <MenuItem
-                iconName="document-text-outline"
-                title={t('profile.termsOfService')}
-                onPress={() => navigation.navigate('PrivacyPolicy')}
-              />
             </View>
           </View>
 
-          {/* Çıkış butonu (Logout button) - Sadece giriş yapmışsa göster (Only show if authenticated) */}
+          {/* Logout */}
           {isAuthenticated && (
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogout}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="log-out-outline" size={20} color={Colors.primary} />
-              <Text style={styles.logoutText}>{t('profile.logout')}</Text>
-            </TouchableOpacity>
+            <Animated.View entering={FadeInDown.delay(1000)}>
+              <TouchableOpacity
+                style={styles.eliteLogoutBtn}
+                onPress={handleLogout}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="log-out-outline" size={20} color={Colors.primary} />
+                <Text style={styles.eliteLogoutText}>{t('profile.logout')}</Text>
+              </TouchableOpacity>
+            </Animated.View>
           )}
 
-          {/* Footer bölümü (Footer section) */}
-          <View style={styles.footer}>
-            {/* About Us */}
-            <View style={styles.footerSection}>
-              <Text style={styles.footerTitle}>{t('profile.aboutUs')}</Text>
-              <Text style={styles.footerText}>
-                {contactInfo?.footerAbout || t('profile.aboutUsText')}
-              </Text>
-              {/* Social Media */}
-              {contactInfo && (
-                <View style={styles.socialContainer}>
-                  {contactInfo.facebook && (
-                    <TouchableOpacity
-                      style={styles.socialButton}
-                      onPress={() => Linking.openURL(contactInfo.facebook)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="logo-facebook" size={24} color={Colors.white} />
-                    </TouchableOpacity>
+          {/* Footer */}
+          <View style={styles.eliteFooter}>
+              <Text style={styles.footerBrand}>Riverside Burgers</Text>
+              <Text style={styles.footerTagline}>{contactInfo?.footerAbout || t('profile.aboutUsText')}</Text>
+              
+              <View style={styles.footerSocials}>
+                  {contactInfo?.facebook && (
+                      <TouchableOpacity onPress={() => Linking.openURL(contactInfo.facebook)} style={styles.socialCircle}>
+                          <Ionicons name="logo-facebook" size={20} color={Colors.white} />
+                      </TouchableOpacity>
                   )}
-                  {contactInfo.instagram && (
-                    <TouchableOpacity
-                      style={styles.socialButton}
-                      onPress={() => Linking.openURL(contactInfo.instagram)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="logo-instagram" size={24} color={Colors.white} />
-                    </TouchableOpacity>
+                  {contactInfo?.instagram && (
+                      <TouchableOpacity onPress={() => Linking.openURL(contactInfo.instagram)} style={styles.socialCircle}>
+                          <Ionicons name="logo-instagram" size={20} color={Colors.white} />
+                      </TouchableOpacity>
                   )}
-                </View>
-              )}
-            </View>
-
-            {/* Locations - Yan yana (Side by side) */}
-            {contactInfo && (
-              <View style={styles.footerSection}>
-                <Text style={styles.footerTitle}>{t('profile.locations')}</Text>
-                <View style={styles.locationsRow}>
-                  {contactInfo.address1 && contactInfo.phone1 && (
-                    <TouchableOpacity
-                      style={styles.locationItem}
-                      onPress={() => Linking.openURL(getPhoneLink(contactInfo.phone1))}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.footerText}>
-                        {contactInfo.address1.split('\n').map((line, i) => (
-                          <React.Fragment key={i}>
-                            {line}
-                            {i < contactInfo.address1.split('\n').length - 1 && '\n'}
-                          </React.Fragment>
-                        ))}
-                        {'\n'}{contactInfo.phone1}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  {contactInfo.address2 && contactInfo.phone2 && (
-                    <TouchableOpacity
-                      style={styles.locationItem}
-                      onPress={() => Linking.openURL(getPhoneLink(contactInfo.phone2))}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.footerText}>
-                        {contactInfo.address2.split('\n').map((line, i) => (
-                          <React.Fragment key={i}>
-                            {line}
-                            {i < contactInfo.address2.split('\n').length - 1 && '\n'}
-                          </React.Fragment>
-                        ))}
-                        {'\n'}{contactInfo.phone2}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-                {contactInfo.email && (
-                  <TouchableOpacity
-                    onPress={() => Linking.openURL(getEmailLink(contactInfo.email))}
-                    activeOpacity={0.7}
-                    style={styles.emailButton}
-                  >
-                    <Text style={styles.footerText}>{contactInfo.email}</Text>
-                  </TouchableOpacity>
-                )}
               </View>
-            )}
 
-            {/* Copyright */}
-            <View style={styles.copyright}>
-              <Text style={styles.copyrightText}>
-                {contactInfo?.footerCopyright || t('profile.copyright')}
-              </Text>
-            </View>
+              <View style={styles.footerDivider} />
+              <Text style={styles.footerCopy}>{contactInfo?.footerCopyright || t('profile.copyright')}</Text>
+              <Text style={styles.footerVersion}>V 1.0.0</Text>
           </View>
-
-          {/* Versiyon bilgisi (Version info) */}
-          <Text style={styles.version}>{t('profile.versionText', { version: '1.0.0' })}</Text>
-        </ScrollView>
-      ) : (
-        <View style={styles.favoritesContainer}>
-          {favorites.length > 0 ? (
-            <FlatList
-              data={favorites}
-              renderItem={({ item }) => <FavoriteCard item={item} />}
-              keyExtractor={(item) => item.id}
-              numColumns={2}
-              contentContainerStyle={styles.favoritesList}
-              showsVerticalScrollIndicator={false}
-            />
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="heart-outline" size={64} color={Colors.textSecondary} />
-              <Text style={styles.emptyTitle}>{t('profile.noFavorites')}</Text>
-              <Text style={styles.emptyText}>
-                {t('profile.noFavoritesMessage')}
-              </Text>
-            </View>
-          )}
         </View>
-      )}
+      </ScrollView>
     </View>
   );
 };
@@ -462,314 +325,260 @@ const ProfileScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.md,
-    gap: Spacing.xs,
-  },
-  tabActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
-  },
-  tabText: {
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-  tabTextActive: {
-    color: Colors.primary,
+    backgroundColor: Colors.surface,
   },
   scrollView: {
     flex: 1,
   },
-  favoritesContainer: {
-    flex: 1,
+  headerContainer: {
+    marginBottom: 0,
+    position: 'relative',
+    paddingTop: 0,
   },
-  favoritesList: {
-    padding: Spacing.sm,
+  headerGradient: {
+    paddingTop: 60,
+    paddingBottom: 80,
+    paddingHorizontal: Spacing.xl,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
   },
-  favoriteCard: {
-    flex: 1,
-    margin: Spacing.sm,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
-    ...Shadows.small,
-  },
-  favoriteImage: {
-    width: '100%',
-    height: 150, // Yükseklik artırıldı (Height increased from 120 to 150)
-    backgroundColor: Colors.surface,
-    resizeMode: 'cover', // Görselin tam kapsaması için (For full image coverage)
-  },
-  favoriteBadge: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.round,
-    padding: Spacing.xs,
-    ...Shadows.small,
-  },
-  favoriteInfo: {
-    padding: Spacing.sm,
-  },
-  favoriteName: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  favoritePrice: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
-    color: Colors.primary,
-    marginBottom: Spacing.sm,
-  },
-  favoriteAddButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.xl,
-  },
-  emptyTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: FontSizes.md,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  header: {
-    alignItems: 'center',
-    padding: Spacing.xl,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  avatarContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: BorderRadius.round,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  userName: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  userEmail: {
-    fontSize: FontSizes.md,
-    color: Colors.textSecondary,
-  },
-  pointsCard: {
-    marginTop: Spacing.lg,
-    backgroundColor: '#FFF9E6',
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FFD700',
-    ...Shadows.small,
   },
-  pointsIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: BorderRadius.round,
-    backgroundColor: '#FFF',
+  avatarBorder: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
+    padding: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.md,
   },
-  pointsInfo: {
+  avatarBg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  onlineBadge: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: Colors.success,
+    borderWidth: 2,
+    borderColor: '#1a1a1a',
+  },
+  userTextContainer: {
+    marginLeft: Spacing.lg,
     flex: 1,
   },
-  pointsLabel: {
-    fontSize: FontSizes.sm,
-    color: '#666',
-    marginBottom: 4,
-  },
-  pointsValue: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold',
-    color: '#FF8C00',
-    marginBottom: 2,
-  },
-  pointsSubtext: {
-    fontSize: FontSizes.xs,
-    color: '#999',
-  },
-  loginButton: {
-    marginTop: Spacing.lg,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    ...Shadows.medium,
-  },
-  loginButtonText: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
+  eliteUserName: {
+    fontSize: 22,
+    fontWeight: '800',
     color: Colors.white,
-    textAlign: 'center',
+    letterSpacing: 0.5,
   },
-  section: {
-    marginTop: Spacing.lg,
-    paddingHorizontal: Spacing.md,
+  eliteUserEmail: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 2,
   },
-  sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: Spacing.sm,
-    paddingHorizontal: Spacing.xs,
+  eliteLoginBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    gap: 8,
   },
-  card: {
+  eliteLoginBtnText: {
+    color: Colors.white,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  loyaltyPosition: {
+    position: 'absolute',
+    bottom: -50,
+    left: Spacing.xl,
+    right: Spacing.xl,
+  },
+  loyaltyCard: {
+    borderRadius: 24,
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    ...Shadows.large,
+  },
+  loyaltyInfo: {
+    flex: 1,
+  },
+  loyaltyLabel: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  loyaltyValue: {
+    color: Colors.white,
+    fontSize: 32,
+    fontWeight: '900',
+    marginVertical: 4,
+  },
+  loyaltyUnit: {
+    fontSize: 14,
+    fontWeight: '600',
+    opacity: 0.8,
+  },
+  loyaltySubtext: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  loyaltyIconBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mainContent: {
+    paddingHorizontal: Spacing.xl,
+  },
+  modernSection: {
+    marginTop: 32,
+  },
+  modernSectionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginBottom: 16,
+    paddingLeft: 4,
+  },
+  modernCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     ...Shadows.small,
   },
-  menuItem: {
+  modernMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingVertical: 14,
   },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surface,
+  modernIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.md,
+    marginRight: 16,
   },
-  menuTitle: {
-    fontSize: FontSizes.md,
+  modernMenuTitle: {
+    fontSize: 16,
     fontWeight: '600',
     color: Colors.text,
   },
-  menuSubtitle: {
-    fontSize: FontSizes.sm,
+  modernMenuSubtitle: {
+    fontSize: 12,
     color: Colors.textSecondary,
     marginTop: 2,
   },
-  logoutButton: {
+  eliteLogoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
-    margin: Spacing.lg,
-    padding: Spacing.md,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
+    backgroundColor: '#fff',
+    marginTop: 40,
+    padding: 18,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: Colors.primary,
-    ...Shadows.small,
+    borderColor: '#fee2e2',
+    gap: 12,
   },
-  logoutText: {
-    fontSize: FontSizes.md,
-    fontWeight: '600',
+  eliteLogoutText: {
+    fontSize: 16,
+    fontWeight: '700',
     color: Colors.primary,
   },
-  // Footer stilleri (Footer styles)
-  footer: {
-    backgroundColor: Colors.black,
-    padding: Spacing.xl,
-    marginTop: Spacing.xl,
+  eliteFooter: {
+    marginTop: 60,
+    alignItems: 'center',
+    paddingBottom: 40,
   },
-  footerSection: {
-    marginBottom: Spacing.xl,
+  footerBrand: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: Colors.black,
+    letterSpacing: 1,
   },
-  footerTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.white,
-    marginBottom: Spacing.md,
+  footerTagline: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 40,
+    lineHeight: 20,
   },
-  footerText: {
-    fontSize: FontSizes.sm,
-    color: Colors.textMuted,
-    lineHeight: 22,
-  },
-  socialContainer: {
+  footerSocials: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    marginTop: Spacing.md,
+    gap: 16,
+    marginTop: 24,
   },
-  socialButton: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.round,
-    backgroundColor: Colors.primary,
+  socialCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.black,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  locationsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
+  footerDivider: {
+    width: 40,
+    height: 2,
+    backgroundColor: Colors.border,
+    marginVertical: 24,
   },
-  locationItem: {
-    flex: 1,
-  },
-  emailButton: {
-    marginTop: Spacing.sm,
-  },
-  copyright: {
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderDark,
-    paddingTop: Spacing.lg,
-    alignItems: 'center',
-  },
-  copyrightText: {
-    fontSize: FontSizes.xs,
+  footerCopy: {
+    fontSize: 11,
     color: Colors.textMuted,
-    textAlign: 'center',
+    fontWeight: '500',
   },
-  version: {
-    fontSize: FontSizes.xs,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    paddingVertical: Spacing.lg,
+  footerVersion: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginTop: 4,
+    opacity: 0.6,
   },
 });
 
 export default ProfileScreen;
+
 
