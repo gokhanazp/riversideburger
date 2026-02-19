@@ -90,8 +90,8 @@ const CartScreen = ({ navigation }: any) => {
       setPointsInputValue(maxPoints.toFixed(2));
       Toast.show({
         type: 'info',
-        text1: 'Maksimum Puan',
-        text2: `En fazla ${maxPoints.toFixed(2)} puan kullanabilirsiniz`,
+        text1: t('cart.maxPoints'),
+        text2: t('cart.maxPointsDesc', { max: maxPoints.toFixed(2) }),
         position: 'top',
         topOffset: 60,
       });
@@ -118,12 +118,12 @@ const CartScreen = ({ navigation }: any) => {
 
   const handleCheckout = () => {
     if (items.length === 0) {
-      Toast.show({ type: 'error', text1: 'Sepet Boş', text2: 'Lütfen ürün ekleyin', position: 'top', topOffset: 60 });
+      Toast.show({ type: 'error', text1: t('cart.emptyCartTitle'), text2: t('cart.emptyCartDesc'), position: 'top', topOffset: 60 });
       return;
     }
     if (!isAuthenticated) { setShowLoginModal(true); return; }
     if (!selectedAddress) {
-      Toast.show({ type: 'error', text1: 'Adres Seçilmedi', text2: 'Lütfen adres ekleyin', position: 'top', topOffset: 60 });
+      Toast.show({ type: 'error', text1: t('cart.noAddressSelectedTitle'), text2: t('cart.noAddressSelectedDesc'), position: 'top', topOffset: 60 });
       return;
     }
     setShowCheckoutModal(true);
@@ -136,7 +136,7 @@ const CartScreen = ({ navigation }: any) => {
       setIsCreatingOrder(true);
       const fullAddress = selectedAddress
         ? `${selectedAddress.street_number} ${selectedAddress.street_name}, ${selectedAddress.city}`
-        : 'Adres belirtilmedi';
+        : t('cart.addressNotSpecified');
 
       const orderItems = items.map(item => ({
         product_id: item.id,
@@ -152,18 +152,18 @@ const CartScreen = ({ navigation }: any) => {
         user_id: user.id,
         total_amount: getFinalPrice(),
         delivery_address: fullAddress,
-        phone: selectedAddress?.phone || 'Telefon belirtilmedi',
-        notes: pointsToUse > 0 ? `${pointsToUse.toFixed(2)} puan kullanıldı` : '',
+        phone: selectedAddress?.phone || t('cart.phoneNotSpecified'),
+        notes: pointsToUse > 0 ? t('cart.pointsUsed', { points: pointsToUse.toFixed(2) }) : '',
         items: orderItems,
         points_used: pointsToUse,
         address_id: selectedAddress?.id || undefined,
       });
 
       clearCart();
-      Toast.show({ type: 'success', text1: '✅ Sipariş Alındı!', text2: `No: ${order.order_number}`, position: 'top', topOffset: 60 });
+      Toast.show({ type: 'success', text1: t('cart.orderReceived'), text2: `${t('cart.orderNumber', { number: order.order_number })}`, position: 'top', topOffset: 60 });
       navigation.navigate('OrderHistory');
     } catch (error: any) {
-      Toast.show({ type: 'error', text1: 'Hata', text2: error.message, position: 'top', topOffset: 60 });
+      Toast.show({ type: 'error', text1: t('common.error'), text2: error.message, position: 'top', topOffset: 60 });
     } finally {
       setIsCreatingOrder(false);
     }
@@ -356,7 +356,7 @@ const CartScreen = ({ navigation }: any) => {
       )}
 
       <ConfirmModal visible={showLoginModal} title={t('cart.loginRequired')} message={t('cart.loginRequiredDesc')} confirmText={t('cart.login')} cancelText={t('cart.cancel')} onConfirm={() => { setShowLoginModal(false); navigation.navigate('Login'); }} onCancel={() => setShowLoginModal(false)} />
-      <ConfirmModal visible={showCheckoutModal} title={t('cart.confirmOrder')} message={`${formatPrice(getFinalPrice())} tutarındaki siparişi onaylıyor musunuz?`} confirmText={t('cart.confirm')} cancelText={t('cart.cancel')} onConfirm={handleCheckoutConfirm} onCancel={() => setShowCheckoutModal(false)} type="success" />
+      <ConfirmModal visible={showCheckoutModal} title={t('cart.confirmOrder')} message={t('cart.confirmOrderDesc', { price: formatPrice(getFinalPrice()) })} confirmText={t('cart.confirm')} cancelText={t('cart.cancel')} onConfirm={handleCheckoutConfirm} onCancel={() => setShowCheckoutModal(false)} type="success" />
       <ConfirmModal visible={showDeleteModal} title={t('cart.deleteItem')} message={t('cart.deleteItemDesc', { name: itemToDelete?.name || '' })} confirmText={t('cart.delete')} cancelText={t('cart.cancel')} onConfirm={handleDeleteConfirm} onCancel={() => setShowDeleteModal(false)} type="danger" />
 
       {showAddressModal && (
