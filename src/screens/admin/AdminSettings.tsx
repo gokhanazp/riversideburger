@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   TextInput,
   Switch,
+  StatusBar,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -22,8 +24,11 @@ import {
   updateWorkingHours,
 } from '../../services/workingHoursService';
 import { getCurrencyInfo } from '../../services/currencyService';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-// Ayarlar tipi (Settings type)
+const { width } = Dimensions.get('window');
+
 interface Settings {
   id: string;
   points_percentage: number;
@@ -36,17 +41,10 @@ interface Settings {
   updated_at?: string;
 }
 
-// Admin Ayarlar Ekranı (Admin Settings Screen)
 const AdminSettings = ({ navigation }: any) => {
   const { t, i18n } = useTranslation();
-
-  // Sayfa başlığını ayarla (Set page title)
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: t('admin.screenTitles.systemSettings'),
-    });
-  }, [navigation, t, i18n.language]);
-  // State'ler (States)
+  
+  // States
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<Settings>({
@@ -62,55 +60,38 @@ const AdminSettings = ({ navigation }: any) => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false);
 
-  // Sayfa yüklendiğinde ayarları getir (Fetch settings on page load)
+  useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
+
   useEffect(() => {
     fetchSettings();
   }, []);
 
-  // Ayarları getir (Fetch settings)
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching settings...');
+      const { data, error } = await supabase.from('settings').select('*').limit(1).maybeSingle();
 
-      const { data, error } = await supabase
-        .from('settings')
-        .select('*')
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('❌ Fetch error:', error);
-        throw error;
-      }
-
+      if (error) throw error;
       if (!data) {
-        // Eğer ayar yoksa varsayılan değerlerle oluştur
-        // (If no settings exist, create with default values)
-        console.log('⚠️ No settings found, creating default...');
         await createDefaultSettings();
         return;
       }
 
-      console.log('✅ Settings fetched:', data);
       setSettings({
         ...data,
         working_hours: data.working_hours || DEFAULT_WORKING_HOURS,
         auto_close_enabled: data.auto_close_enabled || false,
       });
     } catch (error: any) {
-      console.error('❌ Error fetching settings:', error);
-      Toast.show({
-        type: 'error',
-        text1: t('admin.error'),
-        text2: error.message || t('admin.settings.errorLoading'),
-      });
+      console.error('Error:', error);
+      Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.settings.errorLoading') });
     } finally {
       setLoading(false);
     }
   };
 
-  // Varsayılan ayarları oluştur (Create default settings)
   const createDefaultSettings = async () => {
     try {
       const defaultSettings = {
@@ -120,532 +101,277 @@ const AdminSettings = ({ navigation }: any) => {
         free_delivery_threshold: 150,
         is_open: true,
       };
-
-      const { data, error } = await supabase
-        .from('settings')
-        .insert(defaultSettings)
-        .select()
-        .single();
-
+      const { data, error } = await supabase.from('settings').insert(defaultSettings).select().single();
       if (error) throw error;
-
-      console.log('✅ Default settings created:', data);
       setSettings(data);
     } catch (error: any) {
-      console.error('❌ Error creating default settings:', error);
-      Toast.show({
-        type: 'error',
-        text1: t('admin.error'),
-        text2: t('admin.settings.errorCreatingDefaults'),
-      });
+      console.error('Error defaults:', error);
     }
   };
 
-  // Ayarları kaydet (Save settings)
   const handleSaveSettings = async () => {
     try {
       setSaving(true);
-      console.log('💾 Saving settings:', settings);
-
-      // Validasyon (Validation)
       if (settings.points_percentage < 0 || settings.points_percentage > 100) {
-        Toast.show({
-          type: 'error',
-          text1: t('admin.error'),
-          text2: t('admin.settings.pointsPercentageError'),
-        });
+        Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.settings.pointsPercentageError') });
         return;
       }
 
-      if (settings.min_order_amount < 0) {
-        Toast.show({
-          type: 'error',
-          text1: t('admin.error'),
-          text2: t('admin.settings.minOrderAmountError'),
-        });
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('settings')
-        .update({
-          points_percentage: settings.points_percentage,
-          min_order_amount: settings.min_order_amount,
-          delivery_fee: settings.delivery_fee,
-          free_delivery_threshold: settings.free_delivery_threshold,
-          is_open: settings.is_open,
-        })
-        .eq('id', settings.id)
-        .select()
-        .single();
+      const { data, error } = await supabase.from('settings').update({
+        points_percentage: settings.points_percentage,
+        min_order_amount: settings.min_order_amount,
+        delivery_fee: settings.delivery_fee,
+        free_delivery_threshold: settings.free_delivery_threshold,
+        is_open: settings.is_open,
+      }).eq('id', settings.id).select().single();
 
       if (error) throw error;
-
-      console.log('✅ Settings saved:', data);
       setSettings(data);
       setShowSaveModal(false);
-
-      Toast.show({
-        type: 'success',
-        text1: t('admin.settings.settingsSaved'),
-        text2: t('admin.settings.settingsSavedDesc'),
-      });
+      Toast.show({ type: 'success', text1: t('admin.success'), text2: t('admin.settings.settingsSavedDesc') });
     } catch (error: any) {
-      console.error('❌ Error saving settings:', error);
-      Toast.show({
-        type: 'error',
-        text1: t('admin.error'),
-        text2: error.message || t('admin.settings.errorSaving'),
-      });
+      Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.settings.errorSaving') });
     } finally {
       setSaving(false);
     }
   };
 
-  // Çalışma saatlerini kaydet (Save working hours)
-  const handleSaveWorkingHours = async (
-    workingHours: WorkingHours,
-    autoCloseEnabled: boolean
-  ) => {
+  const handleSaveWorkingHours = async (workingHours: WorkingHours, autoCloseEnabled: boolean) => {
     try {
-      console.log('💾 Saving working hours:', { workingHours, autoCloseEnabled });
-
       const success = await updateWorkingHours(workingHours, autoCloseEnabled);
-
-      if (!success) {
-        throw new Error('Failed to update working hours');
-      }
-
-      // State'i güncelle (Update state)
-      setSettings({
-        ...settings,
-        working_hours: workingHours,
-        auto_close_enabled: autoCloseEnabled,
-      });
-
-      Toast.show({
-        type: 'success',
-        text1: t('admin.settings.workingHours.saved'),
-        text2: t('admin.settings.workingHours.savedDesc'),
-        visibilityTime: 3000,
-        topOffset: 60,
-      });
+      if (!success) throw new Error('Failed');
+      setSettings({ ...settings, working_hours: workingHours, auto_close_enabled: autoCloseEnabled });
+      Toast.show({ type: 'success', text1: t('admin.settings.workingHours.saved') });
     } catch (error: any) {
-      console.error('❌ Error saving working hours:', error);
-      Toast.show({
-        type: 'error',
-        text1: t('admin.error'),
-        text2: error.message || t('admin.settings.workingHours.errorSaving'),
-        visibilityTime: 4000,
-        topOffset: 60,
-      });
+      Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.settings.workingHours.errorSaving') });
     }
   };
 
-  // Ayar kartı componenti (Setting card component)
-  const SettingCard = ({
-    icon,
-    title,
-    description,
-    children,
-  }: {
-    icon: keyof typeof Ionicons.glyphMap;
-    title: string;
-    description: string;
-    children: React.ReactNode;
-  }) => (
-    <View style={styles.settingCard}>
-      <View style={styles.settingHeader}>
-        <View style={styles.settingIcon}>
-          <Ionicons name={icon} size={24} color={Colors.primary} />
+  const SettingCard = ({ icon, title, description, children, delay = 0 }: any) => (
+    <Animated.View entering={FadeInDown.delay(delay).springify()} style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={styles.iconContainer}>
+          <Ionicons name={icon} size={22} color={Colors.primary} />
         </View>
-        <View style={styles.settingInfo}>
-          <Text style={styles.settingTitle}>{title}</Text>
-          <Text style={styles.settingDescription}>{description}</Text>
+        <View style={styles.headerTexts}>
+          <Text style={styles.cardTitle}>{title}</Text>
+          <Text style={styles.cardDesc}>{description}</Text>
         </View>
       </View>
-      <View style={styles.settingContent}>{children}</View>
-    </View>
+      <View style={styles.cardContent}>{children}</View>
+    </Animated.View>
+  );
+
+  const InputRow = ({ label, suffix, prefix, value, onChangeText, placeholder }: any) => (
+      <View style={styles.inputRow}>
+          {prefix && <Text style={styles.prefix}>{prefix}</Text>}
+          <TextInput 
+            style={styles.input} 
+            value={value} 
+            onChangeText={onChangeText} 
+            placeholder={placeholder} 
+            placeholderTextColor="#CCC" 
+            keyboardType="numeric"
+          />
+          {suffix && <Text style={styles.suffix}>{suffix}</Text>}
+      </View>
   );
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>{t('admin.settings.loading')}</Text>
-      </View>
-    );
+     return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>{t('admin.loading')}</Text>
+        </View>
+      );
   }
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Puan Sistemi (Points System) */}
-        <Text style={styles.sectionTitle}>{t('admin.settings.sectionPointsSystem')}</Text>
-        <SettingCard
-          icon="star"
-          title={t('admin.settings.pointsEarningPercentage')}
-          description={t('admin.settings.pointsEarningDesc')}
-        >
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
-              value={settings.points_percentage.toString()}
-              onChangeText={(text) =>
-                setSettings({ ...settings, points_percentage: parseFloat(text) || 0 })
-              }
-              keyboardType="decimal-pad"
-              placeholder="5"
-              placeholderTextColor="#999"
-            />
-            <Text style={styles.inputSuffix}>%</Text>
-          </View>
-          <Text style={styles.helperText}>
-            {t('admin.settings.pointsExample')}
-          </Text>
-        </SettingCard>
+      <StatusBar barStyle="light-content" />
 
-        {/* Sipariş Ayarları (Order Settings) */}
-        <Text style={styles.sectionTitle}>{t('admin.settings.sectionOrderSettings')}</Text>
-        <SettingCard
-          icon="cart"
-          title={t('admin.settings.minOrderTitle')}
-          description={t('admin.settings.minOrderDesc')}
-        >
-          <View style={styles.inputRow}>
-            <Text style={styles.inputPrefix}>{getCurrencyInfo().symbol}</Text>
-            <TextInput
-              style={styles.input}
-              value={settings.min_order_amount.toString()}
-              onChangeText={(text) =>
-                setSettings({ ...settings, min_order_amount: parseFloat(text) || 0 })
-              }
-              keyboardType="decimal-pad"
-              placeholder="50"
-              placeholderTextColor="#999"
-            />
-          </View>
-        </SettingCard>
+      {/* HEADER */}
+      <LinearGradient colors={['#1a1a1a', '#333']} style={styles.header}>
+        <View style={styles.breadcrumb}>
+            <Text style={styles.breadText}>Admin</Text>
+            <Ionicons name="chevron-forward" size={10} color="rgba(255,255,255,0.3)" />
+            <Text style={styles.breadText}>Panel</Text>
+            <Ionicons name="chevron-forward" size={10} color="rgba(255,255,255,0.3)" />
+            <Text style={[styles.breadText, styles.breadActive]}>{t('admin.screenTitles.systemSettings')}</Text>
+        </View>
+        <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+                <Ionicons name="arrow-back" size={22} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{t('admin.screenTitles.systemSettings')}</Text>
+            <View style={{ width: 40 }} />
+        </View>
+      </LinearGradient>
 
-        {/* Teslimat Ayarları (Delivery Settings) */}
-        <Text style={styles.sectionTitle}>{t('admin.settings.sectionDeliverySettings')}</Text>
-        <SettingCard
-          icon="bicycle"
-          title={t('admin.settings.deliveryFeeTitle')}
-          description={t('admin.settings.deliveryFeeDescription')}
-        >
-          <View style={styles.inputRow}>
-            <Text style={styles.inputPrefix}>{getCurrencyInfo().symbol}</Text>
-            <TextInput
-              style={styles.input}
-              value={settings.delivery_fee.toString()}
-              onChangeText={(text) =>
-                setSettings({ ...settings, delivery_fee: parseFloat(text) || 0 })
-              }
-              keyboardType="decimal-pad"
-              placeholder="15"
-              placeholderTextColor="#999"
-            />
-          </View>
-        </SettingCard>
-
-        <SettingCard
-          icon="gift"
-          title={t('admin.settings.freeDeliveryTitle')}
-          description={t('admin.settings.freeDeliveryDesc')}
-        >
-          <View style={styles.inputRow}>
-            <Text style={styles.inputPrefix}>{getCurrencyInfo().symbol}</Text>
-            <TextInput
-              style={styles.input}
-              value={settings.free_delivery_threshold.toString()}
-              onChangeText={(text) =>
-                setSettings({ ...settings, free_delivery_threshold: parseFloat(text) || 0 })
-              }
-              keyboardType="decimal-pad"
-              placeholder="150"
-              placeholderTextColor="#999"
-            />
-          </View>
-        </SettingCard>
-
-        {/* Restoran Durumu (Restaurant Status) */}
-        <Text style={styles.sectionTitle}>{t('admin.settings.sectionRestaurantStatus')}</Text>
-        <SettingCard
-          icon="storefront"
-          title={t('admin.settings.restaurantStatusTitle')}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        
+        {/* RESTAURANT STATUS */}
+        <SettingCard 
+          delay={100}
+          icon="storefront-outline" 
+          title={t('admin.settings.restaurantStatusTitle')} 
           description={t('admin.settings.restaurantStatusDesc')}
         >
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>
-              {settings.is_open ? t('admin.settings.statusOpen') : t('admin.settings.statusClosed')}
-            </Text>
-            <Switch
-              value={settings.is_open}
-              onValueChange={(value) => setSettings({ ...settings, is_open: value })}
-              trackColor={{ false: '#DC3545', true: Colors.primary + '40' }}
-              thumbColor={settings.is_open ? Colors.primary : '#999'}
-            />
-          </View>
+           <View style={styles.switchRow}>
+              <Text style={[styles.statusText, { color: settings.is_open ? '#4CAF50' : '#F44336' }]}>
+                  {settings.is_open ? t('admin.settings.statusOpen') : t('admin.settings.statusClosed')}
+              </Text>
+              <Switch
+                value={settings.is_open}
+                onValueChange={(val) => setSettings({ ...settings, is_open: val })}
+                trackColor={{ false: '#EEE', true: Colors.primary + '50' }}
+                thumbColor={settings.is_open ? Colors.primary : '#AAA'}
+              />
+           </View>
         </SettingCard>
 
-        {/* Çalışma Saatleri (Working Hours) */}
-        <SettingCard
-          icon="time-outline"
-          title={t('admin.settings.workingHours.title')}
+        {/* POINTS */}
+        <SettingCard 
+          delay={200}
+          icon="star-outline" 
+          title={t('admin.settings.pointsEarningPercentage')} 
+          description={t('admin.settings.pointsEarningDesc')}
+        >
+            <InputRow 
+                value={settings.points_percentage.toString()} 
+                onChangeText={(t: string) => setSettings({ ...settings, points_percentage: parseFloat(t) || 0 })}
+                suffix="%"
+                placeholder="5"
+            />
+        </SettingCard>
+
+        {/* ORDER */}
+        <SettingCard 
+          delay={300}
+          icon="cart-outline" 
+          title={t('admin.settings.minOrderTitle')} 
+          description={t('admin.settings.minOrderDesc')}
+        >
+            <InputRow 
+                prefix={getCurrencyInfo().symbol}
+                value={settings.min_order_amount.toString()} 
+                onChangeText={(t: string) => setSettings({ ...settings, min_order_amount: parseFloat(t) || 0 })}
+                placeholder="50"
+            />
+        </SettingCard>
+
+        {/* DELIVERY */}
+        <SettingCard 
+          delay={400}
+          icon="bicycle-outline" 
+          title={t('admin.settings.deliveryFeeTitle')} 
+          description={t('admin.settings.deliveryFeeDescription')}
+        >
+            <InputRow 
+                prefix={getCurrencyInfo().symbol}
+                value={settings.delivery_fee.toString()} 
+                onChangeText={(t: string) => setSettings({ ...settings, delivery_fee: parseFloat(t) || 0 })}
+                placeholder="15"
+            />
+        </SettingCard>
+
+        <SettingCard 
+          delay={500}
+          icon="gift-outline" 
+          title={t('admin.settings.freeDeliveryTitle')} 
+          description={t('admin.settings.freeDeliveryDesc')}
+        >
+            <InputRow 
+                prefix={getCurrencyInfo().symbol}
+                value={settings.free_delivery_threshold.toString()} 
+                onChangeText={(t: string) => setSettings({ ...settings, free_delivery_threshold: parseFloat(t) || 0 })}
+                placeholder="150"
+            />
+        </SettingCard>
+
+        {/* WORKING HOURS */}
+        <SettingCard 
+          delay={600}
+          icon="time-outline" 
+          title={t('admin.settings.workingHours.title')} 
           description={t('admin.settings.workingHours.description')}
         >
-          <TouchableOpacity
-            style={styles.workingHoursButton}
-            onPress={() => setShowWorkingHoursModal(true)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.workingHoursInfo}>
-              <View style={[
-                styles.workingHoursIconContainer,
-                settings.auto_close_enabled && styles.workingHoursIconContainerActive
-              ]}>
-                <Ionicons
-                  name={settings.auto_close_enabled ? "time" : "time-outline"}
-                  size={22}
-                  color={settings.auto_close_enabled ? Colors.primary : Colors.textSecondary}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.workingHoursText}>
-                  {settings.auto_close_enabled
-                    ? t('admin.settings.workingHours.autoCloseEnabled')
-                    : t('admin.settings.workingHours.autoCloseDisabled')}
-                </Text>
-                <Text style={styles.workingHoursSubtext}>
-                  {t('admin.settings.workingHours.tapToEdit')}
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.primary} />
-          </TouchableOpacity>
+           <TouchableOpacity style={styles.hoursBtn} onPress={() => setShowWorkingHoursModal(true)}>
+               <View style={styles.hoursInfo}>
+                   <View style={[styles.smallIcon, settings.auto_close_enabled && {backgroundColor: Colors.primary+'20'}]}>
+                       <Ionicons name="time" size={18} color={settings.auto_close_enabled ? Colors.primary : '#888'} />
+                   </View>
+                   <View>
+                       <Text style={styles.hoursTitle}>{settings.auto_close_enabled ? t('admin.settings.workingHours.autoCloseEnabled') : t('admin.settings.workingHours.autoCloseDisabled')}</Text>
+                       <Text style={styles.hoursSub}>{t('admin.settings.workingHours.tapToEdit')}</Text>
+                   </View>
+               </View>
+               <Ionicons name="chevron-forward" size={18} color="#CCC" />
+           </TouchableOpacity>
         </SettingCard>
 
-        <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Kaydet Butonu (Save Button) */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={() => setShowSaveModal(true)}
-          activeOpacity={0.8}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color={Colors.white} />
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle" size={24} color={Colors.white} />
-              <Text style={styles.saveButtonText}>{t('admin.settings.saveSettings')}</Text>
-            </>
-          )}
-        </TouchableOpacity>
+      {/* FOOTER ACTION */}
+      <View style={styles.bottomArea}>
+          <TouchableOpacity 
+            style={[styles.saveBtn, saving && { opacity: 0.7 }]} 
+            onPress={() => setShowSaveModal(true)}
+            disabled={saving}
+          >
+              <LinearGradient colors={[Colors.primary, '#FF6B6B']} style={styles.saveGrad}>
+                  {saving ? (
+                      <ActivityIndicator color="#FFF" />
+                  ) : (
+                      <>
+                        <Ionicons name="save-outline" size={20} color="#FFF" style={{marginRight: 8}} />
+                        <Text style={styles.saveText}>{t('admin.settings.saveSettings')}</Text>
+                      </>
+                  )}
+              </LinearGradient>
+          </TouchableOpacity>
       </View>
 
-      {/* Kaydetme Onay Modal (Save Confirmation Modal) */}
-      <ConfirmModal
-        visible={showSaveModal}
-        title={t('admin.settings.modalTitle')}
-        message={t('admin.settings.modalMessage')}
-        confirmText={t('admin.settings.modalConfirm')}
-        cancelText={t('admin.settings.modalCancel')}
-        onConfirm={handleSaveSettings}
-        onCancel={() => setShowSaveModal(false)}
-        type="success"
-      />
-
-      {/* Çalışma Saatleri Modal (Working Hours Modal) */}
-      <WorkingHoursModal
-        visible={showWorkingHoursModal}
-        workingHours={settings.working_hours || DEFAULT_WORKING_HOURS}
-        autoCloseEnabled={settings.auto_close_enabled || false}
-        onClose={() => setShowWorkingHoursModal(false)}
-        onSave={handleSaveWorkingHours}
-      />
+      <ConfirmModal visible={showSaveModal} title={t('admin.settings.modalTitle')} message={t('admin.settings.modalMessage')} confirmText={t('common.save')} cancelText={t('common.cancel')} onConfirm={handleSaveSettings} onCancel={() => setShowSaveModal(false)} type="success" />
+      <WorkingHoursModal visible={showWorkingHoursModal} workingHours={settings.working_hours || DEFAULT_WORKING_HOURS} autoCloseEnabled={settings.auto_close_enabled || false} onClose={() => setShowWorkingHoursModal(false)} onSave={handleSaveWorkingHours} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-  },
-  loadingText: {
-    marginTop: Spacing.md,
-    fontSize: FontSizes.md,
-    color: Colors.text,
-  },
-  scrollView: {
-    flex: 1,
-    padding: Spacing.md,
-  },
-  sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  settingCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    ...Shadows.small,
-  },
-  settingHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  settingIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primary + '10',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  settingInfo: {
-    flex: 1,
-  },
-  settingTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  settingDescription: {
-    fontSize: FontSizes.sm,
-    color: '#666',
-  },
-  settingContent: {
-    marginTop: Spacing.sm,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.white,
-  },
-  inputPrefix: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.primary,
-    marginRight: Spacing.xs,
-  },
-  input: {
-    flex: 1,
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: '#333',
-    paddingVertical: Spacing.md,
-  },
-  inputSuffix: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.primary,
-    marginLeft: Spacing.xs,
-  },
-  helperText: {
-    fontSize: FontSizes.xs,
-    color: '#999',
-    marginTop: Spacing.xs,
-    fontStyle: 'italic',
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  switchLabel: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  workingHoursButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.card,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    borderRadius: BorderRadius.medium,
-    borderWidth: 2,
-    borderColor: Colors.primary + '20',
-    ...Shadows.small,
-  },
-  workingHoursInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    flex: 1,
-  },
-  workingHoursIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: Colors.border,
-  },
-  workingHoursIconContainerActive: {
-    backgroundColor: Colors.primary + '10',
-    borderColor: Colors.primary + '30',
-  },
-  workingHoursText: {
-    fontSize: 16,
-    color: Colors.text,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  workingHoursSubtext: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-  },
-  footer: {
-    padding: Spacing.md,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    ...Shadows.medium,
-  },
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    ...Shadows.medium,
-  },
-  saveButtonText: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.white,
-  },
+  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 10, color: '#888' },
+  header: { paddingTop: 50, paddingBottom: 25, paddingHorizontal: 24, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, ...Shadows.medium },
+  breadcrumb: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 15, opacity: 0.8 },
+  breadText: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.5 },
+  breadActive: { color: '#FFF', opacity: 1 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerTitle: { fontSize: 24, fontWeight: '900', color: '#FFF', letterSpacing: -0.5 },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
+  content: { flex: 1, padding: 20 },
+  card: { backgroundColor: '#FFF', borderRadius: 24, padding: 20, marginBottom: 20, ...Shadows.small },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12 },
+  iconContainer: { width: 44, height: 44, borderRadius: 14, backgroundColor: Colors.primary + '10', justifyContent: 'center', alignItems: 'center' },
+  headerTexts: { flex: 1 },
+  cardTitle: { fontSize: 16, fontWeight: '800', color: Colors.text },
+  cardDesc: { fontSize: 12, color: '#888', marginTop: 2 },
+  cardContent: { gap: 16 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9F9F9', borderRadius: 12, paddingHorizontal: 16, height: 50, borderWidth: 1, borderColor: '#EEE' },
+  prefix: { fontSize: 16, fontWeight: '800', color: Colors.text, marginRight: 8 },
+  suffix: { fontSize: 16, fontWeight: '800', color: '#999', marginLeft: 8 },
+  input: { flex: 1, fontSize: 16, fontWeight: '700', color: Colors.text },
+  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
+  statusText: { fontSize: 16, fontWeight: '800' },
+  hoursBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F9F9F9', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#EEE' },
+  hoursInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  smallIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#EEE', justifyContent: 'center', alignItems: 'center' },
+  hoursTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
+  hoursSub: { fontSize: 11, color: '#999' },
+  bottomArea: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: 'rgba(255,255,255,0.9)', borderTopWidth: 1, borderTopColor: '#EEE' },
+  saveBtn: { height: 56, borderRadius: 20, ...Shadows.large },
+  saveGrad: { flex: 1, borderRadius: 20, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  saveText: { color: '#FFF', fontSize: 18, fontWeight: '900' },
 });
 
 export default AdminSettings;
-

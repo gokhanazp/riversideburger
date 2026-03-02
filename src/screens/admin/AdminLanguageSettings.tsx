@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
+import { Colors, Shadows } from '../../constants/theme';
 import Toast from 'react-native-toast-message';
 import {
   getAppSettings,
@@ -19,15 +21,16 @@ import {
   COUNTRIES,
 } from '../../services/appSettingsService';
 
-// Dil ve Para Birimi Yönetimi Ekranı (Language and Currency Management Screen)
 const AdminLanguageSettings = ({ navigation }: any) => {
-  const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<AppCountry>('canada');
 
-  // Ayarları yükle (Load settings)
+  useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -38,7 +41,6 @@ const AdminLanguageSettings = ({ navigation }: any) => {
       const settings = await getAppSettings();
       setSelectedCountry(settings.country);
     } catch (error) {
-      console.error('Error loading settings:', error);
       Toast.show({
         type: 'error',
         text1: t('admin.error'),
@@ -49,42 +51,34 @@ const AdminLanguageSettings = ({ navigation }: any) => {
     }
   };
 
-  // Ülke değiştir (Change country)
   const handleCountryChange = async (country: AppCountry) => {
+    if (country === selectedCountry) return;
     try {
       setSaving(true);
       const success = await updateAppCountry(country);
-
       if (success) {
         setSelectedCountry(country);
         const countryInfo = COUNTRIES[country];
         Toast.show({
           type: 'success',
           text1: t('admin.languageSettings.success'),
-          text2: `${t('admin.languageSettings.settingsUpdated', {
+          text2: t('admin.languageSettings.settingsUpdated', {
             country: countryInfo.name,
             language: countryInfo.language.toUpperCase(),
-            currency: countryInfo.currency
-          })}`,
+            currency: countryInfo.currency,
+          }),
         });
       } else {
-        Toast.show({
-          type: 'error',
-          text1: t('admin.error'),
-          text2: t('admin.languageSettings.errorUpdating'),
-        });
+        Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.languageSettings.errorUpdating') });
       }
-    } catch (error) {
-      console.error('Error updating country:', error);
-      Toast.show({
-        type: 'error',
-        text1: t('admin.error'),
-        text2: t('admin.languageSettings.errorGeneral'),
-      });
+    } catch {
+      Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.languageSettings.errorGeneral') });
     } finally {
       setSaving(false);
     }
   };
+
+  const currentCountry = COUNTRIES[selectedCountry];
 
   if (loading) {
     return (
@@ -97,113 +91,142 @@ const AdminLanguageSettings = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#FFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('admin.languageSettings.headerTitle')}</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <StatusBar barStyle="light-content" />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Açıklama (Description) */}
-        <View style={styles.infoCard}>
-          <Ionicons name="information-circle" size={24} color={Colors.primary} />
-          <Text style={styles.infoText}>
-            {t('admin.languageSettings.infoText')}
+      {/* ── Header ── */}
+      <LinearGradient colors={['#1a1a1a', '#333333']} style={styles.header}>
+        <View style={styles.breadcrumb}>
+          <Text style={styles.breadText}>Admin</Text>
+          <Ionicons name="chevron-forward" size={10} color="rgba(255,255,255,0.3)" />
+          <Text style={[styles.breadText, styles.breadActive]}>
+            {t('admin.languageSettingsMenu')}
           </Text>
         </View>
+        <View style={styles.headerTop}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+            <Ionicons name="arrow-back" size={22} color="#FFF" />
+          </TouchableOpacity>
+          <View style={styles.headerTitles}>
+            <Text style={styles.headerTitle}>{t('admin.languageSettingsMenu')}</Text>
+            <Text style={styles.headerSubtitle}>{t('admin.languageSettings.infoText')}</Text>
+          </View>
+          {/* Active country flag badge */}
+          <View style={styles.flagBadge}>
+            <Text style={styles.flagEmoji}>{currentCountry.flag}</Text>
+          </View>
+        </View>
+      </LinearGradient>
 
-        {/* Ülke Seçimi (Country Selection) */}
-        <Text style={styles.sectionTitle}>{t('admin.languageSettings.sectionTitle')}</Text>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {/* ── Section label ── */}
+        <Animated.View entering={FadeInDown.delay(50).springify()}>
+          <Text style={styles.sectionLabel}>{t('admin.languageSettings.sectionTitle')}</Text>
+        </Animated.View>
 
-        {/* Türkiye */}
-        <TouchableOpacity
-          style={[
-            styles.countryCard,
-            selectedCountry === 'turkey' && styles.countryCardActive,
-          ]}
-          onPress={() => handleCountryChange('turkey')}
-          disabled={saving}
-          activeOpacity={0.7}
-        >
-          <View style={styles.countryLeft}>
-            <Text style={styles.countryFlag}>{COUNTRIES.turkey.flag}</Text>
-            <View>
-              <Text style={styles.countryName}>{COUNTRIES.turkey.name}</Text>
-              <Text style={styles.countryDetails}>
-                {t('admin.languageSettings.turkeyLanguage')}
+        {/* ── Country Cards ── */}
+        {(Object.entries(COUNTRIES) as [AppCountry, typeof COUNTRIES[AppCountry]][]).map(
+          ([key, info], index) => {
+            const isActive = selectedCountry === key;
+            return (
+              <Animated.View key={key} entering={FadeInDown.delay(100 + index * 80).springify()}>
+                <TouchableOpacity
+                  style={[styles.countryCard, isActive && styles.countryCardActive]}
+                  onPress={() => handleCountryChange(key)}
+                  disabled={saving}
+                  activeOpacity={0.75}
+                >
+                  <View style={styles.cardLeft}>
+                    <View style={[styles.flagCircle, isActive && styles.flagCircleActive]}>
+                      <Text style={styles.flagLarge}>{info.flag}</Text>
+                    </View>
+                    <View style={styles.cardInfo}>
+                      <Text style={[styles.countryName, isActive && styles.countryNameActive]}>
+                        {info.name}
+                      </Text>
+                      <View style={styles.pillRow}>
+                        <View style={[styles.pill, isActive && styles.pillActive]}>
+                          <Ionicons name="language-outline" size={11} color={isActive ? '#FFF' : '#888'} />
+                          <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
+                            {info.language.toUpperCase()}
+                          </Text>
+                        </View>
+                        <View style={[styles.pill, isActive && styles.pillActive]}>
+                          <Ionicons name="cash-outline" size={11} color={isActive ? '#FFF' : '#888'} />
+                          <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
+                            {info.currency}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+
+                  {isActive ? (
+                    <View style={styles.checkCircle}>
+                      <Ionicons name="checkmark" size={16} color="#FFF" />
+                    </View>
+                  ) : (
+                    <View style={styles.uncheckCircle} />
+                  )}
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          }
+        )}
+
+        {/* ── Current Settings Summary ── */}
+        <Animated.View entering={FadeInUp.delay(300).springify()}>
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryHeader}>
+              <Ionicons name="information-circle-outline" size={20} color={Colors.primary} />
+              <Text style={styles.summaryTitle}>{t('admin.languageSettings.currentSettingsTitle')}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>{t('admin.languageSettings.labelCountry')}</Text>
+              <Text style={styles.summaryValue}>{currentCountry.flag} {currentCountry.name}</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>{t('admin.languageSettings.labelLanguage')}</Text>
+              <Text style={styles.summaryValue}>
+                {currentCountry.language === 'tr'
+                  ? t('admin.languageSettings.languageTurkish')
+                  : t('admin.languageSettings.languageEnglish')}
+              </Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>{t('admin.languageSettings.labelCurrency')}</Text>
+              <Text style={styles.summaryValue}>
+                {currentCountry.currency === 'TRY' ? '₺ ' : '$ '}
+                {currentCountry.currency === 'TRY'
+                  ? t('admin.languageSettings.currencyTRY')
+                  : t('admin.languageSettings.currencyCAD')}
               </Text>
             </View>
           </View>
-          {selectedCountry === 'turkey' && (
-            <Ionicons name="checkmark-circle" size={28} color={Colors.primary} />
-          )}
-        </TouchableOpacity>
+        </Animated.View>
 
-        {/* Kanada */}
-        <TouchableOpacity
-          style={[
-            styles.countryCard,
-            selectedCountry === 'canada' && styles.countryCardActive,
-          ]}
-          onPress={() => handleCountryChange('canada')}
-          disabled={saving}
-          activeOpacity={0.7}
-        >
-          <View style={styles.countryLeft}>
-            <Text style={styles.countryFlag}>{COUNTRIES.canada.flag}</Text>
-            <View>
-              <Text style={styles.countryName}>{COUNTRIES.canada.name}</Text>
-              <Text style={styles.countryDetails}>
-                {t('admin.languageSettings.canadaLanguage')}
-              </Text>
-            </View>
+        {/* ── Note ── */}
+        <Animated.View entering={FadeInUp.delay(400).springify()}>
+          <View style={styles.noteCard}>
+            <Ionicons name="alert-circle-outline" size={18} color="#FF9800" />
+            <Text style={styles.noteText}>{t('admin.languageSettings.noteText')}</Text>
           </View>
-          {selectedCountry === 'canada' && (
-            <Ionicons name="checkmark-circle" size={28} color={Colors.primary} />
-          )}
-        </TouchableOpacity>
+        </Animated.View>
 
-        {/* Mevcut Ayarlar (Current Settings) */}
-        <View style={styles.currentSettingsCard}>
-          <Text style={styles.currentSettingsTitle}>{t('admin.languageSettings.currentSettingsTitle')}</Text>
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>{t('admin.languageSettings.labelCountry')}</Text>
-            <Text style={styles.settingValue}>
-              {COUNTRIES[selectedCountry].flag} {COUNTRIES[selectedCountry].name}
-            </Text>
-          </View>
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>{t('admin.languageSettings.labelLanguage')}</Text>
-            <Text style={styles.settingValue}>
-              {COUNTRIES[selectedCountry].language === 'tr' ? t('admin.languageSettings.languageTurkish') : t('admin.languageSettings.languageEnglish')}
-            </Text>
-          </View>
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>{t('admin.languageSettings.labelCurrency')}</Text>
-            <Text style={styles.settingValue}>
-              {COUNTRIES[selectedCountry].currency === 'TRY' ? '₺ ' : '$ '}{COUNTRIES[selectedCountry].currency === 'TRY' ? t('admin.languageSettings.currencyTRY') : t('admin.languageSettings.currencyCAD')}
-            </Text>
-          </View>
-        </View>
-
-        {/* Not (Note) */}
-        <View style={styles.noteCard}>
-          <Ionicons name="alert-circle-outline" size={20} color="#FF9800" />
-          <Text style={styles.noteText}>
-            {t('admin.languageSettings.noteText')}
-          </Text>
-        </View>
+        <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Loading Overlay */}
+      {/* ── Saving Overlay ── */}
       {saving && (
-        <View style={styles.savingOverlay}>
-          <View style={styles.savingCard}>
+        <View style={styles.overlay}>
+          <View style={styles.overlayCard}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.savingText}>Kaydediliyor...</Text>
+            <Text style={styles.overlayText}>{t('admin.settings.saving')}</Text>
           </View>
         </View>
       )}
@@ -212,164 +235,75 @@ const AdminLanguageSettings = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-  },
-  loadingText: {
-    marginTop: Spacing.md,
-    fontSize: FontSizes.md,
-    color: '#666',
-  },
+  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA' },
+  loadingText: { marginTop: 12, fontSize: 14, color: '#888', fontWeight: '600' },
+
+  /* Header */
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-    backgroundColor: Colors.primary,
+    paddingTop: 54,
+    paddingBottom: 28,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    ...Shadows.medium,
   },
-  backButton: {
-    padding: Spacing.xs,
-  },
-  headerTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  content: {
-    flex: 1,
-    padding: Spacing.md,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    backgroundColor: Colors.primary + '10',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: FontSizes.sm,
-    color: Colors.text,
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: Spacing.md,
-  },
+  breadcrumb: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14, opacity: 0.8 },
+  breadText: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.5 },
+  breadActive: { color: '#FFF', opacity: 1 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
+  headerTitles: { flex: 1 },
+  headerTitle: { fontSize: 22, fontWeight: '900', color: '#FFF' },
+  headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: '500', marginTop: 3, lineHeight: 16 },
+  flagBadge: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
+  flagEmoji: { fontSize: 24 },
+
+  /* Content */
+  content: { flex: 1 },
+  contentContainer: { padding: 20, gap: 14 },
+
+  sectionLabel: { fontSize: 11, fontWeight: '800', color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
+
+  /* Country Card */
   countryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.white,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.md,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-    ...Shadows.small,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#FFF', borderRadius: 20, padding: 18,
+    borderWidth: 2, borderColor: 'transparent', ...Shadows.small,
   },
-  countryCardActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '05',
-  },
-  countryLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  countryFlag: {
-    fontSize: 40,
-  },
-  countryName: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  countryDetails: {
-    fontSize: FontSizes.sm,
-    color: '#666',
-  },
-  currentSettingsCard: {
-    backgroundColor: Colors.white,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.md,
-    ...Shadows.small,
-  },
-  currentSettingsTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: Spacing.md,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  settingLabel: {
-    fontSize: FontSizes.md,
-    color: '#666',
-  },
-  settingValue: {
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  noteCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF3E0',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.sm,
-    marginBottom: Spacing.xl,
-  },
-  noteText: {
-    flex: 1,
-    fontSize: FontSizes.sm,
-    color: '#666',
-    lineHeight: 20,
-  },
-  savingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  savingCard: {
-    backgroundColor: Colors.white,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-    ...Shadows.large,
-  },
-  savingText: {
-    marginTop: Spacing.md,
-    fontSize: FontSizes.md,
-    color: Colors.text,
-    fontWeight: '600',
-  },
+  countryCardActive: { borderColor: Colors.primary, backgroundColor: Colors.primary + '06' },
+  cardLeft: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
+  flagCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center' },
+  flagCircleActive: { backgroundColor: Colors.primary + '15' },
+  flagLarge: { fontSize: 32 },
+  cardInfo: { flex: 1, gap: 6 },
+  countryName: { fontSize: 16, fontWeight: '800', color: '#222' },
+  countryNameActive: { color: Colors.primary },
+  pillRow: { flexDirection: 'row', gap: 8 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F0F0F0', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+  pillActive: { backgroundColor: Colors.primary },
+  pillText: { fontSize: 11, fontWeight: '700', color: '#888' },
+  pillTextActive: { color: '#FFF' },
+  checkCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
+  uncheckCircle: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: '#DDD' },
+
+  /* Summary */
+  summaryCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 20, ...Shadows.small },
+  summaryHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  summaryTitle: { fontSize: 15, fontWeight: '800', color: '#222' },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
+  summaryLabel: { fontSize: 13, color: '#888', fontWeight: '600' },
+  summaryValue: { fontSize: 14, fontWeight: '800', color: '#222' },
+  divider: { height: 1, backgroundColor: '#F0F0F0' },
+
+  /* Note */
+  noteCard: { flexDirection: 'row', backgroundColor: '#FFF8E1', borderRadius: 16, padding: 16, gap: 10, alignItems: 'flex-start' },
+  noteText: { flex: 1, fontSize: 12, color: '#795548', lineHeight: 18, fontWeight: '500' },
+
+  /* Overlay */
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
+  overlayCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 32, alignItems: 'center', gap: 14, ...Shadows.large },
+  overlayText: { fontSize: 15, fontWeight: '700', color: '#333' },
 });
 
 export default AdminLanguageSettings;
-

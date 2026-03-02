@@ -9,6 +9,8 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
@@ -265,7 +267,7 @@ const AddressListScreen = ({ navigation }: any) => {
           setShowDeleteModal(false);
           setAddressToDelete(null);
         }}
-        confirmButtonColor="#DC3545"
+        type="danger"
       />
     </View>
   );

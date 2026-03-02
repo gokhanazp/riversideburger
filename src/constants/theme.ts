@@ -33,6 +33,10 @@ export const Colors = {
   // Temel renkler (Base colors)
   white: '#FFFFFF',
   black: '#000000',
+  lightGray: '#F5F5F5',
+
+  // UI Elements
+  card: '#F8F9FA', // Kartlar için yüzey rengi (Surface color for cards)
 
   // Gradient renkler (Gradient colors)
   gradientStart: '#E63946',
@@ -63,9 +67,11 @@ export const FontSizes = {
 export const BorderRadius = {
   sm: 4,
   md: 8,
+  medium: 8,
   lg: 12,
   xl: 16,
   round: 999,
+  full: 999,
 };
 
 // Gölge stilleri (Shadow styles)

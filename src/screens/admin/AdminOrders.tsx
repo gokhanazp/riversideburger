@@ -11,13 +11,16 @@ import {
   ScrollView,
   Alert,
   Platform,
+  Dimensions,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
 import { Order, OrderStatus } from '../../types/database.types';
 import Toast from 'react-native-toast-message';
-import ConfirmModal from '../../components/ConfirmModal';
 import * as Print from 'expo-print';
 import { shareAsync } from 'expo-sharing';
 import { useTranslation } from 'react-i18next';
@@ -25,7 +28,9 @@ import { sendLocalNotification } from '../../services/notificationService';
 import * as Notifications from 'expo-notifications';
 import { formatPrice } from '../../services/currencyService';
 
-// Sipariş durumu renkleri (Order status colors)
+const { width } = Dimensions.get('window');
+
+// Sipariş durumu renkleri (Order status colors) - Elite Palette
 const STATUS_COLORS: Record<OrderStatus, string> = {
   pending: '#FFC107',
   confirmed: '#17A2B8',
@@ -36,27 +41,16 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   cancelled: '#DC3545',
 };
 
-// Admin Siparişler Ekranı (Admin Orders Screen)
 const AdminOrders = ({ navigation, route }: any) => {
   const { t, i18n } = useTranslation();
   const filterParam = route?.params?.filter;
 
-  // Sayfa başlığını ayarla (Set page title)
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: t('admin.screenTitles.orderManagement'),
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={sendTestNotification}
-          style={{ marginRight: 15 }}
-        >
-          <Ionicons name="notifications-outline" size={24} color={Colors.primary} />
-        </TouchableOpacity>
-      ),
+      headerShown: false,
     });
-  }, [navigation, t, i18n.language]);
+  }, [navigation]);
 
-  // Sipariş durumu isimleri (Order status names) - Çeviri ile
   const STATUS_NAMES: Record<OrderStatus, string> = {
     pending: t('admin.orders.statusPending'),
     confirmed: t('admin.orders.statusConfirmed'),
@@ -67,7 +61,6 @@ const AdminOrders = ({ navigation, route }: any) => {
     cancelled: t('admin.orders.statusCancelled'),
   };
 
-  // State'ler (States)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -76,758 +69,353 @@ const AdminOrders = ({ navigation, route }: any) => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>(filterParam || 'all');
 
-  // Sayfa yüklendiğinde siparişleri getir (Fetch orders on page load)
   useEffect(() => {
     fetchOrders();
   }, [filterStatus]);
 
-  // Real-time subscription: Yeni sipariş geldiğinde bildirim göster
-  // Real-time subscription: Show notification when new order arrives
   useEffect(() => {
-    console.log('🔔 Setting up real-time order subscription...');
-
-    // Yeni siparişleri dinle (Subscribe to new orders)
     const channel = supabase
       .channel('admin-new-orders')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'orders',
-        },
+        { event: 'INSERT', schema: 'public', table: 'orders' },
         async (payload) => {
-          console.log('🔔 New order received:', payload.new);
-
-          // Sipariş detaylarını al (Get order details)
-          const { data: orderData, error } = await supabase
+          const { data: orderData } = await supabase
             .from('orders')
-            .select(`
-              *,
-              user:users(email, full_name, phone)
-            `)
+            .select('*, user:users(email, full_name, phone)')
             .eq('id', payload.new.id)
             .single();
 
-          if (error) {
-            console.error('Error fetching new order:', error);
-            return;
-          }
-
-          // Yerel bildirim gönder (Send local notification) - Sadece mobil cihazlarda
-          // Özel admin kanalı ve maksimum öncelik ile
-          // (Send with special admin channel and maximum priority)
-          if (Platform.OS !== 'web') {
-            const customerName = (orderData as any).user?.full_name || 'Müşteri';
-            const total = orderData.total_amount;
-
-            console.log('📱 Yerel bildirim gönderiliyor...', {
-              platform: Platform.OS,
-              customerName,
-              total,
-              orderId: orderData.id,
-            });
-
-            try {
+          if (orderData) {
+            if (Platform.OS !== 'web') {
+              const customerName = (orderData as any).user?.full_name || 'Müşteri';
               await sendLocalNotification(
                 '🔔 YENİ SİPARİŞ!',
-                `${customerName} - ${formatPrice(total)}`,
+                `${customerName} - ${formatPrice(orderData.total_amount)}`,
                 { orderId: orderData.id, type: 'new_order_admin' },
-                'admin_orders', // Özel admin kanalı (Special admin channel)
-                Notifications.AndroidNotificationPriority.MAX, // Maksimum öncelik (Maximum priority)
-                'order-sound.mp3' // Özel sipariş sesi (Custom order sound)
+                'admin_orders',
+                Notifications.AndroidNotificationPriority.MAX,
+                'order-sound.mp3'
               );
-              console.log('✅ Yerel bildirim başarıyla gönderildi (özel ses ile)');
-            } catch (error) {
-              console.error('❌ Yerel bildirim hatası:', error);
             }
-          } else {
-            console.log('ℹ️ Web platformunda yerel bildirim desteklenmiyor');
+            Toast.show({
+              type: 'success',
+              text1: '🔔 Yeni Sipariş!',
+              text2: `${(orderData as any).user?.full_name || 'Müşteri'} - ${formatPrice(orderData.total_amount)}`,
+            });
+            fetchOrders();
           }
-
-          // Toast göster (Show toast)
-          Toast.show({
-            type: 'success',
-            text1: '🔔 Yeni Sipariş!',
-            text2: `${(orderData as any).user?.full_name || 'Müşteri'} - ${formatPrice(orderData.total_amount)}`,
-            visibilityTime: 5000,
-            autoHide: true,
-          });
-
-          // Listeyi yenile (Refresh list)
-          fetchOrders();
         }
       )
       .subscribe();
 
-    // Cleanup
     return () => {
-      console.log('🔔 Cleaning up real-time order subscription...');
       supabase.removeChannel(channel);
     };
   }, []);
 
-  // Siparişleri getir (Fetch orders)
   const fetchOrders = async () => {
     try {
       setLoading(true);
-
-      let query = supabase
-        .from('orders')
-        .select(`
-          *,
-          user:users(email, full_name, phone),
-          order_items(
-            *,
-            product:products(name, image_url)
-          ),
-          order_item_customizations(
-            *
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      // Filtre uygula (Apply filter)
-      if (filterStatus !== 'all') {
-        query = query.eq('status', filterStatus);
-      }
-
+      let query = supabase.from('orders').select('*, user:users(email, full_name, phone), order_items(*, product:products(name, image_url)), order_item_customizations(*)').order('created_at', { ascending: false });
+      if (filterStatus !== 'all') query = query.eq('status', filterStatus);
       const { data, error } = await query;
-
       if (error) throw error;
       setOrders(data || []);
     } catch (error: any) {
-      console.error('Error fetching orders:', error);
-      Toast.show({
-        type: 'error',
-        text1: t('admin.error'),
-        text2: t('admin.orders.errorLoading'),
-      });
+      Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.orders.errorLoading') });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Yenileme (Refresh)
   const onRefresh = () => {
     setRefreshing(true);
     fetchOrders();
   };
 
-  // Test bildirimi gönder (Send test notification) - DEBUG
-  const sendTestNotification = async () => {
-    try {
-      console.log('🧪 Test bildirimi gönderiliyor...');
-
-      // İzinleri kontrol et (Check permissions)
-      const { status } = await Notifications.getPermissionsAsync();
-      console.log('📋 Bildirim izin durumu:', status);
-
-      if (status !== 'granted') {
-        Alert.alert(
-          'Bildirim İzni Gerekli',
-          'Bildirim göndermek için izin vermeniz gerekiyor.',
-          [
-            { text: 'İptal', style: 'cancel' },
-            {
-              text: 'İzin Ver',
-              onPress: async () => {
-                const { status: newStatus } = await Notifications.requestPermissionsAsync();
-                console.log('📋 Yeni izin durumu:', newStatus);
-              },
-            },
-          ]
-        );
-        return;
-      }
-
-      // Test bildirimi gönder (Send test notification)
-      await sendLocalNotification(
-        '🧪 Test Bildirimi',
-        'Bu bir test bildirimidir. Eğer bunu görüyorsanız, bildirimler çalışıyor! 🎉',
-        { type: 'test', timestamp: new Date().toISOString() },
-        'admin_orders',
-        Notifications.AndroidNotificationPriority.MAX
-      );
-
-      Toast.show({
-        type: 'success',
-        text1: '✅ Test Bildirimi Gönderildi',
-        text2: 'Bildirim çalışıyorsa görmelisiniz',
-        visibilityTime: 3000,
-      });
-    } catch (error) {
-      console.error('❌ Test bildirimi hatası:', error);
-      Alert.alert('Hata', 'Test bildirimi gönderilemedi: ' + error);
-    }
-  };
-
-  // Sipariş yazdır (Print order)
   const handlePrintOrder = async (order: Order) => {
     try {
-      // Özelleştirmeleri al (Get customizations)
-      const allCustomizations = (order as any).order_item_customizations || [];
-
-      // Para birimi sembolünü al (Get currency symbol)
       const { getCurrencyInfo } = await import('../../services/currencyService');
-      const currencyInfo = getCurrencyInfo();
-      const currencySymbol = currencyInfo.symbol;
+      const currencySymbol = getCurrencyInfo().symbol;
 
-      // HTML içeriği oluştur (Create HTML content)
       const html = `
         <!DOCTYPE html>
         <html>
           <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Sipariş Fişi - ${order.order_number}</title>
             <style>
-              * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-              }
-              body {
-                font-family: 'Courier New', monospace;
-                padding: 20px;
-                max-width: 80mm;
-                margin: 0 auto;
-                font-size: 12px;
-                line-height: 1.4;
-              }
-              .header {
-                text-align: center;
-                margin-bottom: 20px;
-                border-bottom: 2px dashed #000;
-                padding-bottom: 15px;
-              }
-              .restaurant-name {
-                font-size: 20px;
-                font-weight: bold;
-                margin-bottom: 5px;
-              }
-              .order-number {
-                font-size: 16px;
-                font-weight: bold;
-                margin: 10px 0;
-              }
-              .section {
-                margin: 15px 0;
-                padding: 10px 0;
-                border-bottom: 1px dashed #000;
-              }
-              .section-title {
-                font-weight: bold;
-                font-size: 14px;
-                margin-bottom: 8px;
-                text-transform: uppercase;
-              }
-              .info-row {
-                display: flex;
-                justify-content: space-between;
-                margin: 5px 0;
-              }
-              .label {
-                font-weight: bold;
-              }
-              .product-item {
-                margin: 10px 0;
-                padding: 8px 0;
-                border-bottom: 1px dotted #ccc;
-              }
-              .product-header {
-                display: flex;
-                justify-content: space-between;
-                font-weight: bold;
-                margin-bottom: 5px;
-              }
-              .customization {
-                margin-left: 15px;
-                font-size: 11px;
-                color: #333;
-                margin-top: 3px;
-              }
-              .total {
-                margin-top: 15px;
-                padding-top: 10px;
-                border-top: 2px solid #000;
-              }
-              .total-row {
-                display: flex;
-                justify-content: space-between;
-                font-size: 16px;
-                font-weight: bold;
-                margin: 5px 0;
-              }
-              .status-badge {
-                display: inline-block;
-                padding: 5px 10px;
-                border-radius: 5px;
-                font-weight: bold;
-                margin: 5px 0;
-              }
-              .footer {
-                text-align: center;
-                margin-top: 20px;
-                padding-top: 15px;
-                border-top: 2px dashed #000;
-                font-size: 11px;
-              }
-              @media print {
-                body {
-                  padding: 10px;
-                }
-              }
+              body { font-family: 'Courier New', monospace; padding: 20px; max-width: 80mm; margin: 0 auto; font-size: 12px; line-height: 1.4; }
+              .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #000; padding-bottom: 15px; }
+              .order-number { font-size: 16px; font-weight: bold; margin: 10px 0; }
+              .section { margin: 15px 0; padding: 10px 0; border-bottom: 1px dashed #000; }
+              .info-row { display: flex; justify-content: space-between; margin: 5px 0; }
+              .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin: 10px 0; }
             </style>
           </head>
           <body>
-            <!-- Başlık (Header) -->
             <div class="header">
-              <div class="restaurant-name">🍔 RIVERSIDE BURGERS</div>
-              <div style="font-size: 11px; margin-top: 5px;">Toronto, Canada</div>
-              <div class="order-number">SİPARİŞ #${order.order_number}</div>
-              <div style="font-size: 11px; margin-top: 5px;">
-                ${new Date(order.created_at).toLocaleDateString('tr-TR', {
-                  day: '2-digit',
-                  month: 'long',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </div>
+              <div style="font-size: 20px; font-weight: bold;">🍔 RIVERSIDE BURGERS</div>
+              <div class="order-number">ORDER #${order.order_number}</div>
+              <div>${new Date(order.created_at).toLocaleString()}</div>
             </div>
-
-            <!-- Müşteri Bilgileri (Customer Info) -->
             <div class="section">
-              <div class="section-title">👤 Müşteri Bilgileri</div>
-              <div class="info-row">
-                <span class="label">Ad:</span>
-                <span>${order.user?.full_name || 'Misafir'}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Telefon:</span>
-                <span>${order.phone || order.user?.phone || '-'}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Email:</span>
-                <span>${order.user?.email || '-'}</span>
-              </div>
+              <div class="info-row"><b>Customer:</b> <span>${order.user?.full_name || 'Guest'}</span></div>
+              <div class="info-row"><b>Phone:</b> <span>${order.phone || order.user?.phone || '-'}</span></div>
+              <div><b>Address:</b><br/>${order.delivery_address}</div>
             </div>
-
-            <!-- Teslimat Adresi (Delivery Address) -->
             <div class="section">
-              <div class="section-title">📍 Teslimat Adresi</div>
-              <div style="margin-top: 5px;">${order.delivery_address}</div>
-            </div>
-
-            <!-- Ürünler (Products) -->
-            <div class="section">
-              <div class="section-title">🍽️ Sipariş Detayları</div>
-              ${order.order_items?.map((item) => {
-                const customizations = allCustomizations.filter(
-                  (c: any) => c.product_id === item.product_id
-                );
-                const customizationsHtml = customizations.map((custom: any) =>
-                  `<div class="customization">• ${custom.option_name}${custom.option_price > 0 ? ` (+${currencySymbol}${custom.option_price.toFixed(2)})` : ''}</div>`
-                ).join('');
-
-                return `
-                  <div class="product-item">
-                    <div class="product-header">
-                      <span>${item.quantity}x ${item.product?.name || 'Ürün'}</span>
-                      <span>${currencySymbol}${item.subtotal.toFixed(2)}</span>
-                    </div>
-                    ${customizationsHtml}
-                  </div>
-                `;
-              }).join('')}
-            </div>
-
-            <!-- Özel Notlar (Special Notes) -->
-            ${order.notes ? `
-              <div class="section">
-                <div class="section-title">📝 Özel Notlar</div>
-                <div style="margin-top: 5px;">${order.notes}</div>
-              </div>
-            ` : ''}
-
-            <!-- Toplam (Total) -->
-            <div class="total">
-              <div class="total-row">
-                <span>TOPLAM:</span>
-                <span>${currencySymbol}${order.total_amount.toFixed(2)}</span>
-              </div>
-              ${order.points_used > 0 ? `
-                <div style="font-size: 12px; color: #28A745; margin-top: 5px;">
-                  ✓ ${order.points_used} puan kullanıldı
+              ${order.order_items?.map(item => `
+                <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                  <span>${item.quantity}x ${item.product?.name}</span>
+                  <span>${currencySymbol}${item.subtotal.toFixed(2)}</span>
                 </div>
-              ` : ''}
+              `).join('')}
             </div>
-
-            <!-- Durum (Status) -->
-            <div class="section">
-              <div class="section-title">📊 Sipariş Durumu</div>
-              <div class="status-badge" style="background-color: ${STATUS_COLORS[order.status]}; color: white;">
-                ${STATUS_NAMES[order.status]}
-              </div>
-            </div>
-
-            <!-- Alt Bilgi (Footer) -->
-            <div class="footer">
-              <div style="font-weight: bold; margin-bottom: 5px;">Afiyet Olsun! 🍔</div>
-              <div>Riverside Burgers</div>
-              <div>www.riversideburgers.com</div>
-            </div>
+            <div class="total-row"><span>TOTAL:</span> <span>${currencySymbol}${order.total_amount.toFixed(2)}</span></div>
           </body>
         </html>
       `;
-
-      // PDF oluştur (Create PDF)
       const { uri } = await Print.printToFileAsync({ html });
-
-      // Paylaş veya yazdır (Share or print)
       await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
-
-      Toast.show({
-        type: 'success',
-        text1: t('admin.orders.success'),
-        text2: t('admin.orders.printSuccess'),
-      });
-    } catch (error: any) {
-      console.error('Error printing order:', error);
+    } catch (error) {
       Alert.alert(t('admin.error'), t('admin.orders.printError'));
     }
   };
 
-  // Sipariş durumunu güncelle (Update order status)
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('id', orderId);
-
+      const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
       if (error) throw error;
-
-      Toast.show({
-        type: 'success',
-        text1: t('admin.orders.success'),
-        text2: t('admin.orders.statusUpdated'),
-      });
-
+      Toast.show({ type: 'success', text1: t('admin.orders.success'), text2: t('admin.orders.statusUpdated') });
       setShowStatusModal(false);
       fetchOrders();
-    } catch (error: any) {
-      console.error('Error updating order status:', error);
-      Toast.show({
-        type: 'error',
-        text1: t('admin.error'),
-        text2: t('admin.orders.errorUpdating'),
-      });
+    } catch (error) {
+      Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.orders.errorUpdating') });
     }
   };
 
-  // Sipariş kartı (Order card)
-  const OrderCard = ({ order }: { order: Order }) => {
+  const OrderCard = ({ order, index }: { order: Order, index: number }) => {
     const statusColor = STATUS_COLORS[order.status];
-    const statusName = STATUS_NAMES[order.status];
-
     return (
-      <TouchableOpacity
+      <Animated.View 
+        entering={FadeInDown.delay(index * 50).springify()}
+        layout={Layout.springify()}
         style={styles.orderCard}
-        onPress={() => {
-          setSelectedOrder(order);
-          setShowDetailsModal(true);
-        }}
-        activeOpacity={0.7}
       >
-        {/* Üst kısım - Sipariş numarası ve durum (Top - Order number and status) */}
-        <View style={styles.orderHeader}>
-          <View style={styles.orderNumberContainer}>
-            <Ionicons name="receipt" size={20} color={Colors.primary} />
-            <Text style={styles.orderNumber}>#{order.order_number}</Text>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
-            <Text style={[styles.statusText, { color: statusColor }]}>{statusName}</Text>
-          </View>
-        </View>
-
-        {/* Müşteri bilgileri (Customer info) */}
-        <View style={styles.customerInfo}>
-          <Ionicons name="person" size={16} color="#666" />
-          <Text style={styles.customerText}>{order.user?.full_name || order.user?.email || t('admin.orders.guest')}</Text>
-        </View>
-
-        {/* Adres (Address) */}
-        <View style={styles.addressInfo}>
-          <Ionicons name="location" size={16} color="#666" />
-          <Text style={styles.addressText} numberOfLines={1}>
-            {order.delivery_address}
-          </Text>
-        </View>
-
-        {/* Alt kısım - Tutar ve tarih (Bottom - Amount and date) */}
-        <View style={styles.orderFooter}>
-          <Text style={styles.orderAmount}>{formatPrice(order.total_amount)}</Text>
-          <Text style={styles.orderDate}>
-            {new Date(order.created_at).toLocaleDateString('tr-TR', {
-              day: '2-digit',
-              month: 'short',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </Text>
-        </View>
-
-        {/* Durum değiştir butonu (Change status button) */}
-        <TouchableOpacity
-          style={styles.changeStatusButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            setSelectedOrder(order);
-            setShowStatusModal(true);
-          }}
-          activeOpacity={0.7}
+        <TouchableOpacity 
+          onPress={() => { setSelectedOrder(order); setShowDetailsModal(true); }}
+          activeOpacity={0.8}
         >
-          <Ionicons name="create" size={16} color={Colors.primary} />
-          <Text style={styles.changeStatusText}>{t('admin.orders.changeStatus')}</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.orderIdent}>
+              <View style={[styles.idCircle, { backgroundColor: statusColor + '15' }]}>
+                <Ionicons name="receipt" size={16} color={statusColor} />
+              </View>
+              <Text style={styles.cardOrderNo}>#{order.order_number}</Text>
+            </View>
+            <View style={[styles.statusTag, { backgroundColor: statusColor + '10' }]}>
+                <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+                <Text style={[styles.statusTagText, { color: statusColor }]}>{STATUS_NAMES[order.status]}</Text>
+            </View>
+          </View>
+
+          <View style={styles.cardBody}>
+            <View style={styles.customerLine}>
+                <Ionicons name="person-outline" size={14} color="#666" />
+                <Text style={styles.customerName}>{order.user?.full_name || order.user?.email || t('admin.orders.guest')}</Text>
+            </View>
+            <View style={styles.addressLine}>
+                <Ionicons name="location-outline" size={14} color="#888" />
+                <Text style={styles.addressText} numberOfLines={1}>{order.delivery_address}</Text>
+            </View>
+          </View>
+
+          <View style={styles.cardFooter}>
+            <View>
+                <Text style={styles.cardDate}>
+                {new Date(order.created_at).toLocaleDateString(i18n.language === 'tr' ? 'tr-TR' : 'en-US', {
+                    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                })}
+                </Text>
+                <Text style={styles.cardPrice}>{formatPrice(order.total_amount)}</Text>
+            </View>
+            <TouchableOpacity 
+                style={styles.actionBtnIcon}
+                onPress={(e) => { e.stopPropagation(); setSelectedOrder(order); setShowStatusModal(true); }}
+            >
+                <LinearGradient colors={[Colors.primary, Colors.primary + 'CC']} style={styles.btnGradient}>
+                    <Ionicons name="create-outline" size={16} color={Colors.white} />
+                    <Text style={styles.btnTextSmall}>{t('common.status').toUpperCase()}</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </TouchableOpacity>
-      </TouchableOpacity>
+      </Animated.View>
     );
   };
 
-  // Filtre butonları (Filter buttons)
-  const FilterButton = ({ status, label }: { status: OrderStatus | 'all'; label: string }) => (
+  const FilterItem = ({ status, label, icon }: { status: OrderStatus | 'all', label: string, icon: string }) => (
     <TouchableOpacity
-      style={[
-        styles.filterButton,
-        filterStatus === status && styles.filterButtonActive,
-        status !== 'all' && { borderColor: STATUS_COLORS[status as OrderStatus] },
-      ]}
+      style={[styles.filterItem, filterStatus === status && styles.filterItemActive]}
       onPress={() => setFilterStatus(status)}
-      activeOpacity={0.7}
     >
-      <Text
-        style={[
-          styles.filterButtonText,
-          filterStatus === status && styles.filterButtonTextActive,
-          filterStatus === status && status !== 'all' && { color: STATUS_COLORS[status as OrderStatus] },
-        ]}
-      >
-        {label}
-      </Text>
+      <Ionicons 
+        name={icon as any} 
+        size={18} 
+        color={filterStatus === status ? Colors.white : Colors.textMuted} 
+      />
+      <Text style={[styles.filterLabel, filterStatus === status && styles.filterLabelActive]}>{label}</Text>
     </TouchableOpacity>
   );
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>{t('admin.orders.loading')}</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      {/* Filtreler (Filters) */}
-      <View style={styles.filtersContainer}>
-        <FilterButton status="all" label={t('admin.orders.filterAll')} />
-        <FilterButton status="pending" label={t('admin.orders.filterPending')} />
-        <FilterButton status="confirmed" label={t('admin.orders.filterConfirmed')} />
-        <FilterButton status="preparing" label={t('admin.orders.filterPreparing')} />
-        <FilterButton status="ready" label={t('admin.orders.filterReady')} />
-        <FilterButton status="delivering" label={t('admin.orders.filterDelivering')} />
-      </View>
-
-      {/* Sipariş listesi (Orders list) */}
-      <FlatList
-        data={orders}
-        renderItem={({ item }) => <OrderCard order={item} />}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="receipt-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>{t('admin.orders.noOrders')}</Text>
-          </View>
-        }
-      />
-
-      {/* Durum değiştirme modal (Status change modal) */}
-      {showStatusModal && selectedOrder && (
-        <Modal visible={showStatusModal} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.statusModal}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{t('admin.orders.changeStatus')}</Text>
-                <TouchableOpacity onPress={() => setShowStatusModal(false)}>
-                  <Ionicons name="close" size={24} color="#333" />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={styles.modalOrderNumber}>#{selectedOrder.order_number}</Text>
-
-              <View style={styles.statusOptions}>
-                {(Object.keys(STATUS_NAMES) as OrderStatus[]).map((status) => (
-                  <TouchableOpacity
-                    key={status}
-                    style={[
-                      styles.statusOption,
-                      { borderColor: STATUS_COLORS[status] },
-                      selectedOrder.status === status && styles.statusOptionActive,
-                    ]}
-                    onPress={() => updateOrderStatus(selectedOrder.id, status)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[status] }]} />
-                    <Text style={styles.statusOptionText}>{STATUS_NAMES[status]}</Text>
-                    {selectedOrder.status === status && (
-                      <Ionicons name="checkmark-circle" size={20} color={STATUS_COLORS[status]} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={['#1a1a1a', '#333']} style={styles.header}>
+        <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+                <Ionicons name="arrow-back" size={20} color={Colors.white} />
+            </TouchableOpacity>
+            <View style={styles.headerTitleBox}>
+                <Text style={styles.headerSubtitle}>{t('admin.dashboard')}</Text>
+                <Text style={styles.headerTitle}>{t('admin.orders.title')}</Text>
             </View>
+            <TouchableOpacity style={styles.refreshCircle} onPress={onRefresh}>
+                <Ionicons name="refresh" size={18} color={Colors.white} />
+            </TouchableOpacity>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar} contentContainerStyle={styles.filterBarContent}>
+            <FilterItem status="all" label={t('admin.orders.filterAll')} icon="grid-outline" />
+            <FilterItem status="pending" label={t('admin.orders.filterPending')} icon="time-outline" />
+            <FilterItem status="confirmed" label={t('admin.orders.filterConfirmed')} icon="checkmark-done-outline" />
+            <FilterItem status="preparing" label={t('admin.orders.filterPreparing')} icon="restaurant-outline" />
+            <FilterItem status="ready" label={t('admin.orders.filterReady')} icon="bag-check-outline" />
+            <FilterItem status="delivering" label={t('admin.orders.filterDelivering')} icon="moped-outline" />
+        </ScrollView>
+      </LinearGradient>
+
+      {loading && !refreshing ? (
+          <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color={Colors.primary} />
           </View>
-        </Modal>
+      ) : (
+          <FlatList
+            data={orders}
+            renderItem={({ item, index }) => <OrderCard order={item} index={index} />}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContainer}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <Ionicons name="receipt-outline" size={64} color="#ddd" />
+                <Text style={styles.emptyText}>{t('admin.orders.noOrders')}</Text>
+              </View>
+            }
+          />
       )}
 
-      {/* Sipariş detay modal (Order details modal) */}
+      {/* Status Modal */}
+      <Modal visible={showStatusModal} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.statusSheet}>
+            <View style={styles.sheetHeader}>
+                <Text style={styles.sheetTitle}>{t('admin.orders.updateStatus')}</Text>
+                <TouchableOpacity onPress={() => setShowStatusModal(false)}>
+                    <Ionicons name="close-circle" size={28} color="#ddd" />
+                </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.sheetBody}>
+                {(Object.keys(STATUS_NAMES) as OrderStatus[]).map((status) => (
+                    <TouchableOpacity
+                        key={status}
+                        style={[styles.statusOption, selectedOrder?.status === status && { backgroundColor: STATUS_COLORS[status] + '10', borderColor: STATUS_COLORS[status] }]}
+                        onPress={() => updateOrderStatus(selectedOrder!.id, status)}
+                    >
+                        <View style={[styles.optionDot, { backgroundColor: STATUS_COLORS[status] }]} />
+                        <Text style={[styles.optionLabel, selectedOrder?.status === status && { color: STATUS_COLORS[status], fontWeight: '800' }]}>{STATUS_NAMES[status]}</Text>
+                        {selectedOrder?.status === status && <Ionicons name="checkmark-circle" size={20} color={STATUS_COLORS[status]} />}
+                    </TouchableOpacity>
+                ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Details Modal */}
       {showDetailsModal && selectedOrder && (
         <Modal visible={showDetailsModal} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <View style={styles.detailsModal}>
-              {/* Modal başlık (Modal header) */}
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{t('admin.orders.orderDetails')}</Text>
-                <TouchableOpacity
-                  onPress={() => setShowDetailsModal(false)}
-                  style={styles.closeButton}
-                >
+          <View style={styles.modalBackdrop}>
+            <View style={styles.detailsSheet}>
+              <View style={styles.detailsHeader}>
+                <View style={styles.detailsHeaderTitle}>
+                    <Text style={styles.detailsNo}>#{selectedOrder.order_number}</Text>
+                    <View style={[styles.detailsBadge, { backgroundColor: STATUS_COLORS[selectedOrder.status] + '10' }]}>
+                        <Text style={{ color: STATUS_COLORS[selectedOrder.status], fontWeight: '800', fontSize: 10 }}>{STATUS_NAMES[selectedOrder.status]}</Text>
+                    </View>
+                </View>
+                <TouchableOpacity onPress={() => setShowDetailsModal(false)} style={styles.sheetCloseBtn}>
                   <Ionicons name="close" size={24} color="#333" />
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={styles.detailsContent} showsVerticalScrollIndicator={false}>
-                {/* Sipariş numarası ve durum (Order number and status) */}
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>{t('admin.orders.orderNumber')}:</Text>
-                  <Text style={styles.detailValue}>#{selectedOrder.order_number}</Text>
+              <ScrollView style={styles.detailsScroll} showsVerticalScrollIndicator={false}>
+                <View style={styles.detailsSection}>
+                    <Text style={styles.detailsLabel}>{t('admin.orders.customerInfo')}</Text>
+                    <View style={styles.detailsInfoBox}>
+                        <View style={styles.infoRow}><Ionicons name="person" size={16} color={Colors.primary} /><Text style={styles.infoVal}>{selectedOrder.user?.full_name || t('admin.orders.guest')}</Text></View>
+                        <View style={styles.infoRow}><Ionicons name="call" size={16} color={Colors.primary} /><Text style={styles.infoVal}>{selectedOrder.phone}</Text></View>
+                        <View style={styles.infoRow}><Ionicons name="mail" size={16} color={Colors.primary} /><Text style={styles.infoVal}>{selectedOrder.user?.email || '-'}</Text></View>
+                    </View>
                 </View>
 
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>{t('admin.orders.status')}:</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[selectedOrder.status] + '20' }]}>
-                    <Text style={[styles.statusText, { color: STATUS_COLORS[selectedOrder.status] }]}>
-                      {STATUS_NAMES[selectedOrder.status]}
-                    </Text>
-                  </View>
+                <View style={styles.detailsSection}>
+                    <Text style={styles.detailsLabel}>{t('admin.orders.deliveryAddress')}</Text>
+                    <View style={styles.detailsInfoBox}>
+                        <Text style={styles.infoVal}>{selectedOrder.delivery_address}</Text>
+                    </View>
                 </View>
 
-                {/* Müşteri bilgileri (Customer info) */}
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>{t('admin.orders.customerInfo')}</Text>
-                  <Text style={styles.detailText}>👤 {selectedOrder.user?.full_name || t('admin.orders.guest')}</Text>
-                  <Text style={styles.detailText}>📧 {selectedOrder.user?.email || '-'}</Text>
-                  <Text style={styles.detailText}>📞 {selectedOrder.phone}</Text>
-                </View>
-
-                {/* Teslimat adresi (Delivery address) */}
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>{t('admin.orders.deliveryAddress')}</Text>
-                  <Text style={styles.detailText}>{selectedOrder.delivery_address}</Text>
-                </View>
-
-                {/* Ürünler (Products) */}
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>{t('admin.orders.orderItems')}</Text>
-                  {selectedOrder.order_items?.map((orderItem, index) => {
-                    // Bu ürüne ait özelleştirmeleri bul (Find customizations for this product)
-                    const allCustomizations = (selectedOrder as any).order_item_customizations || [];
-                    const customizations = allCustomizations.filter(
-                      (c: any) => c.product_id === orderItem.product_id
-                    );
-
-                    return (
-                      <View key={index} style={styles.detailProductItem}>
-                        <View style={styles.detailProductLeft}>
-                          <Text style={styles.detailProductQuantity}>{orderItem.quantity}x</Text>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.detailProductName}>{orderItem.product?.name || t('admin.orders.product')}</Text>
-                            {/* Özelleştirmeler (Customizations) */}
-                            {customizations.length > 0 && (
-                              <View style={styles.customizationsContainer}>
-                                {customizations.map((custom: any, idx: number) => (
-                                  <Text key={idx} style={styles.customizationText}>
-                                    • {custom.option_name}
-                                    {custom.option_price > 0 && ` (+${formatPrice(custom.option_price)})`}
-                                  </Text>
-                                ))}
-                              </View>
-                            )}
-                          </View>
+                <View style={styles.detailsSection}>
+                    <Text style={styles.detailsLabel}>{t('admin.orders.orderItems')}</Text>
+                    {selectedOrder.order_items?.map((it, idx) => (
+                        <View key={idx} style={styles.orderItemRow}>
+                            <View style={styles.itLeft}>
+                                <View style={styles.itQtyBox}><Text style={styles.itQty}>{it.quantity}x</Text></View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.itName}>{it.product?.name}</Text>
+                                    {(selectedOrder as any).order_item_customizations?.filter((c:any)=>c.product_id===it.product_id).map((c:any, i:number) => (
+                                        <Text key={i} style={styles.itCustom}>• {c.option_name}</Text>
+                                    ))}
+                                </View>
+                            </View>
+                            <Text style={styles.itPrice}>{formatPrice(it.subtotal)}</Text>
                         </View>
-                        <Text style={styles.detailProductPrice}>{formatPrice(orderItem.subtotal)}</Text>
-                      </View>
-                    );
-                  })}
+                    ))}
                 </View>
 
-                {/* Notlar (Notes) */}
                 {selectedOrder.notes && (
-                  <View style={styles.detailSection}>
-                    <Text style={styles.detailSectionTitle}>{t('admin.orders.specialNotes')}</Text>
-                    <Text style={styles.detailText}>{selectedOrder.notes}</Text>
-                  </View>
+                    <View style={styles.detailsSection}>
+                        <Text style={styles.detailsLabel}>{t('admin.orders.specialNotes')}</Text>
+                        <View style={styles.notesBox}><Text style={styles.notesText}>{selectedOrder.notes}</Text></View>
+                    </View>
                 )}
 
-                {/* Toplam (Total) */}
-                <View style={styles.detailTotalSection}>
-                  <Text style={styles.detailTotalLabel}>{t('admin.orders.total')}:</Text>
-                  <Text style={styles.detailTotalValue}>₺{selectedOrder.total_amount.toFixed(2)}</Text>
-                </View>
-
-                {/* Tarih (Date) */}
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>{t('admin.orders.date')}:</Text>
-                  <Text style={styles.detailValue}>
-                    {new Date(selectedOrder.created_at).toLocaleDateString('tr-TR', {
-                      day: '2-digit',
-                      month: 'long',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
+                <View style={styles.detailsTotalRow}>
+                    <Text style={styles.totalLabel}>{t('admin.orders.total')}</Text>
+                    <Text style={styles.totalVal}>{formatPrice(selectedOrder.total_amount)}</Text>
                 </View>
               </ScrollView>
 
-              {/* Alt butonlar (Bottom buttons) */}
-              <View style={styles.modalButtonsContainer}>
-                {/* Yazdır butonu (Print button) */}
-                <TouchableOpacity
-                  style={[styles.modalActionButton, styles.printButton]}
-                  onPress={() => handlePrintOrder(selectedOrder)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="print" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionButtonText}>{t('admin.orders.print')}</Text>
+              <View style={styles.detailsFooter}>
+                <TouchableOpacity style={[styles.footerBtn, styles.printBtn]} onPress={() => handlePrintOrder(selectedOrder)}>
+                    <Ionicons name="print" size={20} color={Colors.white} />
+                    <Text style={styles.footerBtnText}>{t('admin.orders.print')}</Text>
                 </TouchableOpacity>
-
-                {/* Durum değiştir butonu (Change status button) */}
-                <TouchableOpacity
-                  style={[styles.modalActionButton, styles.statusButton]}
-                  onPress={() => {
-                    setShowDetailsModal(false);
-                    setTimeout(() => setShowStatusModal(true), 300);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="create" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionButtonText}>{t('admin.orders.changeStatus')}</Text>
+                <TouchableOpacity style={[styles.footerBtn, styles.statusBtn]} onPress={() => { setShowDetailsModal(false); setTimeout(() => setShowStatusModal(true), 300); }}>
+                    <Ionicons name="create" size={20} color={Colors.white} />
+                    <Text style={styles.footerBtnText}>{t('admin.orders.changeStatus')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -839,345 +427,80 @@ const AdminOrders = ({ navigation, route }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-  },
-  loadingText: {
-    marginTop: Spacing.md,
-    fontSize: FontSizes.md,
-    color: Colors.text,
-  },
-  filtersContainer: {
-    flexDirection: 'row',
-    padding: Spacing.sm,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  filterButton: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    backgroundColor: Colors.white,
-  },
-  filterButtonActive: {
-    backgroundColor: Colors.primary + '10',
-    borderColor: Colors.primary,
-  },
-  filterButtonText: {
-    fontSize: FontSizes.sm,
-    color: '#666',
-  },
-  filterButtonTextActive: {
-    color: Colors.primary,
-    fontWeight: 'bold',
-  },
-  listContent: {
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  orderCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    ...Shadows.small,
-  },
-  orderHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  orderNumberContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  orderNumber: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  statusBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
-  },
-  statusText: {
-    fontSize: FontSizes.xs,
-    fontWeight: 'bold',
-  },
-  customerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.xs,
-  },
-  customerText: {
-    fontSize: FontSizes.sm,
-    color: '#666',
-  },
-  addressInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
-  addressText: {
-    fontSize: FontSizes.sm,
-    color: '#666',
-    flex: 1,
-  },
-  orderFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: '#EEE',
-  },
-  orderAmount: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.primary,
-  },
-  orderDate: {
-    fontSize: FontSizes.xs,
-    color: '#999',
-  },
-  changeStatusButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.primary + '10',
-  },
-  changeStatusText: {
-    fontSize: FontSizes.sm,
-    fontWeight: 'bold',
-    color: Colors.primary,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.xxl * 2,
-  },
-  emptyText: {
-    fontSize: FontSizes.md,
-    color: '#999',
-    marginTop: Spacing.md,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  statusModal: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    width: '100%',
-    maxWidth: 400,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  closeButton: {
-    padding: Spacing.xs,
-  },
-  modalTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  modalOrderNumber: {
-    fontSize: FontSizes.md,
-    color: '#666',
-    marginBottom: Spacing.lg,
-  },
-  statusOptions: {
-    gap: Spacing.sm,
-  },
-  statusOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 2,
-    backgroundColor: Colors.white,
-  },
-  statusOptionActive: {
-    backgroundColor: '#F8F9FA',
-  },
-  statusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  statusOptionText: {
-    flex: 1,
-    fontSize: FontSizes.md,
-    color: '#333',
-  },
-  detailsModal: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    maxHeight: '90%',
-    width: '100%',
-    marginTop: 'auto',
-  },
-  detailsContent: {
-    padding: Spacing.lg,
-    maxHeight: '70%',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  detailLabel: {
-    fontSize: FontSizes.md,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-  },
-  detailValue: {
-    fontSize: FontSizes.md,
-    color: Colors.text,
-    fontWeight: '600',
-  },
-  detailSection: {
-    marginTop: Spacing.lg,
-    paddingTop: Spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  detailSectionTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: Spacing.sm,
-  },
-  detailText: {
-    fontSize: FontSizes.md,
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-    lineHeight: 22,
-  },
-  detailProductItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  detailProductLeft: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    flex: 1,
-    gap: Spacing.sm,
-  },
-  detailProductQuantity: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
-    color: Colors.primary,
-    minWidth: 30,
-  },
-  detailProductName: {
-    fontSize: FontSizes.md,
-    color: Colors.text,
-    fontWeight: '600',
-  },
-  detailProductPrice: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  customizationsContainer: {
-    marginTop: 4,
-    paddingLeft: 4,
-  },
-  customizationText: {
-    fontSize: 11,
-    color: '#666',
-    fontStyle: 'italic',
-    marginTop: 2,
-  },
-  detailTotalSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Spacing.lg,
-    paddingTop: Spacing.lg,
-    borderTopWidth: 2,
-    borderTopColor: Colors.primary,
-  },
-  detailTotalLabel: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  detailTotalValue: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold',
-    color: Colors.primary,
-  },
-  modalButtonsContainer: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    padding: Spacing.lg,
-    paddingTop: Spacing.md,
-  },
-  modalActionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: Colors.primary,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    ...Shadows.medium,
-  },
-  printButton: {
-    backgroundColor: '#28A745', // Yeşil (Green)
-  },
-  statusButton: {
-    backgroundColor: Colors.primary, // Kırmızı (Red)
-  },
-  modalActionButtonText: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
-    color: Colors.white,
-  },
+  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  header: { paddingTop: 60, paddingBottom: 20, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, ...Shadows.medium },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24 },
+  backCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
+  headerTitleBox: { flex: 1, marginHorizontal: 16 },
+  headerSubtitle: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
+  headerTitle: { fontSize: 24, fontWeight: '900', color: Colors.white },
+  refreshCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  filterBar: { marginTop: 20, paddingLeft: 20 },
+  filterBarContent: { paddingRight: 40, gap: 10, paddingBottom: 15 },
+  filterItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, gap: 8 },
+  filterItemActive: { backgroundColor: Colors.primary },
+  filterLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '700' },
+  filterLabelActive: { color: Colors.white },
+  loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  listContainer: { padding: 20, gap: 16, paddingBottom: 100 },
+  orderCard: { backgroundColor: Colors.white, borderRadius: 24, padding: 16, ...Shadows.small },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  orderIdent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  idCircle: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  cardOrderNo: { fontSize: 16, fontWeight: '900', color: Colors.text },
+  statusTag: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 6 },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusTagText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+  cardBody: { marginBottom: 16, gap: 8 },
+  customerLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  customerName: { fontSize: 13, fontWeight: '600', color: '#444' },
+  addressLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  addressText: { fontSize: 12, color: '#888', flex: 1 },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f1f1f1' },
+  cardDate: { fontSize: 10, color: '#aaa', fontWeight: '600' },
+  cardPrice: { fontSize: 18, fontWeight: '900', color: Colors.primary, marginTop: 2 },
+  actionBtnIcon: { overflow: 'hidden', borderRadius: 12 },
+  btnGradient: { flexDirection: 'row', paddingHorizontal: 12, height: 36, justifyContent: 'center', alignItems: 'center', gap: 6 },
+  btnTextSmall: { color: Colors.white, fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 100, gap: 16 },
+  emptyText: { color: '#bbb', fontSize: 14, fontWeight: '600' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  statusSheet: { backgroundColor: Colors.white, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 },
+  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  sheetTitle: { fontSize: 20, fontWeight: '900', color: Colors.text },
+  sheetBody: { gap: 12 },
+  statusOption: { flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: '#eee', gap: 12, marginBottom: 10 },
+  optionDot: { width: 10, height: 10, borderRadius: 5 },
+  optionLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: '#555' },
+  detailsSheet: { backgroundColor: Colors.white, borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '90%' },
+  detailsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: '#f1f1f1' },
+  detailsHeaderTitle: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  detailsNo: { fontSize: 22, fontWeight: '900', color: Colors.text },
+  detailsBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
+  sheetCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' },
+  detailsScroll: { padding: 24 },
+  detailsSection: { marginBottom: 32 },
+  detailsLabel: { fontSize: 12, fontWeight: '800', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
+  detailsInfoBox: { gap: 12 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  infoVal: { fontSize: 15, fontWeight: '600', color: '#333' },
+  orderItemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f9f9f9' },
+  itLeft: { flexDirection: 'row', alignItems: 'flex-start', flex: 1, gap: 12 },
+  itQtyBox: { backgroundColor: Colors.primary + '10', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  itQty: { color: Colors.primary, fontWeight: '900', fontSize: 12 },
+  itName: { fontSize: 15, fontWeight: '700', color: '#444' },
+  itCustom: { fontSize: 11, color: '#888', fontStyle: 'italic', marginTop: 2 },
+  itPrice: { fontSize: 15, fontWeight: '800', color: Colors.text },
+  notesBox: { backgroundColor: '#F8F9FA', padding: 16, borderRadius: 16 },
+  notesText: { fontSize: 14, color: '#666', lineHeight: 20 },
+  detailsTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, paddingVertical: 24, borderTopWidth: 2, borderTopColor: '#f1f1f1' },
+  totalLabel: { fontSize: 18, fontWeight: '900', color: Colors.text },
+  totalVal: { fontSize: 28, fontWeight: '900', color: Colors.primary },
+  detailsFooter: { flexDirection: 'row', padding: 24, gap: 12, borderTopWidth: 1, borderTopColor: '#f1f1f1' },
+  footerBtn: { flex: 1, flexDirection: 'row', height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', gap: 8, ...Shadows.medium },
+  printBtn: { backgroundColor: '#28A745' },
+  statusBtn: { backgroundColor: Colors.primary },
+  footerBtnText: { color: Colors.white, fontSize: 14, fontWeight: '800' },
 });
 
 export default AdminOrders;
-
