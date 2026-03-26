@@ -217,7 +217,7 @@ const HomeScreen = ({ navigation }: any) => {
           </View>
           <TouchableOpacity 
             style={styles.profileCircle}
-            onPress={() => navigation.navigate('Profile')}
+            onPress={() => navigation.navigate('ProfileTab')}
           >
             <Ionicons name="person" size={20} color={Colors.white} />
           </TouchableOpacity>
