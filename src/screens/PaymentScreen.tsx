@@ -276,53 +276,62 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
             <View style={styles.cardIconWrap}>
               <Ionicons name="card" size={20} color="#FFF" />
             </View>
-            <Text style={styles.cardSectionTitle}>{t('payment.cardInformation')}</Text>
+            <View>
+              <Text style={styles.cardSectionTitle}>{t('payment.cardInformation')}</Text>
+              <Text style={styles.cardSectionSubtitle}>{t('payment.enterCardDetails')}</Text>
+            </View>
           </View>
 
-          <Text style={styles.cardSectionSubtitle}>
-            {t('payment.enterCardDetails') || 'Kart bilgilerinizi guvenle girin'}
-          </Text>
-
-          {Platform.OS !== 'web' && CardField ? (
-            <View style={styles.cardFieldWrapper}>
-              <CardField
-                postalCodeEnabled={false}
-                placeholders={{ number: '4242 4242 4242 4242' }}
-                cardStyle={{
-                  backgroundColor: '#FFFFFF',
-                  textColor: '#1A1A1A',
-                  placeholderColor: '#C0C0C0',
-                  borderColor: cardComplete ? '#28A745' : '#E8E8E8',
-                  borderWidth: 1.5,
-                  borderRadius: 14,
-                  fontSize: 16,
-                  textErrorColor: '#DC3545',
-                }}
-                style={styles.cardField}
-                onCardChange={(cardDetails: any) => setCardComplete(cardDetails.complete)}
-              />
-              {cardComplete && (
-                <View style={styles.cardCompleteIndicator}>
-                  <Ionicons name="checkmark-circle" size={22} color="#28A745" />
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.webCardPlaceholder}>
-              <Ionicons name="phone-portrait-outline" size={40} color="#CCC" />
-              <Text style={styles.webCardText}>
-                {t('payment.mobileOnly') || 'Kart girisi sadece mobil uygulamada mevcuttur'}
-              </Text>
-            </View>
-          )}
+          <View style={styles.cardFieldContainer}>
+            {Platform.OS !== 'web' && CardField ? (
+              <View style={styles.cardFieldWrapper}>
+                <CardField
+                  postalCodeEnabled={false}
+                  placeholders={{ number: '4242 4242 4242 4242' }}
+                  cardStyle={{
+                    backgroundColor: '#F8F9FA',
+                    textColor: '#1A1A1A',
+                    placeholderColor: '#B0B0B0',
+                    borderColor: cardComplete ? '#28A745' : '#DDDFE3',
+                    borderWidth: 1.5,
+                    borderRadius: 14,
+                    fontSize: 16,
+                    textErrorColor: '#DC3545',
+                  }}
+                  style={styles.cardField}
+                  onCardChange={(cardDetails: any) => setCardComplete(cardDetails.complete)}
+                />
+                {cardComplete && (
+                  <View style={styles.cardCompleteIndicator}>
+                    <View style={styles.completeBadge}>
+                      <Ionicons name="checkmark" size={14} color="#FFF" />
+                    </View>
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View style={styles.webCardPlaceholder}>
+                <Ionicons name="phone-portrait-outline" size={40} color="#CCC" />
+                <Text style={styles.webCardText}>
+                  {t('payment.mobileOnly') || 'Kart girisi sadece mobil uygulamada mevcuttur'}
+                </Text>
+              </View>
+            )}
+          </View>
 
           {/* Kabul edilen kartlar */}
           <View style={styles.acceptedCards}>
-            <Text style={styles.acceptedCardsLabel}>{t('payment.acceptedCards') || 'Kabul edilen kartlar'}</Text>
+            <Text style={styles.acceptedCardsLabel}>{t('payment.acceptedCards')}</Text>
             <View style={styles.cardBrands}>
-              <View style={styles.cardBrand}><Text style={styles.cardBrandText}>VISA</Text></View>
-              <View style={styles.cardBrand}><Text style={styles.cardBrandText}>MC</Text></View>
-              <View style={styles.cardBrand}><Text style={styles.cardBrandText}>AMEX</Text></View>
+              <View style={[styles.cardBrand, { backgroundColor: '#1A1F71' }]}>
+                <Text style={[styles.cardBrandText, { color: '#FFF' }]}>VISA</Text>
+              </View>
+              <View style={[styles.cardBrand, { backgroundColor: '#EB001B' }]}>
+                <Text style={[styles.cardBrandText, { color: '#FFF' }]}>MC</Text>
+              </View>
+              <View style={[styles.cardBrand, { backgroundColor: '#006FCF' }]}>
+                <Text style={[styles.cardBrandText, { color: '#FFF' }]}>AMEX</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -559,23 +568,21 @@ const styles = StyleSheet.create({
   },
   // Card Section
   cardSection: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#1A1A2E',
     borderRadius: 24,
     padding: 24,
     marginBottom: 14,
-    ...Shadows.small,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    ...Shadows.medium,
   },
   cardSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 6,
+    gap: 14,
+    marginBottom: 20,
   },
   cardIconWrap: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 14,
     backgroundColor: Colors.primary,
     alignItems: 'center',
@@ -584,13 +591,18 @@ const styles = StyleSheet.create({
   cardSectionTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#1A1A1A',
+    color: '#FFF',
   },
   cardSectionSubtitle: {
-    fontSize: 13,
-    color: '#999',
-    marginBottom: 20,
-    marginLeft: 52,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 2,
+  },
+  cardFieldContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 4,
   },
   cardFieldWrapper: {
     position: 'relative',
@@ -598,12 +610,19 @@ const styles = StyleSheet.create({
   cardField: {
     width: '100%',
     height: 54,
-    marginBottom: 4,
   },
   cardCompleteIndicator: {
     position: 'absolute',
-    right: 14,
-    top: 16,
+    right: 10,
+    top: 14,
+  },
+  completeBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#28A745',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   acceptedCards: {
     flexDirection: 'row',
@@ -612,11 +631,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F5F5F5',
+    borderTopColor: 'rgba(255,255,255,0.1)',
   },
   acceptedCardsLabel: {
     fontSize: 11,
-    color: '#BBB',
+    color: 'rgba(255,255,255,0.4)',
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -626,12 +645,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cardBrand: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#EDEEF2',
   },
   cardBrandText: {
     fontSize: 11,

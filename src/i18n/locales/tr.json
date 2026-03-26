@@ -1143,6 +1143,10 @@
     "pending": "Bekliyor",
     "succeeded": "Başarılı",
     "refunded": "İade Edildi",
-    "cancelled": "İptal Edildi"
+    "cancelled": "İptal Edildi",
+    "enterCardDetails": "Kart bilgilerinizi guvenle girin",
+    "dataProtected": "Kart bilgileriniz saklanmaz",
+    "acceptedCards": "Kabul edilen kartlar",
+    "demoModeDesc": "Stripe test modunda. Gercek odeme alinmaz."
   }
 }

@@ -1144,6 +1144,10 @@
     "pending": "Pending",
     "succeeded": "Succeeded",
     "refunded": "Refunded",
-    "cancelled": "Cancelled"
+    "cancelled": "Cancelled",
+    "enterCardDetails": "Enter your card details securely",
+    "dataProtected": "Your card details are not stored",
+    "acceptedCards": "Accepted cards",
+    "demoModeDesc": "Stripe is in test mode. No real charges."
   }
 }
