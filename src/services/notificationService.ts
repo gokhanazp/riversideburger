@@ -392,6 +392,65 @@ export async function sendPushNotificationToAdmins(title: string, body: string, 
 }
 
 /**
+ * Belirli kullanıcılara push notification gönder
+ * Send push notification to specific users by their user IDs
+ */
+export async function sendPushNotificationToUsers(
+  userIds: string[],
+  title: string,
+  body: string,
+  data?: any
+) {
+  try {
+    const { supabase } = await import('../lib/supabase');
+
+    // Seçilen kullanıcıların aktif push token'larını al
+    const { data: tokens, error: tokenError } = await supabase
+      .from('push_tokens')
+      .select('token, user_id')
+      .in('user_id', userIds)
+      .eq('is_active', true);
+
+    if (tokenError || !tokens || tokens.length === 0) {
+      console.log('⚠️ Seçilen kullanıcılar için push token bulunamadı');
+      return { sent: 0, total: userIds.length };
+    }
+
+    // Expo Push Notification API'ye istek gönder
+    const messages = tokens.map((t) => ({
+      to: t.token,
+      sound: 'default',
+      title,
+      body,
+      data: data || {},
+      priority: 'high' as const,
+      channelId: 'default',
+      badge: 1,
+    }));
+
+    console.log(`📤 ${messages.length} kullanıcıya push notification gönderiliyor...`);
+
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(messages),
+    });
+
+    const result = await response.json();
+    console.log('✅ Push notification gönderildi:', result);
+
+    return { sent: messages.length, total: userIds.length };
+  } catch (error) {
+    console.error('❌ Push notification gönderme hatası:', error);
+    return { sent: 0, total: userIds.length };
+  }
+}
+
+/**
  * Zamanlanmış bildirim gönder (Send scheduled notification)
  */
 export async function scheduleNotification(

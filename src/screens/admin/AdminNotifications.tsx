@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
 import Toast from 'react-native-toast-message';
-import { sendLocalNotification } from '../../services/notificationService';
+import { sendPushNotificationToUsers } from '../../services/notificationService';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 
@@ -143,14 +143,19 @@ const AdminNotifications = ({ navigation }: any) => {
       const { error } = await supabase.from('notifications').insert(notifications);
       if (error) throw error;
 
-      if (Platform.OS !== 'web') {
-        await sendLocalNotification(title.trim(), body.trim());
-      }
+      // Seçilen kullanıcılara push notification gönder
+      const result = await sendPushNotificationToUsers(
+        selectedUsers,
+        title.trim(),
+        body.trim(),
+        { type: notificationType }
+      );
 
       Toast.show({
         type: 'success',
         text1: t('admin.notifications.success'),
-        text2: `${selectedUsers.length} ${t('admin.notifications.notificationSent')}`,
+        text2: `${selectedUsers.length} ${t('admin.notifications.notificationSent')}` +
+          (result.sent < result.total ? ` (${result.sent} push)` : ''),
       });
 
       setTitle('');
