@@ -337,8 +337,7 @@ const AppNavigator = () => {
           }}
         />
 
-        {/* Ödeme ekranı (Payment screen) - GEÇİCİ OLARAK DEVRE DIŞI (TEMPORARILY DISABLED) */}
-        {/*
+        {/* Ödeme ekranı (Payment screen) */}
         <Stack.Screen
           name="Payment"
           component={PaymentScreen}
@@ -348,7 +347,6 @@ const AppNavigator = () => {
             animation: 'slide_from_bottom',
           }}
         />
-        */}
 
         {/* Sipariş ve Puan ekranları (Order and Points screens) */}
         <Stack.Screen

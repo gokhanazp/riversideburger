@@ -8,17 +8,18 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
-  ScrollView,
   Platform,
+  Animated,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
+import { Colors, Shadows } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 import { createPaymentIntent, confirmPayment } from '../services/stripeService';
 import { createOrder } from '../services/orderService';
 import { useCartStore } from '../store/cartStore';
+import { formatPrice } from '../services/currencyService';
 import Toast from 'react-native-toast-message';
 
 // Stripe sadece native platformlarda yükle (Load Stripe only on native platforms)
@@ -37,6 +38,7 @@ interface PaymentScreenProps {
 
 export default function PaymentScreen({ navigation, route }: PaymentScreenProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { confirmPayment: stripeConfirmPayment } = useStripe();
   const { user } = useAuthStore();
   const { items, clearCart } = useCartStore();
@@ -57,25 +59,26 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
   const [cardComplete, setCardComplete] = useState(false);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-
-  // DEMO MODE - Stripe API anahtarı yoksa demo modda çalış
   const [isDemoMode, setIsDemoMode] = useState(false);
 
-  // Payment Intent oluştur (Create Payment Intent)
+  // Animations
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(30));
+
   useEffect(() => {
     initializePayment();
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
+    ]).start();
   }, []);
 
   const initializePayment = async () => {
     try {
       setIsLoading(true);
-
-      // DEMO MODE: Stripe API anahtarı yoksa demo modda çalış
-      // (DEMO MODE: If no Stripe API key, run in demo mode)
       const stripeKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
       if (!stripeKey || stripeKey.includes('your_publishable_key_here')) {
-        console.log('⚠️ DEMO MODE: Stripe API anahtarı bulunamadı, demo modda çalışıyor');
         setIsDemoMode(true);
         setIsLoading(false);
         return;
@@ -84,129 +87,68 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       const { clientSecret: secret, paymentIntentId: intentId } = await createPaymentIntent(
         totalAmount,
         currency,
-        undefined, // Order ID henüz yok (Order ID not yet created)
-        {
-          pointsUsed,
-          itemCount: items.length,
-        }
+        undefined,
+        { pointsUsed, itemCount: items.length }
       );
 
       setClientSecret(secret);
       setPaymentIntentId(intentId);
     } catch (error: any) {
-      console.error('❌ Error initializing payment:', error);
-
-      // Hata durumunda demo moda geç
-      console.log('⚠️ Stripe API hatası, demo moda geçiliyor');
+      console.error('Error initializing payment:', error);
       setIsDemoMode(true);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Ödeme yap (Process payment)
   const handlePayment = async () => {
-    // DEMO MODE: Stripe olmadan direkt sipariş oluştur
-    if (isDemoMode) {
-      return handleDemoPayment();
-    }
+    if (isDemoMode) return handleDemoPayment();
 
     if (!cardComplete) {
-      Toast.show({
-        type: 'error',
-        text1: t('payment.error'),
-        text2: t('payment.completeCardInfo'),
-        visibilityTime: 3000,
-        topOffset: 60,
-      });
+      Toast.show({ type: 'error', text1: t('payment.error'), text2: t('payment.completeCardInfo'), visibilityTime: 3000, topOffset: 60 });
       return;
     }
 
     if (!clientSecret || !paymentIntentId) {
-      Toast.show({
-        type: 'error',
-        text1: t('payment.error'),
-        text2: t('payment.initializationError'),
-        visibilityTime: 3000,
-        topOffset: 60,
-      });
+      Toast.show({ type: 'error', text1: t('payment.error'), text2: t('payment.initializationError'), visibilityTime: 3000, topOffset: 60 });
       return;
     }
 
     try {
       setIsLoading(true);
+      const { error, paymentIntent } = await stripeConfirmPayment(clientSecret, { paymentMethodType: 'Card' });
 
-      // Stripe ile ödemeyi onayla (Confirm payment with Stripe)
-      const { error, paymentIntent } = await stripeConfirmPayment(clientSecret, {
-        paymentMethodType: 'Card',
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
 
       if (paymentIntent?.status === 'Succeeded') {
-        // Ödeme başarılı, backend'i güncelle (Payment succeeded, update backend)
         await confirmPayment(paymentIntentId);
-
-        // Siparişi oluştur (Create order)
         await createOrderAndNavigate();
       }
     } catch (error: any) {
-      console.error('❌ Payment error:', error);
-      Toast.show({
-        type: 'error',
-        text1: t('payment.failed'),
-        text2: error.message || t('payment.tryAgain'),
-        visibilityTime: 4000,
-        topOffset: 60,
-      });
+      console.error('Payment error:', error);
+      Toast.show({ type: 'error', text1: t('payment.failed'), text2: error.message || t('payment.tryAgain'), visibilityTime: 4000, topOffset: 60 });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // DEMO MODE: Stripe olmadan sipariş oluştur
   const handleDemoPayment = async () => {
     if (!cardComplete) {
-      Toast.show({
-        type: 'error',
-        text1: t('payment.error'),
-        text2: t('payment.completeCardInfo'),
-        visibilityTime: 3000,
-        topOffset: 60,
-      });
+      Toast.show({ type: 'error', text1: t('payment.error'), text2: t('payment.completeCardInfo'), visibilityTime: 3000, topOffset: 60 });
       return;
     }
 
     try {
       setIsLoading(true);
-
-      console.log('🎭 DEMO MODE: Simulating payment...');
-
-      // 2 saniye bekle (ödeme simülasyonu)
       await new Promise(resolve => setTimeout(resolve, 2000));
-
-      console.log('✅ DEMO MODE: Payment simulation successful');
-
-      // Siparişi oluştur
       await createOrderAndNavigate();
-
     } catch (error: any) {
-      console.error('❌ Demo payment error:', error);
-      Toast.show({
-        type: 'error',
-        text1: t('payment.failed'),
-        text2: error.message || t('payment.tryAgain'),
-        visibilityTime: 4000,
-        topOffset: 60,
-      });
+      Toast.show({ type: 'error', text1: t('payment.failed'), text2: error.message || t('payment.tryAgain'), visibilityTime: 4000, topOffset: 60 });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Sipariş oluştur ve yönlendir (Create order and navigate)
   const createOrderAndNavigate = async () => {
     const orderItems = items.map((item) => ({
       product_id: item.id,
@@ -218,25 +160,19 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       specialInstructions: item.specialInstructions,
     }));
 
-    console.log('📦 Creating order with items:', orderItems.length);
-
     const order = await createOrder({
       user_id: user!.id,
       total_amount: totalAmount,
       delivery_address: deliveryAddress,
-      phone: phone,
-      notes: notes,
+      phone,
+      notes,
       items: orderItems,
       points_used: pointsUsed,
       address_id: addressId,
     });
 
-    console.log('✅ Order created:', order.order_number);
-
-    // Sepeti temizle (Clear cart)
     clearCart();
 
-    // Başarı mesajı (Success message)
     Toast.show({
       type: 'success',
       text1: t('payment.success'),
@@ -245,7 +181,6 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       topOffset: 60,
     });
 
-    // Ana ekrana dön (Navigate to home)
     setTimeout(() => {
       navigation.navigate('Main', { screen: 'HomeTab' });
     }, 2000);
@@ -254,100 +189,188 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
+          <Ionicons name="chevron-back" size={22} color="#1A1A1A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('payment.title')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerBadge}>
+          <Ionicons name="lock-closed" size={14} color={Colors.primary} />
+        </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* DEMO MODE Uyarısı */}
+      <Animated.ScrollView
+        style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 180 }}
+      >
+        {/* DEMO MODE Uyarisi */}
         {isDemoMode && (
           <View style={styles.demoWarning}>
-            <Ionicons name="information-circle" size={24} color="#FF9800" />
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.demoWarningTitle}>
-                🎭 DEMO MODE
-              </Text>
+            <View style={styles.demoIconWrap}>
+              <Ionicons name="flask" size={18} color="#FF9800" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.demoWarningTitle}>Test Mode</Text>
               <Text style={styles.demoWarningText}>
-                Stripe API anahtarı bulunamadı. Ödeme simüle edilecek.
-                {'\n'}Gerçek ödeme için Stripe hesabı oluşturun.
+                {t('payment.demoModeDesc') || 'Stripe test modunda. Gercek odeme alinmaz.'}
               </Text>
             </View>
           </View>
         )}
 
-        {/* Tutar Bilgisi (Amount Info) */}
+        {/* Tutar Karti */}
         <View style={styles.amountCard}>
-          <Text style={styles.amountLabel}>{t('payment.totalAmount')}</Text>
-          <Text style={styles.amountValue}>
-            {currency === 'CAD' ? '$' : '₺'}{totalAmount.toFixed(2)}
-          </Text>
+          <View style={styles.amountTopRow}>
+            <View style={styles.amountIconCircle}>
+              <Ionicons name="receipt-outline" size={22} color={Colors.primary} />
+            </View>
+            <Text style={styles.amountLabel}>{t('payment.totalAmount')}</Text>
+          </View>
+          <Text style={styles.amountValue}>{formatPrice(totalAmount)}</Text>
+          <View style={styles.amountDivider} />
+          <View style={styles.amountDetails}>
+            <View style={styles.amountDetailRow}>
+              <Text style={styles.detailLabel}>{t('cart.subtotal')}</Text>
+              <Text style={styles.detailValue}>{formatPrice(totalAmount + pointsUsed)}</Text>
+            </View>
+            {pointsUsed > 0 && (
+              <View style={styles.amountDetailRow}>
+                <Text style={styles.detailLabel}>{t('cart.pointsDiscount') || 'Puan indirimi'}</Text>
+                <Text style={[styles.detailValue, { color: '#28A745' }]}>-{formatPrice(pointsUsed)}</Text>
+              </View>
+            )}
+            <View style={styles.amountDetailRow}>
+              <Text style={styles.detailLabel}>{t('cart.deliveryFee')}</Text>
+              <Text style={[styles.detailValue, { color: '#28A745' }]}>{t('cart.free')}</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Kart Bilgileri (Card Information) */}
+        {/* Teslimat Bilgisi */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <View style={styles.infoIconWrap}>
+              <Ionicons name="location" size={18} color={Colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoLabel}>{t('checkout.deliveryAddress') || 'Teslimat adresi'}</Text>
+              <Text style={styles.infoValue} numberOfLines={2}>{deliveryAddress}</Text>
+            </View>
+          </View>
+          <View style={styles.infoDivider} />
+          <View style={styles.infoRow}>
+            <View style={styles.infoIconWrap}>
+              <Ionicons name="call" size={18} color={Colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoLabel}>{t('checkout.phone') || 'Telefon'}</Text>
+              <Text style={styles.infoValue}>{phone}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Kart Bilgileri */}
         <View style={styles.cardSection}>
-          <Text style={styles.sectionTitle}>{t('payment.cardInformation')}</Text>
+          <View style={styles.cardSectionHeader}>
+            <View style={styles.cardIconWrap}>
+              <Ionicons name="card" size={20} color="#FFF" />
+            </View>
+            <Text style={styles.cardSectionTitle}>{t('payment.cardInformation')}</Text>
+          </View>
+
+          <Text style={styles.cardSectionSubtitle}>
+            {t('payment.enterCardDetails') || 'Kart bilgilerinizi guvenle girin'}
+          </Text>
 
           {Platform.OS !== 'web' && CardField ? (
-            <>
+            <View style={styles.cardFieldWrapper}>
               <CardField
                 postalCodeEnabled={false}
-                placeholders={{
-                  number: '4242 4242 4242 4242',
+                placeholders={{ number: '4242 4242 4242 4242' }}
+                cardStyle={{
+                  backgroundColor: '#FFFFFF',
+                  textColor: '#1A1A1A',
+                  placeholderColor: '#C0C0C0',
+                  borderColor: cardComplete ? '#28A745' : '#E8E8E8',
+                  borderWidth: 1.5,
+                  borderRadius: 14,
+                  fontSize: 16,
+                  textErrorColor: '#DC3545',
                 }}
-                cardStyle={styles.card}
                 style={styles.cardField}
-                onCardChange={(cardDetails) => {
-                  setCardComplete(cardDetails.complete);
-                }}
+                onCardChange={(cardDetails: any) => setCardComplete(cardDetails.complete)}
               />
-
-              {isDemoMode && (
-                <Text style={styles.demoHint}>
-                  💡 Demo modda herhangi bir kart bilgisi girebilirsiniz
-                </Text>
+              {cardComplete && (
+                <View style={styles.cardCompleteIndicator}>
+                  <Ionicons name="checkmark-circle" size={22} color="#28A745" />
+                </View>
               )}
-            </>
+            </View>
           ) : (
             <View style={styles.webCardPlaceholder}>
+              <Ionicons name="phone-portrait-outline" size={40} color="#CCC" />
               <Text style={styles.webCardText}>
-                💳 Kart bilgileri girişi sadece mobil uygulamada mevcuttur
-              </Text>
-              <Text style={styles.webCardSubtext}>
-                Lütfen iOS veya Android uygulamasını kullanın
+                {t('payment.mobileOnly') || 'Kart girisi sadece mobil uygulamada mevcuttur'}
               </Text>
             </View>
           )}
+
+          {/* Kabul edilen kartlar */}
+          <View style={styles.acceptedCards}>
+            <Text style={styles.acceptedCardsLabel}>{t('payment.acceptedCards') || 'Kabul edilen kartlar'}</Text>
+            <View style={styles.cardBrands}>
+              <View style={styles.cardBrand}><Text style={styles.cardBrandText}>VISA</Text></View>
+              <View style={styles.cardBrand}><Text style={styles.cardBrandText}>MC</Text></View>
+              <View style={styles.cardBrand}><Text style={styles.cardBrandText}>AMEX</Text></View>
+            </View>
+          </View>
         </View>
 
-        {/* Güvenlik Bilgisi (Security Info) */}
-        <View style={styles.securityInfo}>
-          <Ionicons name="shield-checkmark" size={20} color={Colors.primary} />
-          <Text style={styles.securityText}>
-            {isDemoMode ? '🎭 Demo Mode - Test Ödeme' : t('payment.securePayment')}
-          </Text>
+        {/* Guvenlik Bilgisi */}
+        <View style={styles.securitySection}>
+          <View style={styles.securityRow}>
+            <Ionicons name="shield-checkmark" size={18} color="#28A745" />
+            <Text style={styles.securityText}>{t('payment.securePayment') || '256-bit SSL ile guvenli odeme'}</Text>
+          </View>
+          <View style={styles.securityRow}>
+            <Ionicons name="lock-closed" size={18} color="#28A745" />
+            <Text style={styles.securityText}>{t('payment.dataProtected') || 'Kart bilgileriniz saklanmaz'}</Text>
+          </View>
+          <View style={styles.securityRow}>
+            <Ionicons name="logo-no-smoking" size={18} color="#28A745" />
+            <Text style={styles.securityText}>Powered by Stripe</Text>
+          </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
-      {/* Ödeme Butonu (Payment Button) */}
-      <View style={styles.footer}>
+      {/* Footer - Odeme Butonu */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 16, 24) }]}>
+        <View style={styles.footerTotalRow}>
+          <Text style={styles.footerLabel}>{t('payment.totalAmount')}</Text>
+          <Text style={styles.footerAmount}>{formatPrice(totalAmount)}</Text>
+        </View>
         <TouchableOpacity
           style={[styles.payButton, (!cardComplete || isLoading) && styles.payButtonDisabled]}
           onPress={handlePayment}
           disabled={!cardComplete || isLoading}
+          activeOpacity={0.85}
         >
           {isLoading ? (
-            <ActivityIndicator color={Colors.white} />
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color="#FFF" size="small" />
+              <Text style={styles.payButtonText}>{t('payment.processing') || 'Isleniyor...'}</Text>
+            </View>
           ) : (
-            <>
-              <Ionicons name="card" size={20} color={Colors.white} />
-              <Text style={styles.payButtonText}>
-                {t('payment.pay')} {currency === 'CAD' ? '$' : '₺'}{totalAmount.toFixed(2)}
-              </Text>
-            </>
+            <View style={styles.payButtonContent}>
+              <View style={styles.payButtonLeft}>
+                <Ionicons name="lock-closed" size={16} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.payButtonText}>
+                  {t('payment.pay')} {formatPrice(totalAmount)}
+                </Text>
+              </View>
+              <Ionicons name="arrow-forward" size={20} color="#FFF" />
+            </View>
           )}
         </TouchableOpacity>
       </View>
@@ -358,160 +381,354 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#F5F5F7',
   },
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.xl + 20,
-    paddingBottom: Spacing.md,
-    backgroundColor: Colors.white,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: '#FFF',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     ...Shadows.small,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.lightGray,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#F5F5F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold',
-    color: Colors.text,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    letterSpacing: 0.3,
   },
+  headerBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Content
   content: {
     flex: 1,
-    padding: Spacing.md,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
-  amountCard: {
-    backgroundColor: Colors.primary,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
+  // Demo Warning
+  demoWarning: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
-    ...Shadows.medium,
+    backgroundColor: '#FFF8E1',
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FFE082',
+    gap: 12,
+  },
+  demoIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#FFF3E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  demoWarningTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#E65100',
+    marginBottom: 2,
+  },
+  demoWarningText: {
+    fontSize: 12,
+    color: '#BF360C',
+    lineHeight: 17,
+  },
+  // Amount Card
+  amountCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 14,
+    ...Shadows.small,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  amountTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  amountIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   amountLabel: {
-    fontSize: FontSizes.md,
-    color: Colors.white,
-    opacity: 0.9,
-    marginBottom: Spacing.xs,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#999',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   amountValue: {
-    fontSize: FontSizes.xxl + 8,
-    fontWeight: 'bold',
-    color: Colors.white,
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#1A1A1A',
+    marginBottom: 16,
+    marginLeft: 48,
   },
-  cardSection: {
-    backgroundColor: Colors.white,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
+  amountDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginBottom: 14,
+  },
+  amountDetails: {
+    gap: 10,
+  },
+  amountDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#888',
+  },
+  detailValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  // Info Card
+  infoCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
     ...Shadows.small,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
-  sectionTitle: {
-    fontSize: FontSizes.lg,
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  infoIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#AAA',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 14,
     fontWeight: '600',
-    color: Colors.text,
-    marginBottom: Spacing.md,
+    color: '#1A1A1A',
+    lineHeight: 20,
+  },
+  infoDivider: {
+    height: 1,
+    backgroundColor: '#F5F5F5',
+    marginVertical: 14,
+    marginLeft: 52,
+  },
+  // Card Section
+  cardSection: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 14,
+    ...Shadows.small,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  cardSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 6,
+  },
+  cardIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardSectionTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1A1A1A',
+  },
+  cardSectionSubtitle: {
+    fontSize: 13,
+    color: '#999',
+    marginBottom: 20,
+    marginLeft: 52,
+  },
+  cardFieldWrapper: {
+    position: 'relative',
   },
   cardField: {
     width: '100%',
-    height: 50,
+    height: 54,
+    marginBottom: 4,
   },
-  card: {
-    backgroundColor: Colors.lightGray,
-    textColor: Colors.text,
+  cardCompleteIndicator: {
+    position: 'absolute',
+    right: 14,
+    top: 16,
   },
-  securityInfo: {
+  acceptedCards: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.md,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
-    ...Shadows.small,
+    justifyContent: 'space-between',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F5F5F5',
   },
-  securityText: {
-    fontSize: FontSizes.sm,
-    color: Colors.textLight,
-    marginLeft: Spacing.xs,
+  acceptedCardsLabel: {
+    fontSize: 11,
+    color: '#BBB',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
-  footer: {
-    padding: Spacing.md,
-    backgroundColor: Colors.white,
-    ...Shadows.medium,
-  },
-  payButton: {
+  cardBrands: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md + 4,
-    borderRadius: BorderRadius.lg,
-    gap: Spacing.xs,
+    gap: 8,
   },
-  payButtonDisabled: {
-    opacity: 0.5,
+  cardBrand: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#EDEEF2',
   },
-  payButtonText: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.white,
+  cardBrandText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#666',
+    letterSpacing: 0.5,
   },
-  // Demo Mode Styles
-  demoWarning: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#FFF3E0',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
-  },
-  demoWarningTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold',
-    color: '#E65100',
-    marginBottom: Spacing.xs,
-  },
-  demoWarningText: {
-    fontSize: FontSizes.sm,
-    color: '#E65100',
-    lineHeight: 20,
-  },
-  demoHint: {
-    fontSize: FontSizes.sm,
-    color: '#FF9800',
-    marginTop: Spacing.sm,
-    fontStyle: 'italic',
-  },
-  // Web Placeholder Styles
+  // Web Placeholder
   webCardPlaceholder: {
-    backgroundColor: '#F5F5F5',
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-    borderStyle: 'dashed',
+    padding: 30,
+    gap: 12,
   },
   webCardText: {
-    fontSize: FontSizes.md,
-    color: Colors.textSecondary,
+    fontSize: 14,
+    color: '#999',
     textAlign: 'center',
-    marginBottom: Spacing.xs,
+    lineHeight: 20,
   },
-  webCardSubtext: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    fontStyle: 'italic',
+  // Security Section
+  securitySection: {
+    backgroundColor: '#F8FFF8',
+    borderRadius: 20,
+    padding: 18,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#E8F5E9',
+  },
+  securityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  securityText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
+  },
+  // Footer
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    ...Shadows.large,
+  },
+  footerTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  footerLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#999',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  footerAmount: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1A1A1A',
+  },
+  payButton: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+  },
+  payButtonDisabled: {
+    opacity: 0.35,
+  },
+  payButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  payButtonLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  payButtonText: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#FFF',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
   },
 });
-

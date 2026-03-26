@@ -19,6 +19,7 @@
     "sort": "Sort",
     "total": "Total",
     "quantity": "Quantity",
+    "points": "Points",
     "price": "Price",
     "date": "Date",
     "time": "Time",
@@ -718,7 +719,8 @@
       "of": "of",
       "customerPoints": "Customer Points",
       "orderSummary": "Order Summary",
-      "deliveredCount": "Completed"
+      "deliveredCount": "Completed",
+      "roleAdmin": "Admin"
     },
     "reviews": {
       "title": "Review Management",

@@ -18,16 +18,15 @@ import { useAuthStore } from '../store/authStore';
 import { CartItem } from '../types';
 import Toast from 'react-native-toast-message';
 import ConfirmModal from '../components/ConfirmModal';
-import { createOrder } from '../services/orderService';
 import { getUserPoints } from '../services/pointsService';
 import { getDefaultAddress, getUserAddresses } from '../services/addressService';
 import { Address } from '../types/database.types';
-import { formatPrice } from '../services/currencyService';
+import { formatPrice, getCurrentCurrency } from '../services/currencyService';
 
 const CartScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
+  const { items, updateQuantity, removeItem, getTotalPrice } = useCartStore();
   const { isAuthenticated, user } = useAuthStore();
 
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -35,8 +34,6 @@ const CartScreen = ({ navigation }: any) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
-  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
-
   const [isAddressExpanded, setIsAddressExpanded] = useState(false);
   const [isPointsExpanded, setIsPointsExpanded] = useState(false);
 
@@ -129,44 +126,24 @@ const CartScreen = ({ navigation }: any) => {
     setShowCheckoutModal(true);
   };
 
-  const handleCheckoutConfirm = async () => {
+  const handleCheckoutConfirm = () => {
     if (!user) return;
-    try {
-      setShowCheckoutModal(false);
-      setIsCreatingOrder(true);
-      const fullAddress = selectedAddress
-        ? `${selectedAddress.street_number} ${selectedAddress.street_name}, ${selectedAddress.city}`
-        : t('cart.addressNotSpecified');
+    setShowCheckoutModal(false);
 
-      const orderItems = items.map(item => ({
-        product_id: item.id,
-        product_name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        subtotal: item.price * item.quantity,
-        customizations: item.customizations,
-        specialInstructions: item.specialInstructions,
-      }));
+    const fullAddress = selectedAddress
+      ? `${selectedAddress.street_number} ${selectedAddress.street_name}, ${selectedAddress.city}`
+      : t('cart.addressNotSpecified');
 
-      const order = await createOrder({
-        user_id: user.id,
-        total_amount: getFinalPrice(),
-        delivery_address: fullAddress,
-        phone: selectedAddress?.phone || t('cart.phoneNotSpecified'),
-        notes: pointsToUse > 0 ? t('cart.pointsUsed', { points: pointsToUse.toFixed(2) }) : '',
-        items: orderItems,
-        points_used: pointsToUse,
-        address_id: selectedAddress?.id || undefined,
-      });
-
-      clearCart();
-      Toast.show({ type: 'success', text1: t('cart.orderReceived'), text2: `${t('cart.orderNumber', { number: order.order_number })}`, position: 'top', topOffset: 60 });
-      navigation.navigate('OrderHistory');
-    } catch (error: any) {
-      Toast.show({ type: 'error', text1: t('common.error'), text2: error.message, position: 'top', topOffset: 60 });
-    } finally {
-      setIsCreatingOrder(false);
-    }
+    // Ödeme ekranına yönlendir (Navigate to Payment screen)
+    navigation.navigate('Payment', {
+      totalAmount: getFinalPrice(),
+      currency: getCurrentCurrency(),
+      deliveryAddress: fullAddress,
+      phone: selectedAddress?.phone || t('cart.phoneNotSpecified'),
+      notes: pointsToUse > 0 ? t('cart.pointsUsed', { points: pointsToUse.toFixed(2) }) : '',
+      pointsUsed: pointsToUse,
+      addressId: selectedAddress?.id || null,
+    });
   };
 
   const handleDeleteConfirm = () => {
@@ -407,9 +384,6 @@ const CartScreen = ({ navigation }: any) => {
         </View>
       )}
 
-      {isCreatingOrder && (
-        <View style={styles.loadingOverlay}><ActivityIndicator size="large" color={Colors.primary} /><Text style={styles.loadingText}>Sipariş İşleniyor...</Text></View>
-      )}
     </View>
   );
 };

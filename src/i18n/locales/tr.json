@@ -19,6 +19,7 @@
     "sort": "Sırala",
     "total": "Toplam",
     "quantity": "Miktar",
+    "points": "Puan",
     "price": "Fiyat",
     "date": "Tarih",
     "time": "Saat",
@@ -718,7 +719,8 @@
       "of": "/",
       "customerPoints": "Müşteri Puanı",
       "orderSummary": "Sipariş Özeti",
-      "deliveredCount": "Tamamlanan"
+      "deliveredCount": "Tamamlanan",
+      "roleAdmin": "Admin"
     },
     "reviews": {
       "title": "Yorum Yönetimi",
