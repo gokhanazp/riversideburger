@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { User, UserRole } from '../types/database.types';
 import i18n from '../i18n';
+import * as Linking from 'expo-linking';
 
 // Kayıt olma (Sign up)
 export const signUp = async (
@@ -34,10 +35,10 @@ export const signUp = async (
     });
 
     if (authError) {
-      console.error('❌ Auth error:', authError);
-      console.error('❌ Auth error details:', JSON.stringify(authError, null, 2));
-      console.error('❌ Auth error message:', authError.message);
-      console.error('❌ Auth error status:', authError.status);
+      console.warn('❌ Auth error:', authError);
+      console.warn('❌ Auth error details:', JSON.stringify(authError, null, 2));
+      console.warn('❌ Auth error message:', authError.message);
+      console.warn('❌ Auth error status:', authError.status);
 
       // Database error durumunda daha açıklayıcı mesaj (More descriptive message for database errors)
       if (authError.message?.includes('Database error')) {
@@ -48,7 +49,7 @@ export const signUp = async (
     }
 
     if (!authData.user) {
-      console.error('❌ No user returned');
+      console.warn('❌ No user returned');
       throw new Error(i18n.t('auth.registerFailed'));
     }
 
@@ -98,8 +99,8 @@ export const signUp = async (
           .single();
 
         if (insertError) {
-          console.error('❌ Manual insert failed:', insertError);
-          console.error('   Error details:', JSON.stringify(insertError, null, 2));
+          console.warn('❌ Manual insert failed:', insertError);
+          console.warn('   Error details:', JSON.stringify(insertError, null, 2));
 
           // Son bir deneme daha - upsert kullan (Last try - use upsert)
           console.log('🔄 Trying upsert...');
@@ -121,7 +122,7 @@ export const signUp = async (
             .single();
 
           if (upsertError) {
-            console.error('❌ Upsert also failed:', upsertError);
+            console.warn('❌ Upsert also failed:', upsertError);
             // Fallback to metadata
             const userData: User = {
               id: authData.user.id,
@@ -144,8 +145,8 @@ export const signUp = async (
         }
       }
     } catch (err: any) {
-      console.error('❌ Database operation exception:', err);
-      console.error('   Exception details:', JSON.stringify(err, null, 2));
+      console.warn('❌ Database operation exception:', err);
+      console.warn('   Exception details:', JSON.stringify(err, null, 2));
 
       // Fallback to metadata
       const userData: User = {
@@ -176,7 +177,7 @@ export const signUp = async (
     console.log('✅ Signup successful:', userData.email);
     return { user: userData, session: authData.session };
   } catch (error: any) {
-    console.error('❌ Sign up error:', error);
+    console.warn('❌ Sign up error:', error);
 
     // Kullanıcı dostu hata mesajları (User-friendly error messages)
     if (error.message?.includes('already registered') || error.message?.includes('User already registered')) {
@@ -213,12 +214,12 @@ export const signIn = async (email: string, password: string) => {
     });
 
     if (error) {
-      console.error('❌ Auth error:', error);
+      console.warn('Auth error:', error.message);
       throw error;
     }
 
     if (!data.user) {
-      console.error('❌ No user returned');
+      console.warn('❌ No user returned');
       throw new Error(i18n.t('auth.loginFailed'));
     }
 
@@ -257,7 +258,7 @@ export const signIn = async (email: string, password: string) => {
           .single();
 
         if (insertError) {
-          console.error('❌ Failed to create user in database:', insertError);
+          console.warn('❌ Failed to create user in database:', insertError);
           // Fallback to metadata
           const userData: User = {
             id: data.user.id,
@@ -289,7 +290,7 @@ export const signIn = async (email: string, password: string) => {
         return { user: userData, session: data.session };
 
       } catch (err) {
-        console.error('❌ Exception creating user:', err);
+        console.warn('❌ Exception creating user:', err);
         // Fallback to metadata
         const userData: User = {
           id: data.user.id,
@@ -320,8 +321,6 @@ export const signIn = async (email: string, password: string) => {
     console.log('✅ Login successful:', userData.email);
     return { user: userData, session: data.session };
   } catch (error: any) {
-    console.error('❌ Sign in error:', error);
-
     // Kullanıcı dostu hata mesajları (User-friendly error messages)
     if (error.message?.includes('Invalid login credentials')) {
       throw new Error(i18n.t('auth.emailOrPasswordWrong'));
@@ -340,7 +339,7 @@ export const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   } catch (error: any) {
-    console.error('Sign out error:', error);
+    console.warn('Sign out error:', error);
     throw error;
   }
 };
@@ -352,7 +351,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
 
     // Refresh token hatası varsa session'ı temizle (Clear session if refresh token error)
     if (authError) {
-      console.error('Auth error:', authError);
+      console.warn('Auth error:', authError.message);
       if (authError.message?.includes('refresh_token_not_found') ||
           authError.message?.includes('Invalid Refresh Token')) {
         console.log('🔄 Invalid session detected, clearing...');
@@ -397,7 +396,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
           .single();
 
         if (insertError) {
-          console.error('❌ Failed to create user in database (getCurrentUser):', insertError);
+          console.warn('❌ Failed to create user in database (getCurrentUser):', insertError);
           // Fallback to metadata
           const userData: User = {
             id: authUser.id,
@@ -428,7 +427,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
         return userData;
 
       } catch (err) {
-        console.error('❌ Exception creating user (getCurrentUser):', err);
+        console.warn('❌ Exception creating user (getCurrentUser):', err);
         // Fallback to metadata
         const userData: User = {
           id: authUser.id,
@@ -457,7 +456,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
 
     return userData;
   } catch (error: any) {
-    console.error('Get current user error:', error);
+    console.warn('Get current user error:', error);
     // Refresh token hatası varsa session'ı temizle (Clear session if refresh token error)
     if (error.message?.includes('refresh_token_not_found') ||
         error.message?.includes('Invalid Refresh Token')) {
@@ -468,10 +467,24 @@ export const getCurrentUser = async (): Promise<User | null> => {
   }
 };
 
+// Password recovery sürecinde auth event'lerini ignore etmek için flag
+let _isPasswordRecoveryInProgress = false;
+export const setPasswordRecoveryFlag = (value: boolean) => { _isPasswordRecoveryInProgress = value; };
+
 // Session değişikliklerini dinle (Listen to auth changes)
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return supabase.auth.onAuthStateChange(async (event, session) => {
-    // Token expire olduğunda otomatik logout (Auto logout on token expiry)
+    // Password recovery sürecindeyken tüm event'leri ignore et
+    if (_isPasswordRecoveryInProgress) {
+      console.log('🔄 Auth event ignored (recovery in progress):', event);
+      return;
+    }
+
+    if (event === 'PASSWORD_RECOVERY') {
+      console.log('🔄 Auth event ignored:', event);
+      return;
+    }
+
     if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
       console.log('🔄 Auth event:', event);
     }
@@ -486,7 +499,7 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
 
         // Hata varsa ama "no rows" hatası değilse logla
         if (dbError && dbError.code !== 'PGRST116') {
-          console.error('Database user fetch error:', dbError);
+          console.warn('Database user fetch error:', dbError);
         }
 
         const dbUser = dbUsers && dbUsers.length > 0 ? dbUsers[0] : null;
@@ -511,7 +524,7 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
               .select();
 
             if (insertError || !insertedUser || insertedUser.length === 0) {
-              console.error('❌ Failed to create user in database (onAuthStateChange):', insertError);
+              console.warn('❌ Failed to create user in database (onAuthStateChange):', insertError);
               // Fallback to metadata
               const userData: User = {
                 id: session.user.id,
@@ -544,7 +557,7 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
             return;
 
           } catch (err) {
-            console.error('❌ Exception creating user (onAuthStateChange):', err);
+            console.warn('❌ Exception creating user (onAuthStateChange):', err);
             // Fallback to metadata
             const userData: User = {
               id: session.user.id,
@@ -574,7 +587,7 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
 
         callback(userData);
       } catch (error: any) {
-        console.error('Auth state change error:', error);
+        console.warn('Auth state change error:', error);
         // Hata durumunda null döndür (Return null on error)
         callback(null);
       }
@@ -587,10 +600,13 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
 // Şifre sıfırlama (Reset password)
 export const resetPassword = async (email: string) => {
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const redirectUrl = Linking.createURL('reset-password');
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
     if (error) throw error;
   } catch (error: any) {
-    console.error('Reset password error:', error);
+    console.warn('Reset password error:', error);
     throw error;
   }
 };
@@ -603,7 +619,7 @@ export const updatePassword = async (newPassword: string) => {
     });
     if (error) throw error;
   } catch (error: any) {
-    console.error('Update password error:', error);
+    console.warn('Update password error:', error);
     throw error;
   }
 };
@@ -634,7 +650,7 @@ export const deleteAccount = async () => {
         .eq('id', user.id);
         
       if (dbError) {
-        console.error('❌ Failed to delete from public.users:', dbError);
+        console.warn('❌ Failed to delete from public.users:', dbError);
         // Devam et, auth logout yapacağız
       }
       
@@ -646,7 +662,7 @@ export const deleteAccount = async () => {
       throw new Error('Hesabınızın verileri temizlendi. Tam silinme için yöneticinizle iletişime geçin veya "delete_user" RPC fonksiyonunu kurun.');
     }
   } catch (error: any) {
-    console.error('Delete account error:', error);
+    console.warn('Delete account error:', error);
     throw error;
   }
 };

@@ -7,7 +7,7 @@ interface AuthState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  
+
   // Actions (İşlemler)
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, fullName: string, phone: string) => Promise<void>;
@@ -24,47 +24,29 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   // Giriş yap (Login)
   login: async (email: string, password: string) => {
-    try {
-      set({ isLoading: true });
-      const { user } = await signIn(email, password);
-      set({ 
-        user, 
-        isAuthenticated: true, 
-        isLoading: false 
-      });
-    } catch (error) {
-      set({ isLoading: false });
-      throw error;
-    }
+    const { user } = await signIn(email, password);
+    set({
+      user,
+      isAuthenticated: true,
+    });
   },
 
   // Kayıt ol (Register)
   register: async (email: string, password: string, fullName: string, phone: string) => {
-    try {
-      set({ isLoading: true });
-      const { user } = await signUp(email, password, fullName, phone);
-      set({ 
-        user, 
-        isAuthenticated: true, 
-        isLoading: false 
-      });
-    } catch (error) {
-      set({ isLoading: false });
-      throw error;
-    }
+    const { user } = await signUp(email, password, fullName, phone);
+    set({
+      user,
+      isAuthenticated: true,
+    });
   },
 
   // Çıkış yap (Logout)
   logout: async () => {
-    try {
-      await signOut();
-      set({ 
-        user: null, 
-        isAuthenticated: false 
-      });
-    } catch (error) {
-      throw error;
-    }
+    await signOut();
+    set({
+      user: null,
+      isAuthenticated: false
+    });
   },
 
   // Başlangıçta kullanıcıyı kontrol et (Initialize - check user on app start)
@@ -72,44 +54,43 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       set({ isLoading: true });
       const user = await getCurrentUser();
-      
+
       if (user) {
-        set({ 
-          user, 
-          isAuthenticated: true, 
-          isLoading: false 
+        set({
+          user,
+          isAuthenticated: true,
+          isLoading: false
         });
       } else {
-        set({ 
-          user: null, 
-          isAuthenticated: false, 
-          isLoading: false 
+        set({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false
         });
       }
 
       // Auth değişikliklerini dinle (Listen to auth changes)
       onAuthStateChange((user) => {
-        set({ 
-          user, 
-          isAuthenticated: !!user 
+        set({
+          user,
+          isAuthenticated: !!user
         });
       });
     } catch (error) {
-      console.error('Initialize error:', error);
-      set({ 
-        user: null, 
-        isAuthenticated: false, 
-        isLoading: false 
+      console.warn('Initialize error:', error);
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false
       });
     }
   },
 
   // Kullanıcıyı manuel olarak ayarla (Set user manually)
   setUser: (user: User | null) => {
-    set({ 
-      user, 
-      isAuthenticated: !!user 
+    set({
+      user,
+      isAuthenticated: !!user
     });
   },
 }));
-

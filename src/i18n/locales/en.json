@@ -74,7 +74,18 @@
     "emailSentTitle": "Email Sent!",
     "emailSentText": "We sent a password reset link to your email. Please check your inbox.",
     "resendEmail": "Resend",
-    "enterEmail": "Please enter your email address"
+    "enterEmail": "Please enter your email address",
+    "enterCode": "Please enter the 6-digit code",
+    "enterVerificationCode": "Enter Code",
+    "codeSentTo": "We sent a 6-digit code to",
+    "verifyCode": "Verify Code",
+    "setNewPassword": "Set New Password",
+    "setNewPasswordDesc": "Enter your new password below",
+    "newPassword": "New Password",
+    "updatePassword": "Update Password",
+    "passwordUpdated": "Password Updated!",
+    "passwordUpdatedDesc": "Your password has been successfully updated.",
+    "passwordsDoNotMatch": "Passwords do not match"
   },
   "navigation": {
     "home": "Home",

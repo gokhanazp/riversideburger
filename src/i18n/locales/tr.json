@@ -74,7 +74,18 @@
     "emailSentTitle": "Email Gönderildi!",
     "emailSentText": "adresine şifre sıfırlama linki gönderdik. Lütfen email kutunuzu kontrol edin.",
     "resendEmail": "Tekrar Gönder",
-    "enterEmail": "Lütfen email adresinizi girin"
+    "enterEmail": "Lütfen email adresinizi girin",
+    "enterCode": "Lütfen 6 haneli kodu girin",
+    "enterVerificationCode": "Kodu Girin",
+    "codeSentTo": "6 haneli kod gönderildi",
+    "verifyCode": "Kodu Doğrula",
+    "setNewPassword": "Yeni Şifre Belirle",
+    "setNewPasswordDesc": "Yeni şifrenizi aşağıya girin",
+    "newPassword": "Yeni Şifre",
+    "updatePassword": "Şifreyi Güncelle",
+    "passwordUpdated": "Şifre Güncellendi!",
+    "passwordUpdatedDesc": "Şifreniz başarıyla güncellendi.",
+    "passwordsDoNotMatch": "Şifreler eşleşmiyor"
   },
   "navigation": {
     "home": "Ana Sayfa",

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,7 @@ import FavoritesScreen from '../screens/FavoritesScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 
 // Sipariş ve Puan ekranları (Order and Points screens)
 import OrderHistoryScreen from '../screens/OrderHistoryScreen';
@@ -64,6 +65,9 @@ import { useAuthStore } from '../store/authStore';
 // Navigator'ları oluştur (Create navigators)
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// Navigation ref - App.tsx'ten erişim için
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 // Custom Tab Bar Component for "Floating Island" Style
 const CustomTabBar = ({ state, descriptors, navigation, totalItems }: any) => {
@@ -291,7 +295,7 @@ const AppNavigator = () => {
   const { t } = useTranslation();
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -331,6 +335,14 @@ const AppNavigator = () => {
         <Stack.Screen
           name="ForgotPassword"
           component={ForgotPasswordScreen}
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="ResetPassword"
+          component={ResetPasswordScreen}
           options={{
             presentation: 'modal',
             animation: 'slide_from_bottom',

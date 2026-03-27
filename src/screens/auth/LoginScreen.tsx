@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
-import Toast from 'react-native-toast-message';
 import { useTranslation } from 'react-i18next';
 
 export default function LoginScreen({ navigation }: any) {
@@ -21,6 +20,7 @@ export default function LoginScreen({ navigation }: any) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const login = useAuthStore((state) => state.login);
 
@@ -30,57 +30,21 @@ export default function LoginScreen({ navigation }: any) {
 
     // Validasyon (Validation)
     if (!email || !password) {
-      console.log('❌ Validation failed: Missing fields');
-      Toast.show({
-        type: 'error',
-        text1: t('auth.error'),
-        text2: t('auth.fillAllFields'),
-        position: 'top',
-        visibilityTime: 3000,
-      });
+      setErrorMessage(t('auth.fillAllFields'));
       return;
     }
 
     try {
       setIsLoading(true);
-      console.log('🚀 Calling login function...');
+      setErrorMessage('');
 
       await login(email.trim().toLowerCase(), password);
 
-      console.log('✅ Login successful!');
-      console.log('📢 Showing success toast...');
-
-      // Başarılı giriş mesajı (Success message)
-      Toast.show({
-        type: 'success',
-        text1: t('auth.loginSuccess'),
-        text2: t('auth.welcomeBack'),
-        visibilityTime: 3000, // 2000 → 3000 (daha uzun)
-        topOffset: 60,
-      });
-
-      console.log('✅ Toast shown!');
-
-      // Biraz bekle ve modal'ı kapat (Wait a bit and close modal)
-      setTimeout(() => {
-        console.log('🔙 Navigating back...');
-        navigation.goBack();
-      }, 2000); // 1000 → 2000 (daha uzun bekle)
+      // Başarılı - modal'ı kapat
+      navigation.goBack();
 
     } catch (error: any) {
-      console.error('❌ Login error:', error);
-      console.log('📢 Showing error toast...');
-
-      // Hata mesajını göster (Show error message)
-      Toast.show({
-        type: 'error',
-        text1: t('auth.loginFailed'),
-        text2: error.message || t('auth.invalidCredentials'),
-        visibilityTime: 4000, // 3000 → 4000 (daha uzun)
-        topOffset: 60,
-      });
-
-      console.log('❌ Error toast shown!');
+      setErrorMessage(error.message || t('auth.invalidCredentials'));
     } finally {
       setIsLoading(false);
     }
@@ -153,6 +117,14 @@ export default function LoginScreen({ navigation }: any) {
               />
             </TouchableOpacity>
           </View>
+
+          {/* Hata Mesajı (Error Message) */}
+          {errorMessage !== '' && (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={18} color="#DC3545" />
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          )}
 
           {/* Şifremi Unuttum (Forgot Password) */}
           <TouchableOpacity
@@ -296,6 +268,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#E63946',
     fontWeight: '700',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#DC3545',
+    fontWeight: '600',
   },
 });
 

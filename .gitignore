@@ -47,3 +47,6 @@ google-service-account.json
 # Keystores
 *.keystore
 *.jks
+
+# Supabase
+supabase/.temp/
