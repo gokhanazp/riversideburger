@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -60,6 +60,14 @@ const AdminSettings = ({ navigation }: any) => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false);
 
+  // Input değerlerini ref'lerde tut (render tetiklemesin)
+  const inputRefs = useRef({
+    points_percentage: '5',
+    min_order_amount: '50',
+    delivery_fee: '15',
+    free_delivery_threshold: '150',
+  });
+
   useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
@@ -84,6 +92,12 @@ const AdminSettings = ({ navigation }: any) => {
         working_hours: data.working_hours || DEFAULT_WORKING_HOURS,
         auto_close_enabled: data.auto_close_enabled || false,
       });
+      inputRefs.current = {
+        points_percentage: String(data.points_percentage ?? 5),
+        min_order_amount: String(data.min_order_amount ?? 50),
+        delivery_fee: String(data.delivery_fee ?? 15),
+        free_delivery_threshold: String(data.free_delivery_threshold ?? 150),
+      };
     } catch (error: any) {
       console.error('Error:', error);
       Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.settings.errorLoading') });
@@ -112,16 +126,18 @@ const AdminSettings = ({ navigation }: any) => {
   const handleSaveSettings = async () => {
     try {
       setSaving(true);
-      if (settings.points_percentage < 0 || settings.points_percentage > 100) {
+      const pts = parseFloat(inputRefs.current.points_percentage) || 0;
+      if (pts < 0 || pts > 100) {
         Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.settings.pointsPercentageError') });
+        setSaving(false);
         return;
       }
 
       const { data, error } = await supabase.from('settings').update({
-        points_percentage: settings.points_percentage,
-        min_order_amount: settings.min_order_amount,
-        delivery_fee: settings.delivery_fee,
-        free_delivery_threshold: settings.free_delivery_threshold,
+        points_percentage: pts,
+        min_order_amount: parseFloat(inputRefs.current.min_order_amount) || 0,
+        delivery_fee: parseFloat(inputRefs.current.delivery_fee) || 0,
+        free_delivery_threshold: parseFloat(inputRefs.current.free_delivery_threshold) || 0,
         is_open: settings.is_open,
       }).eq('id', settings.id).select().single();
 
@@ -162,15 +178,15 @@ const AdminSettings = ({ navigation }: any) => {
     </Animated.View>
   );
 
-  const InputRow = ({ label, suffix, prefix, value, onChangeText, placeholder }: any) => (
+  const InputRow = ({ suffix, prefix, defaultValue, field, placeholder }: any) => (
       <View style={styles.inputRow}>
           {prefix && <Text style={styles.prefix}>{prefix}</Text>}
-          <TextInput 
-            style={styles.input} 
-            value={value} 
-            onChangeText={onChangeText} 
-            placeholder={placeholder} 
-            placeholderTextColor="#CCC" 
+          <TextInput
+            style={styles.input}
+            defaultValue={defaultValue}
+            onChangeText={(text) => { inputRefs.current[field as keyof typeof inputRefs.current] = text; }}
+            placeholder={placeholder}
+            placeholderTextColor="#CCC"
             keyboardType="numeric"
           />
           {suffix && <Text style={styles.suffix}>{suffix}</Text>}
@@ -237,9 +253,9 @@ const AdminSettings = ({ navigation }: any) => {
           title={t('admin.settings.pointsEarningPercentage')} 
           description={t('admin.settings.pointsEarningDesc')}
         >
-            <InputRow 
-                value={settings.points_percentage.toString()} 
-                onChangeText={(t: string) => setSettings({ ...settings, points_percentage: parseFloat(t) || 0 })}
+            <InputRow
+                defaultValue={String(settings.points_percentage)}
+                field="points_percentage"
                 suffix="%"
                 placeholder="5"
             />
@@ -252,10 +268,10 @@ const AdminSettings = ({ navigation }: any) => {
           title={t('admin.settings.minOrderTitle')} 
           description={t('admin.settings.minOrderDesc')}
         >
-            <InputRow 
+            <InputRow
                 prefix={getCurrencyInfo().symbol}
-                value={settings.min_order_amount.toString()} 
-                onChangeText={(t: string) => setSettings({ ...settings, min_order_amount: parseFloat(t) || 0 })}
+                defaultValue={String(settings.min_order_amount)}
+                field="min_order_amount"
                 placeholder="50"
             />
         </SettingCard>
@@ -267,10 +283,10 @@ const AdminSettings = ({ navigation }: any) => {
           title={t('admin.settings.deliveryFeeTitle')} 
           description={t('admin.settings.deliveryFeeDescription')}
         >
-            <InputRow 
+            <InputRow
                 prefix={getCurrencyInfo().symbol}
-                value={settings.delivery_fee.toString()} 
-                onChangeText={(t: string) => setSettings({ ...settings, delivery_fee: parseFloat(t) || 0 })}
+                defaultValue={String(settings.delivery_fee)}
+                field="delivery_fee"
                 placeholder="15"
             />
         </SettingCard>
@@ -281,10 +297,10 @@ const AdminSettings = ({ navigation }: any) => {
           title={t('admin.settings.freeDeliveryTitle')} 
           description={t('admin.settings.freeDeliveryDesc')}
         >
-            <InputRow 
+            <InputRow
                 prefix={getCurrencyInfo().symbol}
-                value={settings.free_delivery_threshold.toString()} 
-                onChangeText={(t: string) => setSettings({ ...settings, free_delivery_threshold: parseFloat(t) || 0 })}
+                defaultValue={String(settings.free_delivery_threshold)}
+                field="free_delivery_threshold"
                 placeholder="150"
             />
         </SettingCard>

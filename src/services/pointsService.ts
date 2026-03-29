@@ -53,15 +53,15 @@ export const getPointsRate = async (): Promise<number> => {
   try {
     const { data, error } = await supabase
       .from('settings')
-      .select('value')
-      .eq('key', 'points_rate')
-      .single();
+      .select('points_percentage')
+      .limit(1)
+      .maybeSingle();
 
     if (error) throw error;
-    return parseFloat(data?.value || '5');
+    return parseFloat(data?.points_percentage) || 5;
   } catch (error) {
-    console.error('Error fetching points rate:', error);
-    return 5; // Varsayılan değer (Default value)
+    console.warn('Error fetching points rate:', error);
+    return 5;
   }
 };
 
@@ -73,15 +73,15 @@ export const getMinOrderAmount = async (): Promise<number> => {
   try {
     const { data, error } = await supabase
       .from('settings')
-      .select('value')
-      .eq('key', 'points_min_order')
-      .single();
+      .select('min_order_amount')
+      .limit(1)
+      .maybeSingle();
 
     if (error) throw error;
-    return parseFloat(data?.value || '50');
+    return parseFloat(data?.min_order_amount) || 50;
   } catch (error) {
-    console.error('Error fetching min order amount:', error);
-    return 50; // Varsayılan değer (Default value)
+    console.warn('Error fetching min order amount:', error);
+    return 50;
   }
 };
 

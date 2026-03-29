@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
+  ScrollView,
   Image,
   TouchableOpacity,
   ActivityIndicator,
@@ -39,7 +40,8 @@ const CartScreen = ({ navigation }: any) => {
 
   const [userPoints, setUserPoints] = useState<number>(0);
   const [pointsToUse, setPointsToUse] = useState<number>(0);
-  const [pointsInputValue, setPointsInputValue] = useState<string>('');
+  const pointsInputRef = useRef<any>(null);
+  const pointsTextRef = useRef<string>('');
 
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [userAddresses, setUserAddresses] = useState<Address[]>([]);
@@ -77,38 +79,21 @@ const CartScreen = ({ navigation }: any) => {
     }
   };
 
-  const handlePointsChange = (value: string) => {
-    setPointsInputValue(value);
-    const numValue = parseFloat(value) || 0;
+  const handleApplyPoints = () => {
+    const text = pointsTextRef.current;
+    const numValue = parseFloat(text);
+    if (isNaN(numValue) || text === '') {
+      setPointsToUse(0);
+      return;
+    }
     const maxPoints = Math.min(userPoints, getTotalPrice());
-
     if (numValue > maxPoints) {
       setPointsToUse(maxPoints);
-      setPointsInputValue(maxPoints.toFixed(2));
-      Toast.show({
-        type: 'info',
-        text1: t('cart.maxPoints'),
-        text2: t('cart.maxPointsDesc', { max: maxPoints.toFixed(2) }),
-        position: 'top',
-        topOffset: 60,
-      });
-    } else if (numValue < 0) {
-      setPointsToUse(0);
-      setPointsInputValue('0');
+      pointsTextRef.current = maxPoints.toFixed(2);
+      if (pointsInputRef.current) pointsInputRef.current.setNativeProps({ text: maxPoints.toFixed(2) });
     } else {
       setPointsToUse(numValue);
     }
-  };
-
-  const handleUseAllPoints = () => {
-    const maxPoints = Math.min(userPoints, getTotalPrice());
-    setPointsToUse(maxPoints);
-    setPointsInputValue(maxPoints.toFixed(2));
-  };
-
-  const handleClearPoints = () => {
-    setPointsToUse(0);
-    setPointsInputValue('');
   };
 
   const getFinalPrice = () => Math.max(0, getTotalPrice() - pointsToUse);
@@ -257,14 +242,17 @@ const CartScreen = ({ navigation }: any) => {
             <View style={styles.expandedContent}>
               {userPoints > 0 ? (
                 <View style={styles.pointsInputRow}>
-                  <TextInput 
-                    style={styles.pointsInput} 
-                    value={pointsInputValue} 
-                    onChangeText={handlePointsChange} 
-                    keyboardType="numeric" 
-                    placeholder={t('cart.enterPoints')} 
+                  <TextInput
+                    ref={pointsInputRef}
+                    style={styles.pointsInput}
+                    defaultValue=""
+                    keyboardType="numeric"
+                    placeholder={t('cart.enterPoints')}
+                    onChangeText={(text) => { pointsTextRef.current = text; }}
+                    onSubmitEditing={handleApplyPoints}
+                    returnKeyType="done"
                   />
-                  <TouchableOpacity style={styles.applyBtn} onPress={handleUseAllPoints}>
+                  <TouchableOpacity style={styles.applyBtn} onPress={handleApplyPoints}>
                     <Text style={styles.applyBtnText}>{t('cart.apply')}</Text>
                   </TouchableOpacity>
                 </View>
@@ -308,14 +296,14 @@ const CartScreen = ({ navigation }: any) => {
         </View>
       ) : (
         <>
-          <FlatList
-            data={items}
-            renderItem={({ item }) => <EliteCartItem item={item} />}
-            keyExtractor={item => item.id}
-            ListFooterComponent={ListFooter}
+          <ScrollView
             contentContainerStyle={styles.flatListContent}
+            keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-          />
+          >
+            {items.map(item => <EliteCartItem key={item.id} item={item} />)}
+            <ListFooter />
+          </ScrollView>
           
           <View style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom + 85, 100) }]}>
             <View style={styles.stickyRow}>

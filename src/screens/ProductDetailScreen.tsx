@@ -284,11 +284,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
           </View>
 
           <View style={styles.heroIndicator}>
-            <View style={styles.dotsRow}>
-              <View style={[styles.dot, styles.activeDot]} />
-              <View style={styles.dot} />
-              <View style={styles.dot} />
-            </View>
+            <View />
             <View style={styles.trendingBadge}>
               <Ionicons name="flame" size={12} color={Colors.white} />
               <Text style={styles.trendingText}>TRENDING</Text>
@@ -312,8 +308,7 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
               </View>
             </View>
             <View style={styles.priceBadge}>
-              <Text style={styles.currencySymbol}>$</Text>
-              <Text style={styles.priceValue}>{item.price.toFixed(2)}</Text>
+              <Text style={styles.priceValue}>{formatPrice(item.price)}</Text>
             </View>
           </View>
 
@@ -435,8 +430,8 @@ const styles = StyleSheet.create({
   scoreBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFF9E5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   scoreText: { fontSize: 13, fontWeight: '700', color: '#B8860B' },
   reviewVolume: { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
-  priceBadge: { backgroundColor: Colors.surface, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, alignItems: 'center' },
-  currencySymbol: { fontSize: 12, fontWeight: '700', color: Colors.primary },
+  priceBadge: { backgroundColor: Colors.surface, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, flexDirection: 'row', alignItems: 'baseline' },
+  currencySymbol: { fontSize: 14, fontWeight: '700', color: Colors.primary, marginRight: 2 },
   priceValue: { fontSize: 24, fontWeight: '900', color: Colors.primary },
 
   statsRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },

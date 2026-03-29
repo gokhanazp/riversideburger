@@ -525,6 +525,9 @@
     "cancel": "İptal"
   },
   "admin": {
+    "success": "Başarılı",
+    "error": "Hata",
+    "loading": "Yükleniyor...",
     "dashboard": "Yönetim Paneli",
     "dashboardTitle": "Admin Dashboard",
     "dashboardSubtitle": "Riverside Burgers Yönetim Paneli",

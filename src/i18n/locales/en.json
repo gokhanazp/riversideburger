@@ -525,6 +525,9 @@
     "cancel": "Cancel"
   },
   "admin": {
+    "success": "Success",
+    "error": "Error",
+    "loading": "Loading...",
     "dashboard": "Admin Dashboard",
     "dashboardTitle": "Admin Dashboard",
     "dashboardSubtitle": "Riverside Burgers Management Panel",
