@@ -1,5 +1,58 @@
+import Constants from 'expo-constants';
 import { supabase } from '../lib/supabase';
 import { Address } from '../types/database.types';
+
+const FUNCTIONS_URL = (Constants.expoConfig?.extra?.supabaseFunctionsUrl as string) ?? '';
+
+export interface GeocodeResult {
+  lat: number;
+  lng: number;
+  display_name: string;
+}
+
+/**
+ * Adresi LocationIQ ile geocode et
+ * Geocode an address via LocationIQ (called through geocode-address Edge Function)
+ * Returns null when address is not found.
+ */
+export const geocodeAddress = async (parts: {
+  street_number: string;
+  street_name: string;
+  unit_number?: string;
+  city: string;
+  province: string;
+  postal_code: string;
+  country?: string;
+}): Promise<GeocodeResult | null> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+
+  const street = `${parts.street_number} ${parts.street_name}`.trim();
+  const res = await fetch(`${FUNCTIONS_URL}/geocode-address`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      street,
+      unit: parts.unit_number,
+      city: parts.city,
+      province: parts.province,
+      postal_code: parts.postal_code,
+      country: parts.country || 'CA',
+    }),
+  });
+
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Geocode failed (${res.status}): ${text}`);
+  }
+  const json = await res.json();
+  return { lat: json.lat, lng: json.lng, display_name: json.display_name };
+};
+
 
 /**
  * Kullanıcının tüm adreslerini getir

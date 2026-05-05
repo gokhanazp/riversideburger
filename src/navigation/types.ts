@@ -1,5 +1,6 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
 import { MenuItem } from '../types';
+import { Address } from '../types/database.types';
 
 // Ana tab navigator için parametre tipleri (Main tab navigator parameter types)
 export type MainTabParamList = {
@@ -27,7 +28,12 @@ export type RootStackParamList = {
     notes: string;
     pointsUsed: number;
     addressId: string | null;
+    deliveryFee?: number;
+    quoteId?: string | null;
+    address?: Address | null;
+    deliveryMethod?: 'pickup' | 'delivery';
   };
+  OrderTracking: { orderId: string };
   OrderHistory: undefined;
   PointsHistory: undefined;
   ProfileEdit: undefined;

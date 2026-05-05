@@ -37,6 +37,9 @@ import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 // Ödeme ekranı (Payment screen)
 import PaymentScreen from '../screens/PaymentScreen';
 
+// Sipariş takip ekranı (Order tracking screen — Uber Direct live tracking)
+import OrderTrackingScreen from '../screens/OrderTrackingScreen';
+
 // Admin ekranları (Admin screens)
 import AdminDashboard from '../screens/admin/AdminDashboard';
 import AdminOrders from '../screens/admin/AdminOrders';
@@ -357,6 +360,19 @@ const AppNavigator = () => {
             headerShown: false,
             presentation: 'modal',
             animation: 'slide_from_bottom',
+          }}
+        />
+
+        {/* Sipariş takip ekranı (Order tracking — Uber Direct live tracking) */}
+        <Stack.Screen
+          name="OrderTracking"
+          component={OrderTrackingScreen}
+          options={{
+            headerShown: true,
+            title: t('tracking.title'),
+            headerStyle: { backgroundColor: Colors.primary },
+            headerTintColor: '#FFF',
+            headerTitleStyle: { fontWeight: 'bold', fontSize: 18 },
           }}
         />
 

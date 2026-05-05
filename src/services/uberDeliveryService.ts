@@ -1,0 +1,89 @@
+import Constants from 'expo-constants';
+import { supabase } from '../lib/supabase';
+import { Address } from '../types/database.types';
+
+const FUNCTIONS_URL = (Constants.expoConfig?.extra?.supabaseFunctionsUrl as string) ?? '';
+
+export interface UberQuote {
+  quote_id: string;
+  fee_cents: number;
+  fee: number;          // dollars
+  currency: string;     // "CAD"
+  duration_minutes: number;
+  dropoff_eta: string;  // ISO
+  expires_at: string;   // ISO
+}
+
+export interface UberCreateDeliveryResult {
+  delivery_id: string;
+  tracking_url: string;
+  status: string;
+  pickup_eta: string | null;
+  dropoff_eta: string | null;
+  already_exists?: boolean;
+}
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${session.access_token}`,
+  };
+}
+
+/**
+ * Uber Direct delivery quote al
+ * Get a delivery quote for a customer address before checkout.
+ * Returns null if address has no lat/lng (e.g., Turkey legacy address).
+ */
+export const getDeliveryQuote = async (address: Address): Promise<UberQuote | null> => {
+  if (address.latitude == null || address.longitude == null) {
+    return null;
+  }
+  const headers = await authHeaders();
+  const res = await fetch(`${FUNCTIONS_URL}/uber-quote`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      dropoff_address: `${address.street_number} ${address.street_name}, ${address.city}`,
+      dropoff_street: `${address.street_number} ${address.street_name}`,
+      dropoff_unit: address.unit_number || undefined,
+      dropoff_city: address.city,
+      dropoff_province: address.province,
+      dropoff_postal_code: address.postal_code,
+      dropoff_country: 'CA',
+      dropoff_lat: address.latitude,
+      dropoff_lng: address.longitude,
+      dropoff_phone: address.phone,
+      dropoff_name: address.full_name,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Quote failed (${res.status}): ${text}`);
+  }
+  return res.json();
+};
+
+/**
+ * Stripe ödemesi başarılı olduktan sonra Uber'e delivery oluştur
+ * Create the Uber Direct delivery after successful Stripe payment.
+ */
+export const createUberDelivery = async (
+  orderId: string,
+  quoteId: string,
+): Promise<UberCreateDeliveryResult> => {
+  const headers = await authHeaders();
+  const res = await fetch(`${FUNCTIONS_URL}/uber-create-delivery`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ order_id: orderId, quote_id: quoteId }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Create delivery failed (${res.status}): ${text}`);
+  }
+  return res.json();
+};

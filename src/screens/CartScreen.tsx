@@ -23,6 +23,7 @@ import { getUserPoints } from '../services/pointsService';
 import { getDefaultAddress, getUserAddresses } from '../services/addressService';
 import { Address } from '../types/database.types';
 import { formatPrice, getCurrentCurrency } from '../services/currencyService';
+import { getDeliveryQuote, UberQuote } from '../services/uberDeliveryService';
 
 const CartScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
@@ -46,6 +47,14 @@ const CartScreen = ({ navigation }: any) => {
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [userAddresses, setUserAddresses] = useState<Address[]>([]);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+
+  // Teslimat şekli (Delivery method): 'pickup' = restorandan al, 'delivery' = adrese teslimat
+  const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('delivery');
+
+  // Uber Direct delivery quote state
+  const [deliveryQuote, setDeliveryQuote] = useState<UberQuote | null>(null);
+  const [isLoadingQuote, setIsLoadingQuote] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -96,7 +105,39 @@ const CartScreen = ({ navigation }: any) => {
     }
   };
 
-  const getFinalPrice = () => Math.max(0, getTotalPrice() - pointsToUse);
+  // Adres veya teslimat şekli değiştiğinde teslimat ücretini güncelle
+  // (Refresh quote when address or delivery method changes; skip entirely for pickup)
+  useEffect(() => {
+    let cancelled = false;
+    if (deliveryMethod === 'pickup' || !selectedAddress || selectedAddress.latitude == null || selectedAddress.longitude == null) {
+      setDeliveryQuote(null);
+      setQuoteError(null);
+      setIsLoadingQuote(false);
+      return;
+    }
+    setIsLoadingQuote(true);
+    setQuoteError(null);
+    getDeliveryQuote(selectedAddress)
+      .then((quote) => {
+        if (!cancelled) setDeliveryQuote(quote);
+      })
+      .catch((err) => {
+        console.error('Quote fetch failed:', err);
+        if (!cancelled) {
+          setDeliveryQuote(null);
+          setQuoteError(err.message || t('cart.feeUnavailable'));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingQuote(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedAddress, deliveryMethod]);
+
+  const deliveryFee = deliveryMethod === 'pickup' ? 0 : (deliveryQuote?.fee ?? 0);
+  const getFinalPrice = () => Math.max(0, getTotalPrice() - pointsToUse) + deliveryFee;
 
   const handleCheckout = () => {
     if (items.length === 0) {
@@ -104,9 +145,15 @@ const CartScreen = ({ navigation }: any) => {
       return;
     }
     if (!isAuthenticated) { setShowLoginModal(true); return; }
-    if (!selectedAddress) {
-      Toast.show({ type: 'error', text1: t('cart.noAddressSelectedTitle'), text2: t('cart.noAddressSelectedDesc'), position: 'top', topOffset: 60 });
-      return;
+    if (deliveryMethod === 'delivery') {
+      if (!selectedAddress) {
+        Toast.show({ type: 'error', text1: t('cart.noAddressSelectedTitle'), text2: t('cart.noAddressSelectedDesc'), position: 'top', topOffset: 60 });
+        return;
+      }
+      if (selectedAddress.latitude != null && !deliveryQuote) {
+        Toast.show({ type: 'error', text1: t('cart.noAddressSelectedTitle'), text2: quoteError ?? t('cart.quoteCalculating'), position: 'top', topOffset: 60 });
+        return;
+      }
     }
     setShowCheckoutModal(true);
   };
@@ -115,19 +162,25 @@ const CartScreen = ({ navigation }: any) => {
     if (!user) return;
     setShowCheckoutModal(false);
 
-    const fullAddress = selectedAddress
-      ? `${selectedAddress.street_number} ${selectedAddress.street_name}, ${selectedAddress.city}`
-      : t('cart.addressNotSpecified');
+    // Pickup için adres gönderme; delivery için seçilen adresi gönder
+    const fullAddress = deliveryMethod === 'pickup'
+      ? `${t('cart.deliveryMethodPickup')}: Riverside Burgers`
+      : selectedAddress
+        ? `${selectedAddress.street_number} ${selectedAddress.street_name}, ${selectedAddress.city}`
+        : t('cart.addressNotSpecified');
 
-    // Ödeme ekranına yönlendir (Navigate to Payment screen)
     navigation.navigate('Payment', {
       totalAmount: getFinalPrice(),
       currency: getCurrentCurrency(),
       deliveryAddress: fullAddress,
-      phone: selectedAddress?.phone || t('cart.phoneNotSpecified'),
+      phone: deliveryMethod === 'pickup' ? (user.phone ?? '') : (selectedAddress?.phone || t('cart.phoneNotSpecified')),
       notes: pointsToUse > 0 ? t('cart.pointsUsed', { points: pointsToUse.toFixed(2) }) : '',
       pointsUsed: pointsToUse,
-      addressId: selectedAddress?.id || null,
+      addressId: deliveryMethod === 'pickup' ? null : (selectedAddress?.id || null),
+      deliveryFee,
+      quoteId: deliveryMethod === 'pickup' ? null : (deliveryQuote?.quote_id ?? null),
+      address: deliveryMethod === 'pickup' ? null : selectedAddress,
+      deliveryMethod,
     });
   };
 
@@ -168,8 +221,42 @@ const CartScreen = ({ navigation }: any) => {
 
   const ListFooter = () => (
     <View style={styles.listFooter}>
-      {/* Adres Bölümü (Address Section) */}
+      {/* Teslimat Şekli (Delivery Method) */}
       {isAuthenticated && (
+        <View style={styles.deliveryMethodRow}>
+          <TouchableOpacity
+            style={[styles.deliveryMethodOption, deliveryMethod === 'delivery' && styles.deliveryMethodOptionActive]}
+            onPress={() => setDeliveryMethod('delivery')}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="bicycle"
+              size={20}
+              color={deliveryMethod === 'delivery' ? '#FFF' : Colors.primary}
+            />
+            <Text style={[styles.deliveryMethodLabel, deliveryMethod === 'delivery' && styles.deliveryMethodLabelActive]}>
+              {t('cart.deliveryMethodDelivery')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.deliveryMethodOption, deliveryMethod === 'pickup' && styles.deliveryMethodOptionActive]}
+            onPress={() => setDeliveryMethod('pickup')}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="storefront"
+              size={20}
+              color={deliveryMethod === 'pickup' ? '#FFF' : Colors.primary}
+            />
+            <Text style={[styles.deliveryMethodLabel, deliveryMethod === 'pickup' && styles.deliveryMethodLabelActive]}>
+              {t('cart.deliveryMethodPickup')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Adres Bölümü (Address Section) — sadece teslimat seçilince */}
+      {isAuthenticated && deliveryMethod === 'delivery' && (
         <View style={styles.sectionContainer}>
           <TouchableOpacity 
             style={styles.sectionHeader} 
@@ -275,7 +362,17 @@ const CartScreen = ({ navigation }: any) => {
         <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>{t('cart.deliveryFee')}</Text>
-          <Text style={styles.summaryValue}>{t('cart.free')}</Text>
+          <Text style={styles.summaryValue}>
+            {deliveryMethod === 'pickup'
+              ? t('cart.free')
+              : isLoadingQuote
+                ? t('cart.calculatingFee')
+                : quoteError
+                  ? t('cart.feeUnavailable')
+                  : deliveryQuote
+                    ? formatPrice(deliveryQuote.fee)
+                    : t('cart.free')}
+          </Text>
         </View>
       </View>
     </View>
@@ -390,6 +487,25 @@ const styles = StyleSheet.create({
   qtyBtn: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF', borderRadius: 15, ...Shadows.small },
   qtyText: { marginHorizontal: 14, fontWeight: '700', fontSize: 15 },
   listFooter: { marginTop: 10 },
+  deliveryMethodRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  deliveryMethodOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: '#FFF',
+    borderWidth: 1.5,
+    borderColor: '#EDEEF2',
+  },
+  deliveryMethodOptionActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  deliveryMethodLabel: { fontSize: 13, fontWeight: '700', color: '#1A1A1A' },
+  deliveryMethodLabelActive: { color: '#FFF' },
   sectionContainer: { backgroundColor: '#FFF', borderRadius: 20, padding: 16, marginBottom: 14, ...Shadows.small, borderWidth: 1, borderColor: '#F0F0F0' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },

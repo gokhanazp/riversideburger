@@ -253,6 +253,20 @@ const OrderHistoryScreen = () => {
           )}
         </View>
 
+        {/* Aktif sipariş için takip butonu (Track only for active delivery orders, not pickup) */}
+        {item.status !== 'delivered'
+          && item.status !== 'cancelled'
+          && (item as any).delivery_method !== 'pickup'
+          && (item as any).uber_delivery_id && (
+          <TouchableOpacity
+            style={styles.reviewButton}
+            onPress={() => (navigation as any).navigate('OrderTracking', { orderId: item.id })}
+          >
+            <Ionicons name="navigate-outline" size={20} color={Colors.primary} />
+            <Text style={styles.reviewButtonText}>{t('tracking.trackOrder')}</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Değerlendirme Butonu (Review Button) - Sadece teslim edilen siparişler için */}
         {item.status === 'delivered' && !reviewedOrders.has(item.id) && (
           <TouchableOpacity

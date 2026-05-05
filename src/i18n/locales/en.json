@@ -233,7 +233,12 @@
     "free": "Free",
     "addressNotSpecified": "Address not specified",
     "phoneNotSpecified": "Phone not specified",
-    "pointsUsed": "{{points}} points used"
+    "pointsUsed": "{{points}} points used",
+    "deliveryMethodPickup": "Pickup",
+    "deliveryMethodDelivery": "Delivery",
+    "calculatingFee": "Calculating",
+    "feeUnavailable": "Unavailable",
+    "quoteCalculating": "Calculating delivery fee"
   },
   "checkout": {
     "title": "Order Summary",
@@ -522,7 +527,9 @@
     "selectDistrict": "Select District",
     "noDistricts": "No Districts Found",
     "noDistrictsDesc": "District list has not been added for this province yet",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "geocodingNotFound": "Address not found, please check",
+    "geocodingError": "Could not verify address, check your connection and try again"
   },
   "admin": {
     "success": "Success",
@@ -1162,6 +1169,26 @@
     "enterCardDetails": "Enter your card details securely",
     "dataProtected": "Your card details are not stored",
     "acceptedCards": "Accepted cards",
-    "demoModeDesc": "Stripe is in test mode. No real charges."
+    "demoModeDesc": "Stripe is in test mode. No real charges.",
+    "uberDispatchFailed": "Order received, but courier dispatch failed. Support will reach out."
+  },
+  "tracking": {
+    "title": "Order Tracking",
+    "etaLabel": "Estimated delivery",
+    "courierAssigning": "Assigning courier…",
+    "canceled": "Order canceled",
+    "orderNotFound": "Order not found.",
+    "mapPendingTitle": "Map will activate in the next build",
+    "mapPendingSubtitle": "Order status and courier info update live below.",
+    "deliveryFeeLabel": "Delivery fee",
+    "uberLink": "Open Uber tracking page",
+    "trackOrder": "Track order",
+    "status": {
+      "pending": "Order received",
+      "pickup": "Restaurant preparing",
+      "pickup_complete": "Courier on the way",
+      "dropoff": "Arriving",
+      "delivered": "Delivered"
+    }
   }
 }

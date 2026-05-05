@@ -31,11 +31,30 @@ interface CreateOrderParams {
   }[];
   points_used?: number;
   address_id?: string;
+  delivery_method?: 'pickup' | 'delivery';
+  // Uber Direct için yapılandırılmış teslimat snapshot'ı (sipariş anındaki adres)
+  delivery_full_name?: string;
+  delivery_street?: string;
+  delivery_unit?: string | null;
+  delivery_city?: string;
+  delivery_province?: string;
+  delivery_postal_code?: string;
+  delivery_country?: string;
+  delivery_lat?: number | null;
+  delivery_lng?: number | null;
+  delivery_instructions?: string | null;
+  delivery_fee?: number;
 }
 
 export const createOrder = async (params: CreateOrderParams): Promise<Order> => {
   try {
-    const { user_id, total_amount, delivery_address, phone, notes, items, points_used = 0, address_id } = params;
+    const {
+      user_id, total_amount, delivery_address, phone, notes, items,
+      points_used = 0, address_id, delivery_method = 'delivery',
+      delivery_full_name, delivery_street, delivery_unit, delivery_city,
+      delivery_province, delivery_postal_code, delivery_country,
+      delivery_lat, delivery_lng, delivery_instructions, delivery_fee,
+    } = params;
 
     // Sipariş oluştur (Create order)
     const { data: orderData, error: orderError } = await supabase
@@ -51,6 +70,19 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
         points_earned: 0, // Trigger otomatik hesaplayacak (Trigger will calculate automatically)
         points_used: points_used || 0,
         address_id: address_id || null,
+        delivery_method,
+        // Uber Direct snapshot
+        delivery_full_name,
+        delivery_street,
+        delivery_unit,
+        delivery_city,
+        delivery_province,
+        delivery_postal_code,
+        delivery_country: delivery_country || 'CA',
+        delivery_lat,
+        delivery_lng,
+        delivery_instructions,
+        delivery_fee,
       })
       .select()
       .single();

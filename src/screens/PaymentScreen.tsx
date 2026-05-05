@@ -18,6 +18,8 @@ import { Colors, Shadows } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 import { createPaymentIntent, confirmPayment } from '../services/stripeService';
 import { createOrder } from '../services/orderService';
+import { createUberDelivery } from '../services/uberDeliveryService';
+import { Address } from '../types/database.types';
 import { useCartStore } from '../store/cartStore';
 import { formatPrice } from '../services/currencyService';
 import Toast from 'react-native-toast-message';
@@ -52,7 +54,23 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     notes,
     pointsUsed,
     addressId,
-  } = route.params;
+    deliveryFee,
+    quoteId,
+    address,
+    deliveryMethod = 'delivery',
+  } = route.params as {
+    totalAmount: number;
+    currency: string;
+    deliveryAddress: string;
+    phone: string;
+    notes?: string;
+    pointsUsed: number;
+    addressId: string | null;
+    deliveryFee?: number;
+    quoteId?: string | null;
+    address?: Address | null;
+    deliveryMethod?: 'pickup' | 'delivery';
+  };
 
   // State
   const [isLoading, setIsLoading] = useState(false);
@@ -168,21 +186,52 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       notes,
       items: orderItems,
       points_used: pointsUsed,
-      address_id: addressId,
+      address_id: addressId ?? undefined,
+      delivery_method: deliveryMethod,
+      // Uber Direct snapshot — sadece delivery için doldurulur
+      delivery_full_name: deliveryMethod === 'delivery' ? address?.full_name : undefined,
+      delivery_street: deliveryMethod === 'delivery' && address ? `${address.street_number} ${address.street_name}` : undefined,
+      delivery_unit: deliveryMethod === 'delivery' ? (address?.unit_number ?? null) : null,
+      delivery_city: deliveryMethod === 'delivery' ? address?.city : undefined,
+      delivery_province: deliveryMethod === 'delivery' ? address?.province : undefined,
+      delivery_postal_code: deliveryMethod === 'delivery' ? address?.postal_code : undefined,
+      delivery_country: 'CA',
+      delivery_lat: deliveryMethod === 'delivery' ? (address?.latitude ?? null) : null,
+      delivery_lng: deliveryMethod === 'delivery' ? (address?.longitude ?? null) : null,
+      delivery_instructions: deliveryMethod === 'delivery' ? (address?.delivery_instructions ?? null) : null,
+      delivery_fee: deliveryFee,
     });
 
     clearCart();
 
+    // Uber dispatch sadece delivery + Kanada adresi + quote varsa
+    let uberDispatchFailed = false;
+    if (deliveryMethod === 'delivery' && quoteId && address?.latitude != null) {
+      try {
+        await createUberDelivery(order.id, quoteId);
+      } catch (err) {
+        console.error('Uber dispatch failed:', err);
+        uberDispatchFailed = true;
+      }
+    }
+
     Toast.show({
-      type: 'success',
-      text1: t('payment.success'),
-      text2: t('payment.orderCreated', { orderNumber: order.order_number }),
+      type: uberDispatchFailed ? 'error' : 'success',
+      text1: uberDispatchFailed ? t('payment.failed') : t('payment.success'),
+      text2: uberDispatchFailed
+        ? t('payment.uberDispatchFailed')
+        : t('payment.orderCreated', { orderNumber: order.order_number }),
       visibilityTime: 4000,
       topOffset: 60,
     });
 
     setTimeout(() => {
-      navigation.navigate('Main', { screen: 'HomeTab' });
+      // Sadece delivery + Uber dispatch başarılı → tracking; pickup veya başarısız → home
+      if (deliveryMethod === 'delivery' && quoteId && !uberDispatchFailed) {
+        navigation.replace('OrderTracking', { orderId: order.id });
+      } else {
+        navigation.navigate('Main', { screen: 'HomeTab' });
+      }
     }, 2000);
   };
 

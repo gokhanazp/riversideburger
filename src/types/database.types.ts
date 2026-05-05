@@ -41,6 +41,8 @@ export interface Address {
   province: string; // Eyalet (Province) - ON, BC, AB, QC, etc.
   postal_code: string; // Posta kodu (Postal code) - A1A 1A1 format
   delivery_instructions?: string; // Teslimat talimatları (Delivery instructions)
+  latitude?: number | null;  // Geocoded coordinate (LocationIQ)
+  longitude?: number | null;
   is_default: boolean;
   created_at: string;
   updated_at?: string;
@@ -94,6 +96,7 @@ export interface Order {
   address_id?: string; // Yeni adres sistemi için (For new address system)
   points_earned: number; // Bu siparişten kazanılan puan (Points earned from this order)
   points_used: number; // Bu siparişte kullanılan puan (Points used in this order)
+  delivery_method: 'pickup' | 'delivery'; // Teslimat şekli (default 'delivery')
   created_at: string;
   updated_at?: string;
   // Relations

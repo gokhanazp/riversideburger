@@ -233,7 +233,12 @@
     "free": "Ücretsiz",
     "addressNotSpecified": "Adres belirtilmedi",
     "phoneNotSpecified": "Telefon belirtilmedi",
-    "pointsUsed": "{{points}} puan kullanıldı"
+    "pointsUsed": "{{points}} puan kullanıldı",
+    "deliveryMethodPickup": "Restorandan Al",
+    "deliveryMethodDelivery": "Adrese Teslimat",
+    "calculatingFee": "Hesaplanıyor",
+    "feeUnavailable": "Alınamadı",
+    "quoteCalculating": "Teslimat ücreti hesaplanıyor"
   },
   "checkout": {
     "title": "Sipariş Özeti",
@@ -522,7 +527,9 @@
     "selectDistrict": "İlçe Seçin",
     "noDistricts": "İlçe Bulunamadı",
     "noDistrictsDesc": "Bu il için ilçe listesi henüz eklenmemiş",
-    "cancel": "İptal"
+    "cancel": "İptal",
+    "geocodingNotFound": "Adres bulunamadı, lütfen kontrol edin",
+    "geocodingError": "Adres doğrulanamadı, internetinizi kontrol edip tekrar deneyin"
   },
   "admin": {
     "success": "Başarılı",
@@ -1161,6 +1168,26 @@
     "enterCardDetails": "Kart bilgilerinizi guvenle girin",
     "dataProtected": "Kart bilgileriniz saklanmaz",
     "acceptedCards": "Kabul edilen kartlar",
-    "demoModeDesc": "Stripe test modunda. Gercek odeme alinmaz."
+    "demoModeDesc": "Stripe test modunda. Gercek odeme alinmaz.",
+    "uberDispatchFailed": "Sipariş alındı, kurye atamasında sorun oluştu. Destek sizinle iletişime geçecek."
+  },
+  "tracking": {
+    "title": "Sipariş Takibi",
+    "etaLabel": "Tahmini teslim",
+    "courierAssigning": "Kurye atanıyor…",
+    "canceled": "Sipariş iptal edildi",
+    "orderNotFound": "Sipariş bulunamadı.",
+    "mapPendingTitle": "Harita yeni build'de aktif olacak",
+    "mapPendingSubtitle": "Sipariş statüsü ve kurye bilgisi aşağıda canlı güncelleniyor.",
+    "deliveryFeeLabel": "Teslimat ücreti",
+    "uberLink": "Uber tracking sayfasında aç",
+    "trackOrder": "Siparişi takip et",
+    "status": {
+      "pending": "Sipariş alındı",
+      "pickup": "Restoran hazırlıyor",
+      "pickup_complete": "Kurye yolda",
+      "dropoff": "Yaklaşıyor",
+      "delivered": "Teslim edildi"
+    }
   }
 }

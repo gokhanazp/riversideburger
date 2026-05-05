@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
-import { getAddress, createAddress, updateAddress } from '../services/addressService';
+import { getAddress, createAddress, updateAddress, geocodeAddress } from '../services/addressService';
 import { Address } from '../types/database.types';
 import Toast from 'react-native-toast-message';
 import {
@@ -223,6 +223,45 @@ const AddressEditScreen = ({ route, navigation }: any) => {
     try {
       setIsLoading(true);
 
+      // Kanada için Uber Direct teslimatı gerektirdiği için adresi LocationIQ ile geocode et
+      // (Geocode address for Canadian deliveries — required by Uber Direct)
+      let latitude: number | null = null;
+      let longitude: number | null = null;
+
+      if (country !== 'turkey') {
+        try {
+          const geo = await geocodeAddress({
+            street_number: streetNumber.trim(),
+            street_name: streetName.trim(),
+            unit_number: unitNumber.trim() || undefined,
+            city: city.trim(),
+            province,
+            postal_code: formatPostalCode(postalCode.trim()),
+            country: 'CA',
+          });
+          if (!geo) {
+            Toast.show({
+              type: 'error',
+              text1: t('addressEdit.errorTitle'),
+              text2: t('addressEdit.geocodingNotFound'),
+            });
+            setIsLoading(false);
+            return;
+          }
+          latitude = geo.lat;
+          longitude = geo.lng;
+        } catch (geoErr) {
+          console.error('Geocoding error:', geoErr);
+          Toast.show({
+            type: 'error',
+            text1: t('addressEdit.errorTitle'),
+            text2: t('addressEdit.geocodingError'),
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const addressData = {
         user_id: user.id,
         title,
@@ -235,6 +274,8 @@ const AddressEditScreen = ({ route, navigation }: any) => {
         province,
         postal_code: formatPostalCode(postalCode.trim()),
         delivery_instructions: deliveryInstructions.trim() || undefined,
+        latitude,
+        longitude,
         is_default: false,
       };
 
