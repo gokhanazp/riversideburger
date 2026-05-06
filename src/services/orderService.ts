@@ -183,16 +183,18 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
         .single();
 
       const customerName = userData?.full_name || 'Müşteri';
+      const methodTag = delivery_method === 'pickup' ? ' [Pickup]' : '';
 
       // Push notification gönder (Send push notification)
       const { sendPushNotificationToAdmins } = await import('./notificationService');
       await sendPushNotificationToAdmins(
-        '🔔 Yeni Sipariş!',
-        `${customerName} - ₺${total_amount.toFixed(2)}`,
+        `🔔 Yeni Sipariş!${methodTag}`,
+        `${customerName} - $${total_amount.toFixed(2)}`,
         {
           orderId: orderData.id,
           orderNumber: orderData.order_number,
           type: 'new_order_admin',
+          deliveryMethod: delivery_method,
         }
       );
 

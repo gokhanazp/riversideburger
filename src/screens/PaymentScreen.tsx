@@ -83,6 +83,8 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(30));
 
+  const isPickup = deliveryMethod === 'pickup';
+
   useEffect(() => {
     initializePayment();
     Animated.parallel([
@@ -319,6 +321,19 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
           </View>
         </View>
 
+        {/* Pickup bilgi notu — ödeme sonrası restorandan teslim alınacak */}
+        {isPickup && (
+          <View style={styles.demoWarning}>
+            <View style={styles.demoIconWrap}>
+              <Ionicons name="storefront" size={18} color={Colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.demoWarningTitle}>{t('cart.deliveryMethodPickup')}</Text>
+              <Text style={styles.demoWarningText}>{t('payment.pickupNote')}</Text>
+            </View>
+          </View>
+        )}
+
         {/* Kart Bilgileri */}
         <View style={styles.cardSection}>
           <View style={styles.cardSectionHeader}>
@@ -424,7 +439,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
               <View style={styles.payButtonLeft}>
                 <Ionicons name="lock-closed" size={16} color="rgba(255,255,255,0.8)" />
                 <Text style={styles.payButtonText}>
-                  {t('payment.pay')} {formatPrice(totalAmount)}
+                  {`${t('payment.pay')} ${formatPrice(totalAmount)}`}
                 </Text>
               </View>
               <Ionicons name="arrow-forward" size={20} color="#FFF" />

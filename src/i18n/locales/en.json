@@ -243,6 +243,7 @@
   "checkout": {
     "title": "Order Summary",
     "deliveryAddress": "Delivery Address",
+    "phone": "Phone",
     "paymentMethod": "Payment Method",
     "orderNotes": "Order Notes",
     "placeOrder": "Place Order",
@@ -1170,7 +1171,10 @@
     "dataProtected": "Your card details are not stored",
     "acceptedCards": "Accepted cards",
     "demoModeDesc": "Stripe is in test mode. No real charges.",
-    "uberDispatchFailed": "Order received, but courier dispatch failed. Support will reach out."
+    "uberDispatchFailed": "Order received, but courier dispatch failed. Support will reach out.",
+    "mobileOnly": "Card input is only available in the mobile app",
+    "placeOrder": "Place Order",
+    "pickupNote": "Pickup — pay now and collect your order when it's ready"
   },
   "tracking": {
     "title": "Order Tracking",

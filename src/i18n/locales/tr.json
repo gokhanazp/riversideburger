@@ -243,6 +243,7 @@
   "checkout": {
     "title": "Sipariş Özeti",
     "deliveryAddress": "Teslimat Adresi",
+    "phone": "Telefon",
     "paymentMethod": "Ödeme Yöntemi",
     "orderNotes": "Sipariş Notları",
     "placeOrder": "Siparişi Ver",
@@ -1169,7 +1170,10 @@
     "dataProtected": "Kart bilgileriniz saklanmaz",
     "acceptedCards": "Kabul edilen kartlar",
     "demoModeDesc": "Stripe test modunda. Gercek odeme alinmaz.",
-    "uberDispatchFailed": "Sipariş alındı, kurye atamasında sorun oluştu. Destek sizinle iletişime geçecek."
+    "uberDispatchFailed": "Sipariş alındı, kurye atamasında sorun oluştu. Destek sizinle iletişime geçecek.",
+    "mobileOnly": "Kart girişi sadece mobil uygulamada mevcuttur",
+    "placeOrder": "Siparişi Tamamla",
+    "pickupNote": "Restorandan al — ödemenizi yapın, siparişiniz hazır olduğunda almaya gelin"
   },
   "tracking": {
     "title": "Sipariş Takibi",
