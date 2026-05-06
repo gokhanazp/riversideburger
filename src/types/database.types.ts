@@ -96,6 +96,7 @@ export interface Order {
   address_id?: string; // Yeni adres sistemi için (For new address system)
   points_earned: number; // Bu siparişten kazanılan puan (Points earned from this order)
   points_used: number; // Bu siparişte kullanılan puan (Points used in this order)
+  tip_amount?: number; // Kuryeye giden bahşiş (Driver tip on delivery orders)
   delivery_method: 'pickup' | 'delivery'; // Teslimat şekli (default 'delivery')
   created_at: string;
   updated_at?: string;

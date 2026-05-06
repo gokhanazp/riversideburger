@@ -1192,7 +1192,17 @@
     "uberDispatchFailed": "Order received, but courier dispatch failed. Support will reach out.",
     "mobileOnly": "Card input is only available in the mobile app",
     "placeOrder": "Place Order",
-    "pickupNote": "Pickup — pay now and collect your order when it's ready"
+    "pickupNote": "Pickup — pay now and collect your order when it's ready",
+    "addTip": "ADD TIP",
+    "tipDescription": "Tips entered here only go to your delivery driver.",
+    "tipDescriptionPickup": "Tips entered here go to the restaurant staff who prepared your order.",
+    "tipOther": "Other",
+    "tipCustomTitle": "Custom Tip",
+    "tipCustomPlaceholder": "Enter tip amount",
+    "tipCustomConfirm": "Apply Tip",
+    "tipCustomCancel": "Cancel",
+    "tipLabel": "Driver Tip",
+    "tipLabelPickup": "Tip"
   },
   "tracking": {
     "title": "Order Tracking",

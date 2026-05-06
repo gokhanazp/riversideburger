@@ -10,6 +10,9 @@ import {
   ActivityIndicator,
   Platform,
   Animated,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -77,7 +80,15 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
   const [cardComplete, setCardComplete] = useState(false);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [intentAmount, setIntentAmount] = useState<number | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
+
+  // Tip state — sadece delivery için aktif (kuryeye gider)
+  const [selectedTipPercent, setSelectedTipPercent] = useState<number | null>(null);
+  const [customTipAmount, setCustomTipAmount] = useState<number>(0);
+  const [isCustomTipActive, setIsCustomTipActive] = useState(false);
+  const [showCustomTipModal, setShowCustomTipModal] = useState(false);
+  const [customTipInput, setCustomTipInput] = useState('');
 
   // Animations
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -85,39 +96,85 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
   const isPickup = deliveryMethod === 'pickup';
 
+  // Bahşiş tabanı = yemek tutarı (subtotal); delivery fee'yi düşer, kullanılan puanı geri ekler
+  const tipBase = Math.max(0, totalAmount + pointsUsed - (deliveryFee ?? 0));
+  const tipAmount = isCustomTipActive
+    ? customTipAmount
+    : selectedTipPercent != null
+      ? Number((tipBase * (selectedTipPercent / 100)).toFixed(2))
+      : 0;
+  const finalTotal = Number((totalAmount + tipAmount).toFixed(2));
+
+  const handleSelectTipPercent = (pct: number) => {
+    if (selectedTipPercent === pct && !isCustomTipActive) {
+      setSelectedTipPercent(null); // ikinci tıklamada bahşişi kaldırır
+      return;
+    }
+    setSelectedTipPercent(pct);
+    setIsCustomTipActive(false);
+    setCustomTipAmount(0);
+  };
+
+  const handleOpenCustomTip = () => {
+    setCustomTipInput(isCustomTipActive && customTipAmount > 0 ? customTipAmount.toFixed(2) : '');
+    setShowCustomTipModal(true);
+  };
+
+  const handleApplyCustomTip = () => {
+    const parsed = parseFloat(customTipInput.replace(',', '.'));
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      Toast.show({ type: 'error', text1: t('payment.error'), text2: t('payment.tipCustomPlaceholder'), visibilityTime: 2500, topOffset: 60 });
+      return;
+    }
+    if (parsed === 0) {
+      setIsCustomTipActive(false);
+      setCustomTipAmount(0);
+      setSelectedTipPercent(null);
+    } else {
+      setCustomTipAmount(Number(parsed.toFixed(2)));
+      setIsCustomTipActive(true);
+      setSelectedTipPercent(null);
+    }
+    setShowCustomTipModal(false);
+  };
+
   useEffect(() => {
-    initializePayment();
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
     ]).start();
   }, []);
 
-  const initializePayment = async () => {
+  // Bahşiş değiştiğinde Stripe payment intent yeniden oluşturulur (debounced).
+  useEffect(() => {
+    const t = setTimeout(() => { initializePayment(finalTotal); }, 300);
+    return () => clearTimeout(t);
+  }, [finalTotal]);
+
+  const initializePayment = async (amount: number) => {
     try {
-      setIsLoading(true);
       const stripeKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
       if (!stripeKey || stripeKey.includes('your_publishable_key_here')) {
         setIsDemoMode(true);
-        setIsLoading(false);
         return;
       }
 
+      if (intentAmount === amount) return; // aynı tutar için yeniden create etme
+
       const { clientSecret: secret, paymentIntentId: intentId } = await createPaymentIntent(
-        totalAmount,
+        amount,
         currency,
         undefined,
-        { pointsUsed, itemCount: items.length }
+        { pointsUsed, itemCount: items.length, tipAmount }
       );
 
       setClientSecret(secret);
       setPaymentIntentId(intentId);
+      setIntentAmount(amount);
     } catch (error: any) {
       console.error('Error initializing payment:', error);
       setIsDemoMode(true);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -182,7 +239,8 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
     const order = await createOrder({
       user_id: user!.id,
-      total_amount: totalAmount,
+      total_amount: finalTotal,
+      tip_amount: tipAmount,
       delivery_address: deliveryAddress,
       phone,
       notes,
@@ -278,12 +336,12 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
             </View>
             <Text style={styles.amountLabel}>{t('payment.totalAmount')}</Text>
           </View>
-          <Text style={styles.amountValue}>{formatPrice(totalAmount)}</Text>
+          <Text style={styles.amountValue}>{formatPrice(finalTotal)}</Text>
           <View style={styles.amountDivider} />
           <View style={styles.amountDetails}>
             <View style={styles.amountDetailRow}>
               <Text style={styles.detailLabel}>{t('cart.subtotal')}</Text>
-              <Text style={styles.detailValue}>{formatPrice(totalAmount + pointsUsed)}</Text>
+              <Text style={styles.detailValue}>{formatPrice(tipBase)}</Text>
             </View>
             {pointsUsed > 0 && (
               <View style={styles.amountDetailRow}>
@@ -291,10 +349,24 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
                 <Text style={[styles.detailValue, { color: '#28A745' }]}>-{formatPrice(pointsUsed)}</Text>
               </View>
             )}
-            <View style={styles.amountDetailRow}>
-              <Text style={styles.detailLabel}>{t('cart.deliveryFee')}</Text>
-              <Text style={[styles.detailValue, { color: '#28A745' }]}>{t('cart.free')}</Text>
-            </View>
+            {!isPickup && (
+              <View style={styles.amountDetailRow}>
+                <Text style={styles.detailLabel}>{t('cart.deliveryFee')}</Text>
+                {deliveryFee && deliveryFee > 0 ? (
+                  <Text style={styles.detailValue}>{formatPrice(deliveryFee)}</Text>
+                ) : (
+                  <Text style={[styles.detailValue, { color: '#28A745' }]}>{t('cart.free')}</Text>
+                )}
+              </View>
+            )}
+            {tipAmount > 0 && (
+              <View style={styles.amountDetailRow}>
+                <Text style={styles.detailLabel}>
+                  {isPickup ? t('payment.tipLabelPickup') : t('payment.tipLabel')}
+                </Text>
+                <Text style={styles.detailValue}>{formatPrice(tipAmount)}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -318,6 +390,49 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
               <Text style={styles.infoLabel}>{t('checkout.phone') || 'Telefon'}</Text>
               <Text style={styles.infoValue}>{phone}</Text>
             </View>
+          </View>
+        </View>
+
+        {/* Bahşiş — delivery'de kuryeye, pickup'ta restoran ekibine gider */}
+        <View style={styles.tipCard}>
+          <Text style={styles.tipTitle}>{t('payment.addTip')}</Text>
+          <Text style={styles.tipDescription}>
+            {isPickup ? t('payment.tipDescriptionPickup') : t('payment.tipDescription')}
+          </Text>
+          <View style={styles.tipRow}>
+            {[5, 10, 15, 20].map((pct) => {
+              const active = !isCustomTipActive && selectedTipPercent === pct;
+              const amount = (tipBase * pct) / 100;
+              return (
+                <TouchableOpacity
+                  key={pct}
+                  activeOpacity={0.7}
+                  onPress={() => handleSelectTipPercent(pct)}
+                  style={[styles.tipCell, active && styles.tipCellActive]}
+                >
+                  <Text style={[styles.tipPercent, active && styles.tipTextActive]}>{pct}%</Text>
+                  <Text style={[styles.tipAmount, active && styles.tipTextActive]}>
+                    {formatPrice(amount)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={handleOpenCustomTip}
+              style={[styles.tipCell, isCustomTipActive && styles.tipCellActive]}
+            >
+              {isCustomTipActive && customTipAmount > 0 ? (
+                <>
+                  <Text style={[styles.tipPercent, styles.tipTextActive]}>{t('payment.tipOther')}</Text>
+                  <Text style={[styles.tipAmount, styles.tipTextActive]}>
+                    {formatPrice(customTipAmount)}
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.tipOtherLabel}>{t('payment.tipOther')}</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -421,7 +536,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 16, 24) }]}>
         <View style={styles.footerTotalRow}>
           <Text style={styles.footerLabel}>{t('payment.totalAmount')}</Text>
-          <Text style={styles.footerAmount}>{formatPrice(totalAmount)}</Text>
+          <Text style={styles.footerAmount}>{formatPrice(finalTotal)}</Text>
         </View>
         <TouchableOpacity
           style={[styles.payButton, (!cardComplete || isLoading) && styles.payButtonDisabled]}
@@ -439,7 +554,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
               <View style={styles.payButtonLeft}>
                 <Ionicons name="lock-closed" size={16} color="rgba(255,255,255,0.8)" />
                 <Text style={styles.payButtonText}>
-                  {`${t('payment.pay')} ${formatPrice(totalAmount)}`}
+                  {`${t('payment.pay')} ${formatPrice(finalTotal)}`}
                 </Text>
               </View>
               <Ionicons name="arrow-forward" size={20} color="#FFF" />
@@ -447,6 +562,51 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Custom Tip Modal */}
+      <Modal
+        visible={showCustomTipModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCustomTipModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.tipModalBackdrop}
+        >
+          <View style={styles.tipModalCard}>
+            <Text style={styles.tipModalTitle}>{t('payment.tipCustomTitle')}</Text>
+            <View style={styles.tipModalInputRow}>
+              <Text style={styles.tipModalCurrency}>$</Text>
+              <TextInput
+                style={styles.tipModalInput}
+                placeholder="0.00"
+                placeholderTextColor="#B0B0B0"
+                keyboardType="decimal-pad"
+                value={customTipInput}
+                onChangeText={setCustomTipInput}
+                autoFocus
+              />
+            </View>
+            <View style={styles.tipModalActions}>
+              <TouchableOpacity
+                style={[styles.tipModalBtn, styles.tipModalBtnCancel]}
+                onPress={() => setShowCustomTipModal(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.tipModalBtnCancelText}>{t('payment.tipCustomCancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tipModalBtn, styles.tipModalBtnConfirm]}
+                onPress={handleApplyCustomTip}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.tipModalBtnConfirmText}>{t('payment.tipCustomConfirm')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -810,5 +970,138 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
+  },
+  // Tip section
+  tipCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
+    ...Shadows.small,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  tipTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#1A1A1A',
+    letterSpacing: 0.6,
+    marginBottom: 6,
+  },
+  tipDescription: {
+    fontSize: 12,
+    color: '#888',
+    lineHeight: 17,
+    marginBottom: 14,
+  },
+  tipRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  tipCell: {
+    flex: 1,
+    minHeight: 64,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E6E6E6',
+    backgroundColor: '#FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+  },
+  tipCellActive: {
+    borderColor: Colors.primary,
+    borderWidth: 2,
+    backgroundColor: '#FFF5F5',
+  },
+  tipPercent: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1A1A1A',
+  },
+  tipAmount: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#888',
+    marginTop: 3,
+  },
+  tipTextActive: {
+    color: Colors.primary,
+  },
+  tipOtherLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  // Tip Modal
+  tipModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  tipModalCard: {
+    width: '100%',
+    backgroundColor: '#FFF',
+    borderRadius: 22,
+    padding: 22,
+  },
+  tipModalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  tipModalInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F7',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 18,
+  },
+  tipModalCurrency: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginRight: 8,
+  },
+  tipModalInput: {
+    flex: 1,
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    paddingVertical: 12,
+  },
+  tipModalActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  tipModalBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tipModalBtnCancel: {
+    backgroundColor: '#F2F2F2',
+  },
+  tipModalBtnCancelText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#444',
+  },
+  tipModalBtnConfirm: {
+    backgroundColor: Colors.primary,
+  },
+  tipModalBtnConfirmText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFF',
   },
 });

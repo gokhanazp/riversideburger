@@ -109,7 +109,7 @@ export function getRestaurantPickup(): RestaurantPickup {
     street: '688 Queen Street East',
     city: 'Toronto',
     province: 'ON',
-    postalCode: 'M4M 2G1',
+    postalCode: 'M4M 1G9',
     country: 'CA',
   };
 }

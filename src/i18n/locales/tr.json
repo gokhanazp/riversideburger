@@ -1191,7 +1191,17 @@
     "uberDispatchFailed": "Sipariş alındı, kurye atamasında sorun oluştu. Destek sizinle iletişime geçecek.",
     "mobileOnly": "Kart girişi sadece mobil uygulamada mevcuttur",
     "placeOrder": "Siparişi Tamamla",
-    "pickupNote": "Restorandan al — ödemenizi yapın, siparişiniz hazır olduğunda almaya gelin"
+    "pickupNote": "Restorandan al — ödemenizi yapın, siparişiniz hazır olduğunda almaya gelin",
+    "addTip": "BAHŞİŞ EKLE",
+    "tipDescription": "Buraya girilen bahşiş yalnızca teslimatı yapan kuryeye gider.",
+    "tipDescriptionPickup": "Buraya girilen bahşiş, siparişinizi hazırlayan restoran ekibine gider.",
+    "tipOther": "Diğer",
+    "tipCustomTitle": "Özel Bahşiş",
+    "tipCustomPlaceholder": "Bahşiş tutarını girin",
+    "tipCustomConfirm": "Bahşişi Uygula",
+    "tipCustomCancel": "İptal",
+    "tipLabel": "Kurye Bahşişi",
+    "tipLabelPickup": "Bahşiş"
   },
   "tracking": {
     "title": "Sipariş Takibi",

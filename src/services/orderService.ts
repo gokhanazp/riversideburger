@@ -44,6 +44,7 @@ interface CreateOrderParams {
   delivery_lng?: number | null;
   delivery_instructions?: string | null;
   delivery_fee?: number;
+  tip_amount?: number;
 }
 
 export const createOrder = async (params: CreateOrderParams): Promise<Order> => {
@@ -54,6 +55,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
       delivery_full_name, delivery_street, delivery_unit, delivery_city,
       delivery_province, delivery_postal_code, delivery_country,
       delivery_lat, delivery_lng, delivery_instructions, delivery_fee,
+      tip_amount = 0,
     } = params;
 
     // Sipariş oluştur (Create order)
@@ -83,6 +85,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
         delivery_lng,
         delivery_instructions,
         delivery_fee,
+        tip_amount,
       })
       .select()
       .single();
