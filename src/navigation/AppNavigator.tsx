@@ -367,13 +367,7 @@ const AppNavigator = () => {
         <Stack.Screen
           name="OrderTracking"
           component={OrderTrackingScreen}
-          options={{
-            headerShown: true,
-            title: t('tracking.title'),
-            headerStyle: { backgroundColor: Colors.primary },
-            headerTintColor: '#FFF',
-            headerTitleStyle: { fontWeight: 'bold', fontSize: 18 },
-          }}
+          options={{ headerShown: false }}
         />
 
         {/* Sipariş ve Puan ekranları (Order and Points screens) */}
@@ -414,19 +408,7 @@ const AppNavigator = () => {
         <Stack.Screen
           name="ProfileEdit"
           component={ProfileEditScreen}
-          options={({ navigation }) => ({
-            title: t('navigation.profileEdit'),
-            headerShown: true,
-            headerStyle: {
-              backgroundColor: Colors.primary,
-            },
-            headerShadowVisible: true,
-            headerTintColor: '#FFF',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-              fontSize: 18,
-            },
-          })}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="AddressList"
