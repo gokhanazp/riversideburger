@@ -238,7 +238,10 @@
     "deliveryMethodDelivery": "Delivery",
     "calculatingFee": "Calculating",
     "feeUnavailable": "Unavailable",
-    "quoteCalculating": "Calculating delivery fee"
+    "quoteCalculating": "Calculating delivery fee",
+    "quoteNotReadyTitle": "Almost ready",
+    "quoteNotReadyDesc": "Calculating delivery fee, please wait a moment.",
+    "quoteFailedTitle": "Delivery fee unavailable"
   },
   "checkout": {
     "title": "Order Summary",

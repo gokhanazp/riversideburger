@@ -151,7 +151,13 @@ const CartScreen = ({ navigation }: any) => {
         return;
       }
       if (selectedAddress.latitude != null && !deliveryQuote) {
-        Toast.show({ type: 'error', text1: t('cart.noAddressSelectedTitle'), text2: quoteError ?? t('cart.quoteCalculating'), position: 'top', topOffset: 60 });
+        Toast.show({
+          type: quoteError ? 'error' : 'info',
+          text1: quoteError ? t('cart.quoteFailedTitle') : t('cart.quoteNotReadyTitle'),
+          text2: quoteError ?? t('cart.quoteNotReadyDesc'),
+          position: 'top',
+          topOffset: 60,
+        });
         return;
       }
     }

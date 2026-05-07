@@ -238,7 +238,10 @@
     "deliveryMethodDelivery": "Adrese Teslimat",
     "calculatingFee": "Hesaplanıyor",
     "feeUnavailable": "Alınamadı",
-    "quoteCalculating": "Teslimat ücreti hesaplanıyor"
+    "quoteCalculating": "Teslimat ücreti hesaplanıyor",
+    "quoteNotReadyTitle": "Bir saniye",
+    "quoteNotReadyDesc": "Teslimat ücreti hesaplanıyor, lütfen biraz bekleyin.",
+    "quoteFailedTitle": "Teslimat ücreti alınamadı"
   },
   "checkout": {
     "title": "Sipariş Özeti",
