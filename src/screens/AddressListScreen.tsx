@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { useTranslation } from 'react-i18next';
@@ -51,9 +52,13 @@ const AddressListScreen = ({ navigation }: any) => {
     }
   }, [user, t]);
 
-  useEffect(() => {
-    loadAddresses();
-  }, [loadAddresses]);
+  // Ekran her odağa geldiğinde yeniden yükle — yeni adres ekleyip geri dönünce
+  // (AddressEdit'ten) liste otomatik güncellensin, hard refresh gerekmesin.
+  useFocusEffect(
+    useCallback(() => {
+      loadAddresses();
+    }, [loadAddresses])
+  );
 
   // Yenile (Refresh)
   const handleRefresh = () => {

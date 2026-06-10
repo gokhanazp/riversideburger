@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, Shadows, BorderRadius } from '../constants/theme';
@@ -59,9 +60,18 @@ const CartScreen = ({ navigation }: any) => {
   useEffect(() => {
     if (isAuthenticated && user) {
       loadUserPoints();
-      loadUserAddress();
     }
   }, [isAuthenticated, user]);
+
+  // Adresleri ekran her odağa geldiğinde tazele — başka ekrandan (AddressEdit)
+  // yeni adres ekleyip sepete dönünce listede görünsün, hard refresh gerekmesin.
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated && user) {
+        loadUserAddress();
+      }
+    }, [isAuthenticated, user])
+  );
 
   const loadUserPoints = async () => {
     if (!user) return;
@@ -77,10 +87,15 @@ const CartScreen = ({ navigation }: any) => {
     if (!user) return;
     try {
       setIsLoadingAddress(true);
-      const defaultAddr = await getDefaultAddress(user.id);
-      if (defaultAddr) setSelectedAddress(defaultAddr);
       const addresses = await getUserAddresses(user.id);
       setUserAddresses(addresses);
+      const defaultAddr = await getDefaultAddress(user.id);
+      // Mevcut seçimi koru (silinmişse default'a düş); hiç seçim yoksa default seç
+      setSelectedAddress((prev) =>
+        prev
+          ? addresses.find((a) => a.id === prev.id) ?? defaultAddr ?? null
+          : defaultAddr ?? null,
+      );
     } catch (error) {
       console.error('Error loading address:', error);
     } finally {
