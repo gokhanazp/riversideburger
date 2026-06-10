@@ -53,10 +53,21 @@ export const signUp = async (
       throw new Error(i18n.t('auth.registerFailed'));
     }
 
-    // Email confirmation gerekiyorsa kullanıcıyı bilgilendir (Inform user if email confirmation required)
-    if (authData.user && !authData.session) {
-      console.log('📧 Email confirmation required');
-      throw new Error(i18n.t('auth.pleaseConfirmEmail'));
+    // Email confirmation gerekiyorsa: hata değil, "başarılı ama onay bekliyor" durumu.
+    // (Email confirmation required is a success state, not an error — UI will explain.)
+    const requiresEmailConfirmation = !!authData.user && !authData.session;
+    if (requiresEmailConfirmation) {
+      console.log('📧 Email confirmation required — returning user without session');
+      const userData: User = {
+        id: authData.user.id,
+        email: authData.user.email || email,
+        role,
+        full_name: fullName,
+        phone,
+        points: 0,
+        created_at: authData.user.created_at,
+      };
+      return { user: userData, session: null, requiresEmailConfirmation: true };
     }
 
     // Direkt manuel olarak kullanıcı oluştur (Create user manually - trigger'a güvenme)

@@ -73,24 +73,34 @@ export default function RegisterScreen({ navigation }: any) {
       setIsLoading(true);
       console.log('🚀 Calling register function...');
 
-      await register(email.trim().toLowerCase(), password, fullName.trim(), phone.trim());
+      const { requiresEmailConfirmation } = await register(
+        email.trim().toLowerCase(),
+        password,
+        fullName.trim(),
+        phone.trim(),
+      );
 
-      console.log('✅ Registration successful!');
+      console.log('✅ Registration successful!', { requiresEmailConfirmation });
 
-      // Başarılı kayıt mesajı (Success message)
+      // Başarılı kayıt mesajı — email onayı durumuna göre değişir
       Toast.show({
         type: 'success',
-        text1: t('auth.registerSuccess'),
-        text2: t('auth.welcomeUser') + ' ' + fullName.split(' ')[0] + '!',
-        visibilityTime: 2000,
+        text1: requiresEmailConfirmation
+          ? t('auth.registerConfirmEmailTitle')
+          : t('auth.registerSuccess'),
+        text2: requiresEmailConfirmation
+          ? t('auth.registerConfirmEmailDesc', { email: email.trim().toLowerCase() })
+          : t('auth.welcomeUser') + ' ' + fullName.split(' ')[0] + '!',
+        visibilityTime: 4000,
         topOffset: 60,
+        autoHide: true,
       });
 
-      // Biraz bekle ve modal'ı kapat (Wait a bit and close modal)
+      // Toast okunabilsin diye 2 sn bekle, sonra ekranı kapat
       setTimeout(() => {
         console.log('🔙 Navigating back...');
         navigation.goBack();
-      }, 1000);
+      }, 2000);
 
     } catch (error: any) {
       console.error('❌ Register error:', error);

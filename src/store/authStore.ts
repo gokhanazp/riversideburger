@@ -10,7 +10,12 @@ interface AuthState {
 
   // Actions (İşlemler)
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName: string, phone: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    fullName: string,
+    phone: string,
+  ) => Promise<{ requiresEmailConfirmation: boolean }>;
   logout: () => Promise<void>;
   initialize: () => Promise<void>;
   setUser: (user: User | null) => void;
@@ -33,11 +38,13 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   // Kayıt ol (Register)
   register: async (email: string, password: string, fullName: string, phone: string) => {
-    const { user } = await signUp(email, password, fullName, phone);
+    const { user, requiresEmailConfirmation } = await signUp(email, password, fullName, phone);
+    // Email onayı bekliyorsa session yok → henüz authenticated sayma
     set({
       user,
-      isAuthenticated: true,
+      isAuthenticated: !requiresEmailConfirmation,
     });
+    return { requiresEmailConfirmation: !!requiresEmailConfirmation };
   },
 
   // Çıkış yap (Logout)
