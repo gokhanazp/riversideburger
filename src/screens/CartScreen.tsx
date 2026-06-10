@@ -117,7 +117,16 @@ const CartScreen = ({ navigation }: any) => {
     }
     setIsLoadingQuote(true);
     setQuoteError(null);
-    getDeliveryQuote(selectedAddress)
+    const subtotal_cents = Math.round(getTotalPrice() * 100);
+    const manifestItems = items.map((it) => {
+      const customizationTotal = (it.customizations ?? []).reduce((s, c) => s + c.option_price, 0);
+      return {
+        name: it.name,
+        quantity: it.quantity,
+        price_cents: Math.round((it.price + customizationTotal) * 100),
+      };
+    });
+    getDeliveryQuote(selectedAddress, { subtotal_cents, items: manifestItems })
       .then((quote) => {
         if (!cancelled) setDeliveryQuote(quote);
       })
@@ -134,7 +143,7 @@ const CartScreen = ({ navigation }: any) => {
     return () => {
       cancelled = true;
     };
-  }, [selectedAddress, deliveryMethod]);
+  }, [selectedAddress, deliveryMethod, items]);
 
   const deliveryFee = deliveryMethod === 'pickup' ? 0 : (deliveryQuote?.fee ?? 0);
   const getFinalPrice = () => Math.max(0, getTotalPrice() - pointsToUse) + deliveryFee;

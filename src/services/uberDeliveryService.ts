@@ -32,12 +32,35 @@ async function authHeaders(): Promise<Record<string, string>> {
   };
 }
 
+export interface QuoteManifestItem {
+  name: string;
+  quantity: number;
+  price_cents: number;
+}
+
+// Uber Direct E.164 telefon ister: +14165551234. Display formatlar (parantezli,
+// tireli) bazen kabul edilse de Uber pricing fallback'ine düşürebiliyor.
+function toE164CA(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits[0] === '1') return `+${digits}`;
+  if (phone.startsWith('+')) return phone;
+  return `+${digits}`;
+}
+
 /**
  * Uber Direct delivery quote al
  * Get a delivery quote for a customer address before checkout.
  * Returns null if address has no lat/lng (e.g., Turkey legacy address).
+ *
+ * subtotal_cents ve items'ı geçmek Uber'in manifest bilgisini doldurmasını
+ * sağlar — eksik bırakıldığında Uber yüksek değerli paket varsayıp ücreti
+ * artırabiliyor.
  */
-export const getDeliveryQuote = async (address: Address): Promise<UberQuote | null> => {
+export const getDeliveryQuote = async (
+  address: Address,
+  manifest?: { subtotal_cents: number; items: QuoteManifestItem[] },
+): Promise<UberQuote | null> => {
   if (address.latitude == null || address.longitude == null) {
     return null;
   }
@@ -55,8 +78,10 @@ export const getDeliveryQuote = async (address: Address): Promise<UberQuote | nu
       dropoff_country: 'CA',
       dropoff_lat: address.latitude,
       dropoff_lng: address.longitude,
-      dropoff_phone: address.phone,
+      dropoff_phone: toE164CA(address.phone),
       dropoff_name: address.full_name,
+      manifest_total_value: manifest?.subtotal_cents,
+      manifest_items: manifest?.items,
     }),
   });
 
