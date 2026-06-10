@@ -1,6 +1,6 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, processLock } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
 
 // Supabase URL ve Anon Key (Environment variables)
@@ -21,6 +21,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // Web'de varsayılan navigator.locks zaman zaman deadlock'a giriyor (Expo Web'de
+    // getSession() sonsuza dek asılı kalıyor). In-memory processLock her platformda
+    // güvenli, tek-tab SPA için yeterli.
+    lock: processLock,
   },
 });
 
