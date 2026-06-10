@@ -325,6 +325,14 @@ const CartScreen = ({ navigation }: any) => {
         </View>
       )}
 
+      {/* Teslimat alanı dışı / ücret alınamadı uyarısı */}
+      {isAuthenticated && deliveryMethod === 'delivery' && quoteError && (
+        <View style={styles.quoteErrorBanner}>
+          <Ionicons name="alert-circle" size={18} color="#D32F2F" />
+          <Text style={styles.quoteErrorText}>{quoteError}</Text>
+        </View>
+      )}
+
       {/* Puan Bölümü (Points Section) */}
       {isAuthenticated && (
         <View style={styles.sectionContainer}>
@@ -539,6 +547,8 @@ const styles = StyleSheet.create({
   applyBtnText: { fontSize: 13, fontWeight: '800', color: '#856404' },
   noPointsContainer: { alignItems: 'center', paddingVertical: 10 },
   noPointsText: { fontSize: 14, color: '#999', fontStyle: 'italic' },
+  quoteErrorBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FDECEA', borderRadius: 16, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#F5C6C2' },
+  quoteErrorText: { flex: 1, fontSize: 13, fontWeight: '600', color: '#D32F2F', lineHeight: 18 },
   summaryGrid: { 
     flexDirection: 'row', 
     backgroundColor: '#F8F9FA', 

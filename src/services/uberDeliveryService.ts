@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import i18n from '../i18n';
 import { supabase } from '../lib/supabase';
 import { Address } from '../types/database.types';
 
@@ -7,11 +8,25 @@ const FUNCTIONS_URL = (Constants.expoConfig?.extra?.supabaseFunctionsUrl as stri
 export interface UberQuote {
   quote_id: string;
   fee_cents: number;
-  fee: number;          // dollars
+  fee: number;          // dollars (mesafe tarifesi — müşteriden alınan)
   currency: string;     // "CAD"
+  distance_km: number;  // restorana kuş uçuşu mesafe
   duration_minutes: number;
   dropoff_eta: string;  // ISO
   expires_at: string;   // ISO
+}
+
+// Adres son kademe üst sınırını aştığında fırlatılır — CartScreen bunu yakalayıp
+// "teslimat alanı dışında" mesajını gösterir, checkout'u bloklar.
+export class OutOfDeliveryRangeError extends Error {
+  distanceKm: number;
+  maxKm: number;
+  constructor(distanceKm: number, maxKm: number) {
+    super(i18n.t('cart.outOfDeliveryRange', { km: maxKm }));
+    this.name = 'OutOfDeliveryRangeError';
+    this.distanceKm = distanceKm;
+    this.maxKm = maxKm;
+  }
 }
 
 export interface UberCreateDeliveryResult {
@@ -89,7 +104,13 @@ export const getDeliveryQuote = async (
     const text = await res.text();
     throw new Error(`Quote failed (${res.status}): ${text}`);
   }
-  return res.json();
+
+  const data = await res.json();
+  // Mesafe son kademeyi aşarsa edge function available:false döner (200)
+  if (data?.available === false) {
+    throw new OutOfDeliveryRangeError(Number(data.distance_km ?? 0), Number(data.max_km ?? 0));
+  }
+  return data as UberQuote;
 };
 
 /**

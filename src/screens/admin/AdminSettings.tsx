@@ -33,8 +33,11 @@ interface Settings {
   id: string;
   points_percentage: number;
   min_order_amount: number;
-  delivery_fee: number;
-  free_delivery_threshold: number;
+  // Mesafeye göre teslimat tarifesi (admin'den değiştirilebilir)
+  delivery_tier1_max_km: number;
+  delivery_tier1_fee: number;
+  delivery_tier2_max_km: number;
+  delivery_tier2_fee: number;
   is_open: boolean;
   auto_close_enabled?: boolean;
   working_hours?: WorkingHours;
@@ -51,8 +54,10 @@ const AdminSettings = ({ navigation }: any) => {
     id: '',
     points_percentage: 5,
     min_order_amount: 50,
-    delivery_fee: 15,
-    free_delivery_threshold: 150,
+    delivery_tier1_max_km: 5,
+    delivery_tier1_fee: 5.99,
+    delivery_tier2_max_km: 8,
+    delivery_tier2_fee: 8.99,
     is_open: true,
     auto_close_enabled: false,
     working_hours: DEFAULT_WORKING_HOURS,
@@ -64,8 +69,10 @@ const AdminSettings = ({ navigation }: any) => {
   const inputRefs = useRef({
     points_percentage: '5',
     min_order_amount: '50',
-    delivery_fee: '15',
-    free_delivery_threshold: '150',
+    delivery_tier1_max_km: '5',
+    delivery_tier1_fee: '5.99',
+    delivery_tier2_max_km: '8',
+    delivery_tier2_fee: '8.99',
   });
 
   useLayoutEffect(() => {
@@ -95,8 +102,10 @@ const AdminSettings = ({ navigation }: any) => {
       inputRefs.current = {
         points_percentage: String(data.points_percentage ?? 5),
         min_order_amount: String(data.min_order_amount ?? 50),
-        delivery_fee: String(data.delivery_fee ?? 15),
-        free_delivery_threshold: String(data.free_delivery_threshold ?? 150),
+        delivery_tier1_max_km: String(data.delivery_tier1_max_km ?? 5),
+        delivery_tier1_fee: String(data.delivery_tier1_fee ?? 5.99),
+        delivery_tier2_max_km: String(data.delivery_tier2_max_km ?? 8),
+        delivery_tier2_fee: String(data.delivery_tier2_fee ?? 8.99),
       };
     } catch (error: any) {
       console.error('Error:', error);
@@ -111,8 +120,10 @@ const AdminSettings = ({ navigation }: any) => {
       const defaultSettings = {
         points_percentage: 5,
         min_order_amount: 50,
-        delivery_fee: 15,
-        free_delivery_threshold: 150,
+        delivery_tier1_max_km: 5,
+        delivery_tier1_fee: 5.99,
+        delivery_tier2_max_km: 8,
+        delivery_tier2_fee: 8.99,
         is_open: true,
       };
       const { data, error } = await supabase.from('settings').insert(defaultSettings).select().single();
@@ -133,11 +144,22 @@ const AdminSettings = ({ navigation }: any) => {
         return;
       }
 
+      const tier1MaxKm = parseFloat(inputRefs.current.delivery_tier1_max_km) || 0;
+      const tier2MaxKm = parseFloat(inputRefs.current.delivery_tier2_max_km) || 0;
+      // Kademe 2 üst sınırı kademe 1'den büyük olmalı (aksi halde 2. kademe erişilemez)
+      if (tier2MaxKm <= tier1MaxKm) {
+        Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.settings.deliveryTierKmError') });
+        setSaving(false);
+        return;
+      }
+
       const { data, error } = await supabase.from('settings').update({
         points_percentage: pts,
         min_order_amount: parseFloat(inputRefs.current.min_order_amount) || 0,
-        delivery_fee: parseFloat(inputRefs.current.delivery_fee) || 0,
-        free_delivery_threshold: parseFloat(inputRefs.current.free_delivery_threshold) || 0,
+        delivery_tier1_max_km: tier1MaxKm,
+        delivery_tier1_fee: parseFloat(inputRefs.current.delivery_tier1_fee) || 0,
+        delivery_tier2_max_km: tier2MaxKm,
+        delivery_tier2_fee: parseFloat(inputRefs.current.delivery_tier2_fee) || 0,
         is_open: settings.is_open,
       }).eq('id', settings.id).select().single();
 
@@ -276,33 +298,62 @@ const AdminSettings = ({ navigation }: any) => {
             />
         </SettingCard>
 
-        {/* DELIVERY */}
-        <SettingCard 
+        {/* DELIVERY — TIER 1 (yakın bölge) */}
+        <SettingCard
           delay={400}
-          icon="bicycle-outline" 
-          title={t('admin.settings.deliveryFeeTitle')} 
-          description={t('admin.settings.deliveryFeeDescription')}
+          icon="bicycle-outline"
+          title={t('admin.settings.deliveryTier1Title')}
+          description={t('admin.settings.deliveryTier1Desc')}
         >
-            <InputRow
-                prefix={getCurrencyInfo().symbol}
-                defaultValue={String(settings.delivery_fee)}
-                field="delivery_fee"
-                placeholder="15"
-            />
+            <View>
+              <Text style={styles.fieldLabel}>{t('admin.settings.tierMaxKm')}</Text>
+              <InputRow
+                  suffix="km"
+                  defaultValue={String(settings.delivery_tier1_max_km)}
+                  field="delivery_tier1_max_km"
+                  placeholder="5"
+              />
+            </View>
+            <View>
+              <Text style={styles.fieldLabel}>{t('admin.settings.tierFee')}</Text>
+              <InputRow
+                  prefix={getCurrencyInfo().symbol}
+                  defaultValue={String(settings.delivery_tier1_fee)}
+                  field="delivery_tier1_fee"
+                  placeholder="5.99"
+              />
+            </View>
         </SettingCard>
 
-        <SettingCard 
+        {/* DELIVERY — TIER 2 (uzak bölge) */}
+        <SettingCard
           delay={500}
-          icon="gift-outline" 
-          title={t('admin.settings.freeDeliveryTitle')} 
-          description={t('admin.settings.freeDeliveryDesc')}
+          icon="navigate-outline"
+          title={t('admin.settings.deliveryTier2Title')}
+          description={t('admin.settings.deliveryTier2Desc')}
         >
-            <InputRow
-                prefix={getCurrencyInfo().symbol}
-                defaultValue={String(settings.free_delivery_threshold)}
-                field="free_delivery_threshold"
-                placeholder="150"
-            />
+            <View>
+              <Text style={styles.fieldLabel}>{t('admin.settings.tierMaxKm')}</Text>
+              <InputRow
+                  suffix="km"
+                  defaultValue={String(settings.delivery_tier2_max_km)}
+                  field="delivery_tier2_max_km"
+                  placeholder="8"
+              />
+            </View>
+            <View>
+              <Text style={styles.fieldLabel}>{t('admin.settings.tierFee')}</Text>
+              <InputRow
+                  prefix={getCurrencyInfo().symbol}
+                  defaultValue={String(settings.delivery_tier2_fee)}
+                  field="delivery_tier2_fee"
+                  placeholder="8.99"
+              />
+            </View>
+            <View style={styles.tierNote}>
+              <Ionicons name="information-circle-outline" size={16} color="#888" />
+              <Text style={styles.tierNoteText}>{t('admin.settings.deliveryTiersNote')}</Text>
+            </View>
         </SettingCard>
 
         {/* WORKING HOURS */}
@@ -377,6 +428,9 @@ const styles = StyleSheet.create({
   prefix: { fontSize: 16, fontWeight: '800', color: Colors.text, marginRight: 8 },
   suffix: { fontSize: 16, fontWeight: '800', color: '#999', marginLeft: 8 },
   input: { flex: 1, fontSize: 16, fontWeight: '700', color: Colors.text },
+  fieldLabel: { fontSize: 12, fontWeight: '700', color: '#888', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.3 },
+  tierNote: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F4F6F8', borderRadius: 12, padding: 12 },
+  tierNoteText: { flex: 1, fontSize: 12, color: '#777', lineHeight: 17 },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
   statusText: { fontSize: 16, fontWeight: '800' },
   hoursBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F9F9F9', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#EEE' },

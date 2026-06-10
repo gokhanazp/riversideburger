@@ -241,7 +241,8 @@
     "quoteCalculating": "Teslimat ücreti hesaplanıyor",
     "quoteNotReadyTitle": "Bir saniye",
     "quoteNotReadyDesc": "Teslimat ücreti hesaplanıyor, lütfen biraz bekleyin.",
-    "quoteFailedTitle": "Teslimat ücreti alınamadı"
+    "quoteFailedTitle": "Teslimat ücreti alınamadı",
+    "outOfDeliveryRange": "Bu adres teslimat alanımızın dışında (restorana en fazla {{km}} km)."
   },
   "checkout": {
     "title": "Sipariş Özeti",
@@ -922,6 +923,14 @@
       "deliveryFeeDescription": "Standart teslimat ücreti",
       "freeDeliveryTitle": "Ücretsiz Teslimat Eşiği",
       "freeDeliveryDesc": "Bu tutarın üzerindeki siparişlerde teslimat ücretsiz",
+      "deliveryTier1Title": "Teslimat Ücreti — Yakın Bölge",
+      "deliveryTier1Desc": "Yakın mesafe sınırı içindeki adresler için ücret",
+      "deliveryTier2Title": "Teslimat Ücreti — Uzak Bölge",
+      "deliveryTier2Desc": "Yakın bölgenin ötesindeki adresler için ücret",
+      "tierMaxKm": "Maksimum mesafe",
+      "tierFee": "Ücret",
+      "deliveryTiersNote": "Uzak bölge sınırını aşan adreslere teslimat yapılmaz. Mesafe restorana kuş uçuşu olarak hesaplanır.",
+      "deliveryTierKmError": "Uzak bölge mesafesi yakın bölge mesafesinden büyük olmalı",
       "sectionRestaurantStatus": "🏪 Restoran Durumu",
       "restaurantStatusTitle": "Restoran Açık/Kapalı",
       "restaurantStatusDesc": "Restoran kapalıysa müşteriler sipariş veremez",

@@ -37,6 +37,24 @@ interface UberQuoteResponse {
   expires: string;
 }
 
+// Mesafe tarifesi varsayılanları — settings tablosunda kolon yoksa/null ise kullanılır
+const TIER_DEFAULTS = {
+  tier1MaxKm: 5,
+  tier1Fee: 5.99,
+  tier2MaxKm: 8,
+  tier2Fee: 8.99,
+};
+
+// İki koordinat arası kuş uçuşu mesafe (km). Uber quote.distance döndürmüyor.
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const h = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return Number((2 * 6371 * Math.asin(Math.sqrt(h))).toFixed(2));
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -58,6 +76,45 @@ serve(async (req) => {
     }
 
     const pickup = getRestaurantPickup();
+
+    // Mesafe tarifesi: restorana olan kuş uçuşu mesafeye göre sabit ücret.
+    // Uber'i çağırmadan ÖNCE hesapla — son kademe üst sınırını aşan adresleri
+    // erken reddet (gereksiz Uber çağrısı yapma).
+    const distanceKm = haversineKm(pickup.lat, pickup.lng, body.dropoff_lat, body.dropoff_lng);
+
+    const { data: cfg } = await supabase
+      .from('settings')
+      .select('delivery_tier1_max_km, delivery_tier1_fee, delivery_tier2_max_km, delivery_tier2_fee')
+      .limit(1)
+      .maybeSingle();
+
+    const num = (v: unknown, fallback: number) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : fallback;
+    };
+    const tier1MaxKm = num(cfg?.delivery_tier1_max_km, TIER_DEFAULTS.tier1MaxKm);
+    const tier1Fee = num(cfg?.delivery_tier1_fee, TIER_DEFAULTS.tier1Fee);
+    const tier2MaxKm = num(cfg?.delivery_tier2_max_km, TIER_DEFAULTS.tier2MaxKm);
+    const tier2Fee = num(cfg?.delivery_tier2_fee, TIER_DEFAULTS.tier2Fee);
+
+    let tierFee: number;
+    if (distanceKm <= tier1MaxKm) {
+      tierFee = tier1Fee;
+    } else if (distanceKm <= tier2MaxKm) {
+      tierFee = tier2Fee;
+    } else {
+      // Teslimat alanı dışında — Uber'i çağırma, müşteriye bilgi dön
+      console.log('[uber-quote][out-of-range]', JSON.stringify({
+        distance_km: distanceKm,
+        max_km: tier2MaxKm,
+        dropoff_postal: body.dropoff_postal_code,
+        dropoff_city: body.dropoff_city,
+      }));
+      return new Response(
+        JSON.stringify({ available: false, distance_km: distanceKm, max_km: tier2MaxKm }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      );
+    }
 
     const dropoffStreet = body.dropoff_unit
       ? [body.dropoff_street, body.dropoff_unit]
@@ -99,12 +156,9 @@ serve(async (req) => {
     console.log('[uber-quote][res←Uber]', JSON.stringify(quote));
 
     // Quote teşhis logu — sokak adresi/telefon loglanmaz; sadece postal+lat/lng+fee.
-    const toRad = (d: number) => (d * Math.PI) / 180;
-    const dLat = toRad(body.dropoff_lat - pickup.lat);
-    const dLng = toRad(body.dropoff_lng - pickup.lng);
-    const h = Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(pickup.lat)) * Math.cos(toRad(body.dropoff_lat)) * Math.sin(dLng / 2) ** 2;
-    const haversineKm = Number((2 * 6371 * Math.asin(Math.sqrt(h))).toFixed(2));
+    // Müşteriye yansıyan ücret bizim mesafe tarifemiz (tier_fee); quote_fee_cad ise
+    // Uber'in bize çıkardığı gerçek maliyet (fark restorana kalır).
+    const tierFeeCents = Math.round(tierFee * 100);
     console.log('[uber-quote]', JSON.stringify({
       pickup_lat: pickup.lat,
       pickup_lng: pickup.lng,
@@ -113,10 +167,10 @@ serve(async (req) => {
       dropoff_lng: body.dropoff_lng,
       dropoff_postal: body.dropoff_postal_code,
       dropoff_city: body.dropoff_city,
-      haversine_km: haversineKm,        // Uber quote.distance yok, biz hesapladık
+      haversine_km: distanceKm,         // mesafe tarifesinin baz aldığı kuş uçuşu mesafe
+      tier_fee_cad: tierFee,            // müşteriden alınan
       quote_id: quote.id,
-      quote_fee_cents: quote.fee,
-      quote_fee_cad: quote.fee / 100,
+      uber_fee_cad: quote.fee / 100,    // Uber'in gerçek maliyeti (teşhis)
       currency: quote.currency,
       duration_min: quote.duration,
       pickup_duration_min: quote.pickup_duration,
@@ -125,10 +179,12 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
+        available: true,
         quote_id: quote.id,
-        fee_cents: quote.fee,
-        fee: quote.fee / 100,
-        currency: quote.currency.toUpperCase(),
+        fee_cents: tierFeeCents,
+        fee: tierFee,
+        currency: 'CAD',
+        distance_km: distanceKm,
         duration_minutes: quote.duration,
         dropoff_eta: quote.dropoff_eta,
         expires_at: quote.expires,

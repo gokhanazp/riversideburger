@@ -243,7 +243,8 @@
     "quoteCalculating": "Calculating delivery fee",
     "quoteNotReadyTitle": "Almost ready",
     "quoteNotReadyDesc": "Calculating delivery fee, please wait a moment.",
-    "quoteFailedTitle": "Delivery fee unavailable"
+    "quoteFailedTitle": "Delivery fee unavailable",
+    "outOfDeliveryRange": "This address is outside our delivery area (max {{km}} km from the restaurant)."
   },
   "checkout": {
     "title": "Order Summary",
@@ -925,6 +926,14 @@
       "deliveryFeeDescription": "Standard delivery fee",
       "freeDeliveryTitle": "Free Delivery Threshold",
       "freeDeliveryDesc": "Free delivery for orders above this amount",
+      "deliveryTier1Title": "Delivery Fee — Near Zone",
+      "deliveryTier1Desc": "Fee for addresses within the near distance limit",
+      "deliveryTier2Title": "Delivery Fee — Far Zone",
+      "deliveryTier2Desc": "Fee for addresses beyond the near zone",
+      "tierMaxKm": "Max distance",
+      "tierFee": "Fee",
+      "deliveryTiersNote": "Addresses beyond the far zone limit cannot be delivered to. Distance is straight-line from the restaurant.",
+      "deliveryTierKmError": "Far zone distance must be greater than the near zone distance",
       "sectionRestaurantStatus": "🏪 Restaurant Status",
       "restaurantStatusTitle": "Restaurant Open/Closed",
       "restaurantStatusDesc": "Customers cannot place orders when restaurant is closed",
