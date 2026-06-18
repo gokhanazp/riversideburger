@@ -22,6 +22,7 @@ import Toast from 'react-native-toast-message';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import ConfirmModal from '../../components/ConfirmModal';
+import { getCurrencyInfo } from '../../services/currencyService';
 
 const { width } = Dimensions.get('window');
 const isSmallScreen = width < 768;
@@ -354,7 +355,7 @@ const AdminProductOptions = () => {
                             <View style={styles.optionLeft}>
                                 <Text style={styles.optionName}>{i18n.language === 'tr' ? opt.name : (opt.name_en || opt.name)}</Text>
                                 <Text style={styles.optionPrice}>
-                                    {opt.price > 0 ? `+${opt.price}₺` : t('admin.options.free')}
+                                    {opt.price > 0 ? `+${getCurrencyInfo().symbol}${opt.price}` : t('admin.options.free')}
                                 </Text>
                             </View>
                             <View style={styles.optionActions}>
@@ -434,7 +435,7 @@ const AdminProductOptions = () => {
                     </View>
                     <View style={styles.rowInputs}>
                         <View style={[styles.inputGroup, { flex: 1 }]}>
-                             <Text style={styles.inputLabel}>{t('admin.options.price')} (₺)</Text>
+                             <Text style={styles.inputLabel}>{t('admin.options.price')} ({getCurrencyInfo().symbol})</Text>
                              <TextInput style={styles.input} value={optionForm.price} onChangeText={t => setOptionForm({...optionForm, price: t})} keyboardType="numeric" />
                         </View>
                         <View style={[styles.inputGroup, { flex: 1 }]}>

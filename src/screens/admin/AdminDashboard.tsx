@@ -223,12 +223,13 @@ const AdminDashboard = ({ navigation }: any) => {
                 <ActionCard index={2} icon="albums-outline" title={t('admin.categories.title')} color="#28A745" onPress={() => navigation.navigate('AdminCategories')} />
                 <ActionCard index={3} icon="restaurant-outline" title={t('admin.extraIngredients')} color="#9C27B0" onPress={() => navigation.navigate('AdminProductOptions')} />
                 <ActionCard index={4} icon="images-outline" title={t('admin.banners.title')} color="#007BFF" onPress={() => navigation.navigate('AdminBanners')} />
-                <ActionCard index={5} icon="notifications-outline" title={t('admin.notifications.title')} color="#FD7E14" onPress={() => navigation.navigate('AdminNotifications')} />
-                <ActionCard index={6} icon="star-outline" title={t('admin.reviews.title')} color="#FFD700" onPress={() => navigation.navigate('AdminReviews')} />
-                <ActionCard index={7} icon="call-outline" title={t('admin.contactSettingsMenu')} color="#17A2B8" onPress={() => navigation.navigate('AdminContactSettings')} />
-                <ActionCard index={8} icon="language-outline" title={t('admin.languageSettingsMenu')} color="#20C997" onPress={() => navigation.navigate('AdminLanguageSettings')} />
-                <ActionCard index={9} icon="settings-outline" title={t('admin.settingsMenu')} color="#6c757d" onPress={() => navigation.navigate('AdminSettings')} />
-                <ActionCard index={10} icon="people-outline" title={t('admin.users.title')} color="#6F42C1" onPress={() => navigation.navigate('AdminUsers')} />
+                <ActionCard index={5} icon="bicycle-outline" title={t('admin.deliveryPartners.title')} color="#E91E63" onPress={() => navigation.navigate('AdminDeliveryPartners')} />
+                <ActionCard index={6} icon="notifications-outline" title={t('admin.notifications.title')} color="#FD7E14" onPress={() => navigation.navigate('AdminNotifications')} />
+                <ActionCard index={7} icon="star-outline" title={t('admin.reviews.title')} color="#FFD700" onPress={() => navigation.navigate('AdminReviews')} />
+                <ActionCard index={8} icon="call-outline" title={t('admin.contactSettingsMenu')} color="#17A2B8" onPress={() => navigation.navigate('AdminContactSettings')} />
+                <ActionCard index={9} icon="language-outline" title={t('admin.languageSettingsMenu')} color="#20C997" onPress={() => navigation.navigate('AdminLanguageSettings')} />
+                <ActionCard index={10} icon="settings-outline" title={t('admin.settingsMenu')} color="#6c757d" onPress={() => navigation.navigate('AdminSettings')} />
+                <ActionCard index={11} icon="people-outline" title={t('admin.users.title')} color="#6F42C1" onPress={() => navigation.navigate('AdminUsers')} />
             </View>
         </View>
         <View style={{ height: 40 }} />

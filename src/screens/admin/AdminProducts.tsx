@@ -43,6 +43,7 @@ interface Product {
   stock_status: 'in_stock' | 'out_of_stock';
   is_featured: boolean;
   ingredients?: string[];
+  calories?: number | null;
   display_order?: number;
   created_at: string;
   updated_at?: string;
@@ -76,6 +77,7 @@ const AdminProducts = ({ navigation }: any) => {
     stock_status: 'in_stock' as 'in_stock' | 'out_of_stock',
     is_featured: false,
     ingredients: [] as string[],
+    calories: '',
     display_order: 0,
   });
 
@@ -155,6 +157,7 @@ const AdminProducts = ({ navigation }: any) => {
       stock_status: 'in_stock',
       is_featured: false,
       ingredients: [],
+      calories: '',
       display_order: 0,
     });
     setShowEditModal(true);
@@ -173,6 +176,7 @@ const AdminProducts = ({ navigation }: any) => {
       stock_status: product.stock_status,
       is_featured: product.is_featured,
       ingredients: product.ingredients || [],
+      calories: product.calories != null ? product.calories.toString() : '',
       display_order: product.display_order || 0,
     });
     setShowEditModal(true);
@@ -194,6 +198,7 @@ const AdminProducts = ({ navigation }: any) => {
         stock_status: formData.stock_status,
         is_featured: formData.is_featured,
         ingredients: formData.ingredients,
+        calories: formData.calories.trim() ? parseInt(formData.calories) : null,
         display_order: formData.display_order,
       };
 
@@ -492,13 +497,25 @@ const AdminProducts = ({ navigation }: any) => {
                       </View>
                       <View style={[styles.inputGroup, { flex: 1 }]}>
                             <Text style={styles.label}>{t('admin.products.sortOrderLabel')}</Text>
-                            <TextInput 
-                                style={styles.input} 
+                            <TextInput
+                                style={styles.input}
                                 value={formData.display_order.toString()}
                                 onChangeText={t => setFormData({...formData, display_order: parseInt(t) || 0})}
                                 keyboardType="numeric"
                             />
                       </View>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                      <Text style={styles.label}>{t('admin.products.caloriesLabel')}</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={formData.calories}
+                        onChangeText={v => setFormData({...formData, calories: v.replace(/[^0-9]/g, '')})}
+                        keyboardType="numeric"
+                        placeholder="450"
+                      />
+                      <Text style={styles.helperText}>{t('admin.products.caloriesHelper')}</Text>
                   </View>
 
                   <View style={styles.inputGroup}>
@@ -652,6 +669,7 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 20 },
   label: { fontSize: 12, fontWeight: '800', color: '#999', textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
   input: { backgroundColor: Colors.white, borderWidth: 1, borderColor: '#EEE', borderRadius: 16, padding: 16, fontSize: 16, color: Colors.text },
+  helperText: { fontSize: 12, color: '#999', marginTop: 6 },
   textArea: { height: 100, textAlignVertical: 'top' },
   rowInputs: { flexDirection: 'row', gap: 16 },
   catSelectScroll: { flexDirection: 'row' },

@@ -51,6 +51,7 @@ import AdminUsers from '../screens/admin/AdminUsers';
 import AdminSettings from '../screens/admin/AdminSettings';
 import AdminContactSettings from '../screens/admin/AdminContactSettings';
 import AdminBanners from '../screens/admin/AdminBanners';
+import AdminDeliveryPartners from '../screens/admin/AdminDeliveryPartners';
 import AdminNotifications from '../screens/admin/AdminNotifications';
 import AdminReviews from '../screens/admin/AdminReviews';
 import AdminLanguageSettings from '../screens/admin/AdminLanguageSettings';
@@ -653,6 +654,11 @@ const AppNavigator = () => {
               fontSize: 18,
             },
           }}
+        />
+        <Stack.Screen
+          name="AdminDeliveryPartners"
+          component={AdminDeliveryPartners}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="AdminNotifications"

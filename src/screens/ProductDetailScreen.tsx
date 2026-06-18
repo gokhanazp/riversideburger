@@ -315,13 +315,17 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Ionicons name="time-outline" size={16} color={Colors.textSecondary} />
-              <Text style={styles.statText}>15-20 min</Text>
+              <Text style={styles.statText}>{item.preparationTime ? `${item.preparationTime} min` : '15-20 min'}</Text>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Ionicons name="flame-outline" size={16} color={Colors.textSecondary} />
-              <Text style={styles.statText}>450 kcal</Text>
-            </View>
+            {item.calories != null && (
+              <>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Ionicons name="flame-outline" size={16} color={Colors.textSecondary} />
+                  <Text style={styles.statText}>{item.calories} kcal</Text>
+                </View>
+              </>
+            )}
           </View>
 
           <View style={styles.descriptionSection}>

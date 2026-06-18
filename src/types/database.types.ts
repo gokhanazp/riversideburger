@@ -75,6 +75,7 @@ export interface Product {
   stock_status: StockStatus;
   display_order?: number; // Sıralama (Display order)
   ingredients?: string[]; // Malzemeler (Ingredients)
+  calories?: number | null; // Kalori (kcal) - opsiyonel, girilirse detayda gösterilir (Optional kcal, shown on detail if set)
   created_at: string;
   updated_at?: string;
   // Relations

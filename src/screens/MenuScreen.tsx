@@ -130,9 +130,11 @@ const MenuScreen = ({ navigation, route }: any) => {
       image: item.image_url,
       category: 'burger',
       preparationTime: item.preparation_time || 15,
+      calories: item.calories ?? null,
       available: item.is_active,
       rating: 4.5,
       reviews: reviewCounts[item.id] || 0,
+      ingredients: item.ingredients || [],
     };
 
     const favorite = isFavorite(item.id);

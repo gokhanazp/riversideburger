@@ -24,6 +24,7 @@ export interface MenuItem {
   image: string;
   available: boolean;
   preparationTime?: number; // dakika cinsinden (in minutes)
+  calories?: number | null; // kalori (kcal) - opsiyonel (optional)
   ingredients?: string[]; // malzemeler (ingredients)
   rating?: number;
   reviews?: number;

@@ -18,7 +18,8 @@ export const resizeImage = async (
   file: File | string,
   maxWidth: number = 1200,
   maxHeight: number = 800,
-  quality: number = 0.8
+  quality: number = 0.8,
+  format: 'jpeg' | 'png' = 'jpeg'
 ): Promise<{ uri: string; blob: Blob }> => {
   // Mobile implementation (Expo Image Manipulator)
   if (Platform.OS !== 'web') {
@@ -29,7 +30,10 @@ export const resizeImage = async (
       const manipResult = await ImageManipulator.manipulateAsync(
         uri,
         [{ resize: { width: maxWidth } }], // Sadece genişliğe göre scale et, height otomatik ayarlanır
-        { compress: quality, format: ImageManipulator.SaveFormat.JPEG }
+        {
+          compress: quality,
+          format: format === 'png' ? ImageManipulator.SaveFormat.PNG : ImageManipulator.SaveFormat.JPEG,
+        }
       );
 
       const response = await fetch(manipResult.uri);
@@ -82,7 +86,7 @@ export const resizeImage = async (
           } else {
             reject(new Error('Blob creation failed'));
           }
-        }, 'image/jpeg', quality);
+        }, format === 'png' ? 'image/png' : 'image/jpeg', quality);
       };
 
       img.onerror = () => {
@@ -266,6 +270,62 @@ export const uploadBannerImage = async (
     return urlData.publicUrl;
   } catch (error: any) {
     console.error('❌ Banner resmi yükleme hatası:', error);
+    throw error;
+  }
+};
+
+/**
+ * Teslimat ortağı logosu yükle (Upload delivery partner logo)
+ * Logolar genelde şeffaf PNG olduğu için PNG formatı korunur.
+ * (Partner logos are usually transparent PNGs, so transparency is preserved)
+ * @param file - Yüklenecek dosya veya URI (File to upload or URI)
+ * @param partnerId - Ortak ID (Partner ID)
+ * @returns Resim URL'si (Image URL)
+ */
+export const uploadPartnerLogo = async (
+  file: File | string,
+  partnerId?: string
+): Promise<string> => {
+  try {
+    if (!validateFileType(file)) {
+      throw new Error('Geçersiz dosya tipi. Sadece JPEG, PNG ve WebP desteklenir.');
+    }
+
+    // Logo: şeffaflığı korumak için PNG olarak küçült (resize as PNG to keep transparency)
+    const resizedResult = await resizeImage(file, 400, 400, 1, 'png');
+
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 8);
+    const fileName = partnerId
+      ? `partner_${partnerId}_${timestamp}.png`
+      : `partner_${timestamp}_${randomString}.png`;
+
+    let uploadData: any;
+    if (Platform.OS === 'web') {
+      uploadData = resizedResult.blob;
+    } else {
+      uploadData = await new ExpoFile(resizedResult.uri).arrayBuffer();
+    }
+
+    // Mevcut banner-images bucket'ı kullanılır (ayrı bucket kurulumu gerekmez)
+    const { data, error } = await supabase.storage
+      .from('banner-images')
+      .upload(fileName, uploadData, {
+        contentType: 'image/png',
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('❌ Logo yükleme hatası:', error);
+      throw error;
+    }
+
+    const { data: urlData } = supabase.storage.from('banner-images').getPublicUrl(data.path);
+    console.log('✅ Ortak logosu yüklendi:', urlData.publicUrl);
+    return urlData.publicUrl;
+  } catch (error: any) {
+    console.error('❌ Ortak logosu yükleme hatası:', error);
     throw error;
   }
 };

@@ -17,6 +17,7 @@ import { getCategories } from '../services/productService';
 import { Category, Review } from '../types/database.types';
 import { getRestaurantReviews } from '../services/reviewService';
 import { getContactInfo, getPhoneLink, getEmailLink, ContactInfo } from '../services/contactService';
+import { getDeliveryPartners, isDeliveryPartnersSectionEnabled, DeliveryPartner } from '../services/deliveryPartnerService';
 
 // Ürün tipi (Product type)
 interface Product {
@@ -29,6 +30,7 @@ interface Product {
   stock_status: 'in_stock' | 'out_of_stock';
   is_featured: boolean;
   ingredients?: string[];
+  calories?: number | null;
 }
 
 // Ana sayfa ekranı (Home screen)
@@ -43,6 +45,8 @@ const HomeScreen = ({ navigation }: any) => {
   const [restaurantReviews, setRestaurantReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
   const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
+  const [deliveryPartners, setDeliveryPartners] = useState<DeliveryPartner[]>([]);
+  const [deliveryPartnersEnabled, setDeliveryPartnersEnabled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Store'lar (Stores)
@@ -55,6 +59,7 @@ const HomeScreen = ({ navigation }: any) => {
     fetchCategories();
     fetchRestaurantReviews();
     loadContactInfo();
+    loadDeliveryPartners();
   }, []);
 
   const loadContactInfo = async () => {
@@ -63,6 +68,19 @@ const HomeScreen = ({ navigation }: any) => {
       setContactInfo(info);
     } catch (error) {
       console.error('Error loading contact info:', error);
+    }
+  };
+
+  const loadDeliveryPartners = async () => {
+    try {
+      const [enabled, partners] = await Promise.all([
+        isDeliveryPartnersSectionEnabled(),
+        getDeliveryPartners(),
+      ]);
+      setDeliveryPartnersEnabled(enabled);
+      setDeliveryPartners(partners);
+    } catch (error) {
+      console.error('Error loading delivery partners:', error);
     }
   };
 
@@ -129,6 +147,7 @@ const HomeScreen = ({ navigation }: any) => {
       rating: 4.5,
       reviews: 0,
       ingredients: product.ingredients || [],
+      calories: product.calories ?? null,
     };
     navigation.navigate('ProductDetail', { item: menuItem });
   };
@@ -417,38 +436,42 @@ const HomeScreen = ({ navigation }: any) => {
         </Animated.View>
       </View>
 
-      {/* Delivery Partners bölümü (Delivery Partners section) */}
-      <View style={styles.section}>
-        <Animated.Text
-          entering={FadeInDown.delay(500).duration(600)}
-          style={styles.sectionTitle}
-        >
-          {t('home.deliveryPartners')}
-        </Animated.Text>
-        <Animated.View entering={FadeInDown.delay(600).duration(600)} style={styles.deliveryPartnersContainer}>
-          <View style={styles.deliveryPartnerCard}>
-            <Image
-              source={{ uri: 'https://riversideburgers.ca/wp-content/uploads/elementor/thumbs/Food-delivery-icon-doordash-ozl8cebv125k1p7ay7gbam8zbts7ubzyb2nrjyb3l4.png' }}
-              style={styles.deliveryPartnerImage}
-              resizeMode="contain"
-            />
-          </View>
-          <View style={styles.deliveryPartnerCard}>
-            <Image
-              source={{ uri: 'https://riversideburgers.ca/wp-content/uploads/elementor/thumbs/Food-delivery-icon-ubereats-ozl8dodybxwlulceh9d16smkfph7bi2stemk2iet48.png' }}
-              style={styles.deliveryPartnerImage}
-              resizeMode="contain"
-            />
-          </View>
-          <View style={styles.deliveryPartnerCard}>
-            <Image
-              source={{ uri: 'https://riversideburgers.ca/wp-content/uploads/elementor/thumbs/skipthedishes@162px-ozl8vrs3w4obcd27tkxhoq903qakhqwsayq1n9kzc8.png' }}
-              style={styles.deliveryPartnerImage}
-              resizeMode="contain"
-            />
-          </View>
-        </Animated.View>
-      </View>
+      {/* Delivery Partners bölümü (Delivery Partners section) - admin tarafından yönetilir */}
+      {deliveryPartnersEnabled && deliveryPartners.length > 0 && (
+        <View style={styles.section}>
+          <Animated.Text
+            entering={FadeInDown.delay(500).duration(600)}
+            style={styles.sectionTitle}
+          >
+            {t('home.deliveryPartners')}
+          </Animated.Text>
+          <Animated.View entering={FadeInDown.delay(600).duration(600)} style={styles.deliveryPartnersContainer}>
+            {deliveryPartners.map((partner) => {
+              const card = (
+                <Image
+                  source={{ uri: partner.logo_url }}
+                  style={styles.deliveryPartnerImage}
+                  resizeMode="contain"
+                />
+              );
+              return partner.link_url ? (
+                <TouchableOpacity
+                  key={partner.id}
+                  style={styles.deliveryPartnerCard}
+                  activeOpacity={0.8}
+                  onPress={() => Linking.openURL(partner.link_url as string)}
+                >
+                  {card}
+                </TouchableOpacity>
+              ) : (
+                <View key={partner.id} style={styles.deliveryPartnerCard}>
+                  {card}
+                </View>
+              );
+            })}
+          </Animated.View>
+        </View>
+      )}
 
       {/* Müşteri Yorumları Bölümü (Customer Reviews Section) - Elite Redesign */}
       <View style={styles.eliteReviewSection}>
