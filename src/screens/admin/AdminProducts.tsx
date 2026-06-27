@@ -234,6 +234,9 @@ const AdminProducts = ({ navigation }: any) => {
 
   const handleSelectImage = async () => {
       if (Platform.OS === 'web' && fileInputRef.current) {
+        // Aynı DOM input tekrar kullanıldığı için value'yu sıfırla;
+        // aksi halde aynı/benzer dosya seçilince onChange tetiklenmez.
+        fileInputRef.current.value = '';
         fileInputRef.current.click();
       } else {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -250,7 +253,7 @@ const AdminProducts = ({ navigation }: any) => {
       try {
         setUploadingImage(true);
         const imageUrl = await uploadProductImage(fileOrUri, selectedProduct?.id);
-        setFormData({ ...formData, image_url: imageUrl });
+        setFormData(prev => ({ ...prev, image_url: imageUrl }));
         setLocalImagePreview(typeof fileOrUri === 'string' ? fileOrUri : URL.createObjectURL(fileOrUri));
         Toast.show({ type: 'success', text1: t('admin.products.imageUploaded') });
       } catch (error: any) {
@@ -454,6 +457,7 @@ const AdminProducts = ({ navigation }: any) => {
                             onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) handleImageUpload(file);
+                                e.target.value = '';
                             }}
                         />
                       )}
