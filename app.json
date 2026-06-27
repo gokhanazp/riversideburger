@@ -75,7 +75,7 @@
       },
       "supabaseUrl": "https://srcslhltajjvteqeptrt.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyY3NsaGx0YWpqdnRlcWVwdHJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4OTE1NjIsImV4cCI6MjA3NzQ2NzU2Mn0.FJs8OLIbJdP8vn2GXlNFkGrVeLlR6OhcmNTMW79uH9U",
-      "stripePublishableKey": "pk_test_51T3Ka8BsCfVNA6dXckZm5NPIITA5kVgopf9hH3Olb3Q7jrk3dcczg47ZcyVXnx0FySNlcqZZ9r4hZFzb0KSj2QTT007osKZKOt",
+      "stripePublishableKey": "pk_live_51T3Ka8BsCfVNA6dXpA8muGYnpFLQEWnr3I6KguGUsOW89QXeeB5jF3LSH6Q1uFXkehR630PsB7166ZrsRy9RePpa007KVRhXjh",
       "supabaseFunctionsUrl": "https://srcslhltajjvteqeptrt.supabase.co/functions/v1",
       "mapTilerKey": "jLl2PtyULddI6Kw9qzm4",
       "mapsEnabled": false
