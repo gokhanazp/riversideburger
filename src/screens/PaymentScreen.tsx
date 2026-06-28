@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import Constants from 'expo-constants';
 import { Colors, Shadows } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 import { createPaymentIntent, confirmPayment } from '../services/stripeService';
@@ -153,7 +154,11 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
   const initializePayment = async (amount: number) => {
     try {
-      const stripeKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+      // App.tsx ile aynı kaynaktan oku: önce app.json -> extra (git'te, build'e dahil),
+      // sonra .env fallback. .env gitignore'da olduğu için EAS build'lerinde bulunmaz.
+      const stripeKey =
+        Constants.expoConfig?.extra?.stripePublishableKey ||
+        process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
       if (!stripeKey || stripeKey.includes('your_publishable_key_here')) {
         setIsDemoMode(true);
