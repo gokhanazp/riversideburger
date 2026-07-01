@@ -70,8 +70,12 @@ import { useAuthStore } from '../store/authStore';
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-// Navigation ref - App.tsx'ten erişim için
-export const navigationRef = createNavigationContainerRef<RootStackParamList>();
+// Navigation ref - ayrı dosyada (döngüsel import'u önlemek için); geriye dönük uyum için re-export
+export { navigationRef } from './navigationRef';
+import { navigationRef } from './navigationRef';
+
+// Global admin sipariş bildirimcisi (her ekranda ses + toast)
+import { useAdminOrderNotifier } from '../hooks/useAdminOrderNotifier';
 
 // Custom Tab Bar Component for "Floating Island" Style
 const CustomTabBar = ({ state, descriptors, navigation, totalItems }: any) => {
@@ -297,6 +301,9 @@ const MainTabs = () => {
 // Root stack navigator (Root stack navigator)
 const AppNavigator = () => {
   const { t } = useTranslation();
+
+  // Admin ise: her ekranda yeni sipariş ses + bildirim (global realtime abonesi)
+  useAdminOrderNotifier();
 
   return (
     <NavigationContainer ref={navigationRef}>

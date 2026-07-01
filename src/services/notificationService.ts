@@ -3,6 +3,114 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { Asset } from 'expo-asset';
+
+// ── Web'de admin sipariş sesi (Web admin order alert sound) ──
+// Native'de ses bildirim üzerinden çalar. Web'de tarayıcı autoplay politikası
+// HTMLAudioElement'i sık engellediği için Web Audio API kullanılır: context bir
+// kullanıcı jestiyle "resume" edilir, mp3 buffer'a decode edilir, event geldiğinde
+// buffer çalınır. mp3 yüklenemezse kısa bir beep'e düşülür.
+// DOM tipleri RN TS projesinde tanımlı olmadığı için `any` kullanılır.
+let webAudioCtx: any = null;
+let webOrderBuffer: any = null;
+
+async function loadWebOrderBuffer(): Promise<void> {
+  if (webOrderBuffer || !webAudioCtx) return;
+  try {
+    const asset = Asset.fromModule(require('../../assets/order_sound.mp3'));
+    const res = await fetch(asset.uri);
+    const arr = await res.arrayBuffer();
+    webOrderBuffer = await webAudioCtx.decodeAudioData(arr);
+  } catch (e) {
+    console.warn('⚠️ Sipariş sesi yüklenemedi, beep fallback kullanılacak:', e);
+  }
+}
+
+/**
+ * Web'de ses için AudioContext'i kullanıcı jestiyle hazırlar (autoplay kilidini açar).
+ * AdminOrders mount olduğunda bir kez çağrılmalı.
+ */
+export function initAdminOrderSound(): void {
+  if (Platform.OS !== 'web') return;
+  const g: any = globalThis;
+  if (g.__adminOrderSoundInit) return;
+  g.__adminOrderSoundInit = true;
+
+  const AudioCtxCtor = g.AudioContext || g.webkitAudioContext;
+  if (!AudioCtxCtor) return;
+
+  const unlock = () => {
+    try {
+      if (!webAudioCtx) webAudioCtx = new AudioCtxCtor();
+      if (webAudioCtx.state === 'suspended') webAudioCtx.resume();
+      loadWebOrderBuffer();
+    } catch (e) {
+      console.warn('⚠️ Ses kilidi açılamadı:', e);
+    }
+  };
+
+  const doc: any = g.document;
+  if (doc?.addEventListener) {
+    ['pointerdown', 'keydown', 'touchstart'].forEach((evt) =>
+      doc.addEventListener(evt, unlock, { once: true })
+    );
+  }
+  unlock(); // Belki zaten etkileşim olmuştur; hemen de dene
+}
+
+// Sesin art arda kaç kez çalacağı ve tekrarlar arası boşluk (sn)
+const ORDER_SOUND_REPEAT = 2;
+const ORDER_SOUND_GAP = 0.15;
+
+function playWebBeep(ctx: any, when: number): void {
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(0.4, when + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.6);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(when);
+    osc.stop(when + 0.6);
+  } catch { /* yoksay */ }
+}
+
+/**
+ * Admin paneli açıkken yeni sipariş sesi çalar (art arda ORDER_SOUND_REPEAT kez).
+ * Web: Web Audio API (order_sound.mp3, yoksa beep). Native: no-op (bildirim sesi çalar).
+ */
+export async function playAdminOrderSound(): Promise<void> {
+  if (Platform.OS !== 'web') return; // Native'de bildirim sesi devrede
+  const g: any = globalThis;
+  try {
+    const AudioCtxCtor = g.AudioContext || g.webkitAudioContext;
+    if (!AudioCtxCtor) return;
+    if (!webAudioCtx) webAudioCtx = new AudioCtxCtor();
+    if (webAudioCtx.state === 'suspended') await webAudioCtx.resume();
+
+    if (!webOrderBuffer) await loadWebOrderBuffer();
+
+    if (webOrderBuffer) {
+      // Tekrarları AudioContext saatiyle art arda zamanla (kesin ve üst üste binmez)
+      const dur = webOrderBuffer.duration || 0.5;
+      for (let i = 0; i < ORDER_SOUND_REPEAT; i++) {
+        const src = webAudioCtx.createBufferSource();
+        src.buffer = webOrderBuffer;
+        src.connect(webAudioCtx.destination);
+        src.start(webAudioCtx.currentTime + i * (dur + ORDER_SOUND_GAP));
+      }
+    } else {
+      for (let i = 0; i < ORDER_SOUND_REPEAT; i++) {
+        playWebBeep(webAudioCtx, webAudioCtx.currentTime + i * (0.6 + ORDER_SOUND_GAP)); // mp3 yoksa beep
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Web sipariş sesi çalınamadı (autoplay politikası olabilir):', error);
+  }
+}
 
 // Web'de notification handler'ı ayarlama (Don't set notification handler on web)
 if (Platform.OS !== 'web') {
@@ -119,7 +227,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 500, 200, 500, 200, 500], // Üç kez titreşim (Triple vibration)
       lightColor: '#E63946',
-      sound: 'order-sound.mp3', // Özel sipariş sesi (Custom order sound)
+      sound: 'order_sound.mp3', // Özel sipariş sesi — app.json'da bundle edilen dosya adıyla eşleşmeli
       enableLights: true,
       enableVibrate: true,
     });
@@ -271,7 +379,7 @@ export async function sendNewOrderNotificationToAdmin(orderId: string, customerN
     { orderId, type: 'new_order_admin' },
     'admin_orders', // Özel admin kanalı (Special admin channel)
     Notifications.AndroidNotificationPriority.MAX, // Maksimum öncelik (Maximum priority)
-    'order-sound.mp3' // Özel sipariş sesi (Custom order sound)
+    'order_sound.mp3' // Özel sipariş sesi (Custom order sound)
   );
 }
 

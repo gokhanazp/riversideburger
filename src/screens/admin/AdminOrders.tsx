@@ -10,7 +10,6 @@ import {
   Modal,
   ScrollView,
   Alert,
-  Platform,
   Dimensions,
   StatusBar,
 } from 'react-native';
@@ -24,8 +23,6 @@ import Toast from 'react-native-toast-message';
 import * as Print from 'expo-print';
 import { shareAsync } from 'expo-sharing';
 import { useTranslation } from 'react-i18next';
-import { sendLocalNotification } from '../../services/notificationService';
-import * as Notifications from 'expo-notifications';
 import { formatPrice } from '../../services/currencyService';
 
 const { width } = Dimensions.get('window');
@@ -73,44 +70,34 @@ const AdminOrders = ({ navigation, route }: any) => {
     fetchOrders();
   }, [filterStatus]);
 
+  // Sipariş listesini realtime canlı tut. Ses + toast global bildirimci
+  // (useAdminOrderNotifier) tarafından yönetilir; burada sadece liste yenilenir.
   useEffect(() => {
-    const channel = supabase
-      .channel('admin-new-orders')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'orders' },
-        async (payload) => {
-          const { data: orderData } = await supabase
-            .from('orders')
-            .select('*, user:users(email, full_name, phone)')
-            .eq('id', payload.new.id)
-            .single();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
 
-          if (orderData) {
-            if (Platform.OS !== 'web') {
-              const customerName = (orderData as any).user?.full_name || 'Müşteri';
-              await sendLocalNotification(
-                '🔔 YENİ SİPARİŞ!',
-                `${customerName} - ${formatPrice(orderData.total_amount)}`,
-                { orderId: orderData.id, type: 'new_order_admin' },
-                'admin_orders',
-                Notifications.AndroidNotificationPriority.MAX,
-                'order-sound.mp3'
-              );
-            }
-            Toast.show({
-              type: 'success',
-              text1: '🔔 Yeni Sipariş!',
-              text2: `${(orderData as any).user?.full_name || 'Müşteri'} - ${formatPrice(orderData.total_amount)}`,
-            });
-            fetchOrders();
-          }
-        }
-      )
-      .subscribe();
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        supabase.realtime.setAuth(session.access_token);
+      }
+      if (cancelled) return;
+
+      channel = supabase
+        .channel('admin-orders-list')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'orders' },
+          () => { fetchOrders(); }
+        )
+        .subscribe((status) => {
+          console.log('[admin-orders-list realtime] status:', status);
+        });
+    })();
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 
