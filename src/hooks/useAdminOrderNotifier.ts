@@ -3,7 +3,7 @@
 // ses çalar ve toast gösterir. Realtime aboneliği AdminOrders ekranından bağımsızdır,
 // böylece dashboard/anasayfa gibi başka ekranlarda da bildirim düşer.
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
@@ -12,10 +12,18 @@ import { useAuthStore } from '../store/authStore';
 import { formatPrice } from '../services/currencyService';
 import { sendLocalNotification, playAdminOrderSound, initAdminOrderSound } from '../services/notificationService';
 import { navigationRef } from '../navigation/navigationRef';
+import {
+  isPrinterModuleAvailable,
+  isAutoPrintEnabled,
+  getSavedPrinter,
+  printOrder,
+} from '../services/printerService';
 
 export function useAdminOrderNotifier() {
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === 'admin';
+  // Aynı sipariş için çift baskıyı önle (realtime aynı event'i tekrar düşürebilir)
+  const printedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -64,6 +72,43 @@ export function useAdminOrderNotifier() {
           Toast.hide();
         },
       });
+
+      // Otomatik fiş baskısı (Auto-print) — yalnızca native modül varsa (dev/prod build),
+      // ayar açıksa ve yazıcı seçiliyse. Fiş için ürünleri de içeren tam siparişi çek.
+      try {
+        const orderId = orderData.id as string;
+        if (
+          isPrinterModuleAvailable() &&
+          !printedRef.current.has(orderId) &&
+          (await isAutoPrintEnabled()) &&
+          (await getSavedPrinter())
+        ) {
+          printedRef.current.add(orderId);
+          const { data: fullOrder } = await supabase
+            .from('orders')
+            .select('*, user:users(full_name, phone), order_items(*, product:products(name))')
+            .eq('id', orderId)
+            .single();
+
+          if (fullOrder) {
+            const res = await printOrder(fullOrder as any);
+            if (!res.success) {
+              // Baskı başarısızsa tekrar denenebilsin diye dedupe kaydını geri al
+              printedRef.current.delete(orderId);
+              Toast.show({
+                type: 'error',
+                text1: 'Yazıcı hatası',
+                text2: res.error,
+                visibilityTime: 4000,
+              });
+            }
+          } else {
+            printedRef.current.delete(orderId);
+          }
+        }
+      } catch (e) {
+        console.log('[auto-print] error:', e);
+      }
     };
 
     (async () => {

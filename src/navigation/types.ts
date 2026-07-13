@@ -58,6 +58,7 @@ export type RootStackParamList = {
   AdminContactSettings: undefined; // İletişim bilgileri ayarları (Contact information settings)
   AdminBanners: undefined;
   AdminDeliveryPartners: undefined; // Teslimat ortakları yönetimi (Delivery partners management)
+  AdminPrinterSettings: undefined; // Fiş yazıcı ayarları (Receipt printer settings)
   AdminNotifications: undefined;
   AdminReviews: undefined; // Yorum yönetimi (Review management)
   AdminLanguageSettings: undefined; // Dil ve para birimi yönetimi (Language and currency management)

@@ -230,6 +230,7 @@ const AdminDashboard = ({ navigation }: any) => {
                 <ActionCard index={9} icon="language-outline" title={t('admin.languageSettingsMenu')} color="#20C997" onPress={() => navigation.navigate('AdminLanguageSettings')} />
                 <ActionCard index={10} icon="settings-outline" title={t('admin.settingsMenu')} color="#6c757d" onPress={() => navigation.navigate('AdminSettings')} />
                 <ActionCard index={11} icon="people-outline" title={t('admin.users.title')} color="#6F42C1" onPress={() => navigation.navigate('AdminUsers')} />
+                <ActionCard index={12} icon="print-outline" title={t('admin.printer.menuTitle')} color="#343A40" onPress={() => navigation.navigate('AdminPrinterSettings')} />
             </View>
         </View>
         <View style={{ height: 40 }} />

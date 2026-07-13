@@ -67,7 +67,8 @@
           "locationAlwaysAndWhenInUsePermission": "Sipariş takibi sırasında yakındaki kuryeyi göstermek için konumunuza erişiyoruz."
         }
       ],
-      "@maplibre/maplibre-react-native"
+      "@maplibre/maplibre-react-native",
+      "./plugins/withEscPosPrinter"
     ],
     "extra": {
       "eas": {

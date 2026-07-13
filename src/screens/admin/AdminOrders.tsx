@@ -24,6 +24,11 @@ import * as Print from 'expo-print';
 import { shareAsync } from 'expo-sharing';
 import { useTranslation } from 'react-i18next';
 import { formatPrice } from '../../services/currencyService';
+import {
+  isPrinterModuleAvailable,
+  getSavedPrinter,
+  printOrder,
+} from '../../services/printerService';
 
 const { width } = Dimensions.get('window');
 
@@ -123,6 +128,27 @@ const AdminOrders = ({ navigation, route }: any) => {
   };
 
   const handlePrintOrder = async (order: Order) => {
+    // Önce doğrudan ESC/POS termal yazıcıya bas (Epson TM-m30III vb.). Yazıcı
+    // seçili ve native modül mevcutsa bu yolu kullan; değilse PDF paylaşımına düş.
+    try {
+      if (isPrinterModuleAvailable() && (await getSavedPrinter())) {
+        const res = await printOrder(order);
+        if (res.success) {
+          Toast.show({ type: 'success', text1: t('admin.printer.printed') });
+          return;
+        }
+        Toast.show({
+          type: 'error',
+          text1: t('admin.printer.printFailedFallback'),
+          text2: res.error,
+          visibilityTime: 4000,
+        });
+        // Hata durumunda PDF paylaşımına devam et (aşağıya düşer)
+      }
+    } catch (e) {
+      // ESC/POS yolunda beklenmedik hata — PDF'e düş
+    }
+
     try {
       const { getCurrencyInfo } = await import('../../services/currencyService');
       const currencySymbol = getCurrencyInfo().symbol;

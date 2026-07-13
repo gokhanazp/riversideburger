@@ -889,8 +889,6 @@
     "languageSettingsMenu": "Dil ve Para Birimi",
     "languageSettingsSubtitle": "Dil ve para birimi ayarları",
     "settingsSubtitle": "Sistem ayarları",
-    "loading": "Yükleniyor...",
-    "error": "Hata",
     "welcomeMaster": "Hoş geldiniz, Yönetici",
     "errorLoadingStats": "İstatistikler yüklenirken bir hata oluştu",
     "settings": {
@@ -1165,6 +1163,30 @@
       "success": "Başarılı",
       "categoryNameLabel": "Kategori Adı",
       "optionNameLabel": "Seçenek Adı"
+    },
+    "printer": {
+      "menuTitle": "Fiş Yazıcı",
+      "title": "Fiş Yazıcı Ayarları",
+      "moduleUnavailable": "Yazıcı modülü bu ortamda kullanılamıyor.",
+      "moduleUnavailableDesc": "Bluetooth yazıcı yalnızca uygulama derlemesinde (development/production build) çalışır. Expo Go veya web'de kullanılamaz.",
+      "currentPrinter": "Seçili Yazıcı",
+      "noneSelected": "Henüz yazıcı seçilmedi.",
+      "testPrint": "Test Fişi Yazdır",
+      "autoPrint": "Otomatik Yazdırma",
+      "autoPrintDesc": "Yeni sipariş geldiğinde fiş otomatik basılsın.",
+      "availablePrinters": "Bulunan Yazıcılar",
+      "scanHint": "Yazıcının açık ve telefonla eşleşmiş (paired) olduğundan emin olun, ardından tarayın.",
+      "scan": "Bluetooth Yazıcı Tara",
+      "noneFound": "Yazıcı bulunamadı. Yazıcının açık ve eşleşmiş olduğundan emin olun.",
+      "permissionDenied": "Bluetooth izni verilmedi.",
+      "scanError": "Tarama sırasında hata oluştu.",
+      "saved": "Yazıcı kaydedildi",
+      "cleared": "Yazıcı seçimi kaldırıldı",
+      "testOk": "Test fişi gönderildi.",
+      "testFailed": "Test baskısı başarısız",
+      "pairHint": "İpucu: Yazıcı görünmüyorsa önce Android Bluetooth ayarlarından eşleştirin.",
+      "printed": "Fiş yazdırıldı",
+      "printFailedFallback": "Yazıcıya basılamadı, PDF paylaşımına geçiliyor"
     }
   },
   "favorites": {
