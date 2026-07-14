@@ -10,6 +10,10 @@ import { Platform, PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Order } from '../types/database.types';
 import { getCurrencyInfo } from './currencyService';
+import i18n from '../i18n';
+
+// Fiş metinleri uygulamanın seçili diline göre gelir (tr/en).
+const rt = (key: string) => i18n.t(`admin.printer.receipt.${key}`);
 
 // Native modülü tembel (lazy) yükle: web/Expo Go'da import patlamasın.
 let Printer: any = null;
@@ -189,14 +193,14 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
 
   // Sipariş no (büyük)
   await printer.addTextSize({ width: 2, height: 2 });
-  await printer.addText(`SIPARIS #${order.order_number}\n`);
+  await printer.addText(`${rt('orderPrefix')}${order.order_number}\n`);
   await printer.addTextSize({ width: 1, height: 1 });
 
   const dateStr = new Date(order.created_at).toLocaleString();
   await printer.addText(`${dateStr}\n`);
 
   const methodLabel =
-    order.delivery_method === 'pickup' ? 'GEL-AL (PICKUP)' : 'TESLIMAT (DELIVERY)';
+    order.delivery_method === 'pickup' ? rt('pickup') : rt('delivery');
   await printer.addTextStyle({ em: C.TRUE });
   await printer.addText(`${methodLabel}\n`);
   await printer.addTextStyle({ em: C.FALSE });
@@ -205,17 +209,17 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
   await printer.addTextAlign(C.ALIGN_LEFT);
   await printer.addText(line() + '\n');
 
-  const customerName = order.user?.full_name || 'Guest';
+  const customerName = order.user?.full_name || rt('guest');
   const phone = order.phone || order.user?.phone || '-';
-  await printer.addText(`Musteri: ${customerName}\n`);
-  await printer.addText(`Telefon: ${phone}\n`);
+  await printer.addText(`${rt('customer')}: ${customerName}\n`);
+  await printer.addText(`${rt('phone')}: ${phone}\n`);
   if (order.delivery_method !== 'pickup' && order.delivery_address) {
-    await printer.addText(`Adres:\n${order.delivery_address}\n`);
+    await printer.addText(`${rt('address')}:\n${order.delivery_address}\n`);
   }
 
   if (order.notes) {
     await printer.addTextStyle({ em: C.TRUE });
-    await printer.addText(`Not: ${order.notes}\n`);
+    await printer.addText(`${rt('note')}: ${order.notes}\n`);
     await printer.addTextStyle({ em: C.FALSE });
   }
 
@@ -223,7 +227,7 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
   await printer.addText(line() + '\n');
   const items = order.order_items || [];
   for (const item of items) {
-    const name = `${item.quantity}x ${item.product?.name || 'Urun'}`;
+    const name = `${item.quantity}x ${item.product?.name || rt('product')}`;
     await printer.addText(twoColumns(name, money(item.subtotal)) + '\n');
   }
   await printer.addText(line() + '\n');
@@ -231,18 +235,18 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
   // Toplam (büyük)
   await printer.addTextSize({ width: 2, height: 2 });
   await printer.addTextStyle({ em: C.TRUE });
-  await printer.addText(twoColumns('TOPLAM', money(order.total_amount), CHARS_PER_LINE / 2) + '\n');
+  await printer.addText(twoColumns(rt('total'), money(order.total_amount), CHARS_PER_LINE / 2) + '\n');
   await printer.addTextStyle({ em: C.FALSE });
   await printer.addTextSize({ width: 1, height: 1 });
 
   if (order.tip_amount && order.tip_amount > 0) {
-    await printer.addText(twoColumns('Bahsis (Tip)', money(order.tip_amount)) + '\n');
+    await printer.addText(twoColumns(rt('tip'), money(order.tip_amount)) + '\n');
   }
 
   // Alt boşluk + kesme
   await printer.addFeedLine(2);
   await printer.addTextAlign(C.ALIGN_CENTER);
-  await printer.addText('Tesekkurler! / Thank you!\n');
+  await printer.addText(`${rt('thanks')}\n`);
   await printer.addFeedLine(2);
   await printer.addCut(C.CUT_FEED);
 }
@@ -313,10 +317,10 @@ export async function testPrint(target: SavedPrinter): Promise<PrintResult> {
         const C = PrinterConstants;
         await printer.addTextAlign(C.ALIGN_CENTER);
         await printer.addTextSize({ width: 2, height: 2 });
-        await printer.addText('TEST\n');
+        await printer.addText(`${rt('testTitle')}\n`);
         await printer.addTextSize({ width: 1, height: 1 });
         await printer.addText('Riverside Burgers\n');
-        await printer.addText('Yazici baglantisi basarili.\n');
+        await printer.addText(`${rt('testLine')}\n`);
         await printer.addFeedLine(3);
         await printer.addCut(C.CUT_FEED);
         return await printer.sendData();

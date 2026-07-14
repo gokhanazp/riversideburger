@@ -1189,7 +1189,23 @@
       "testFailed": "Test print failed",
       "pairHint": "Tip: If the printer doesn't appear, pair it first in Android Bluetooth settings.",
       "printed": "Receipt printed",
-      "printFailedFallback": "Couldn't print to printer, falling back to PDF share"
+      "printFailedFallback": "Couldn't print to printer, falling back to PDF share",
+      "receipt": {
+        "orderPrefix": "ORDER #",
+        "pickup": "PICKUP",
+        "delivery": "DELIVERY",
+        "customer": "Customer",
+        "phone": "Phone",
+        "address": "Address",
+        "note": "Note",
+        "total": "TOTAL",
+        "tip": "Tip",
+        "thanks": "Thank you!",
+        "guest": "Guest",
+        "product": "Product",
+        "testTitle": "TEST",
+        "testLine": "Printer connection successful."
+      }
     }
   },
   "favorites": {

@@ -1186,7 +1186,23 @@
       "testFailed": "Test baskısı başarısız",
       "pairHint": "İpucu: Yazıcı görünmüyorsa önce Android Bluetooth ayarlarından eşleştirin.",
       "printed": "Fiş yazdırıldı",
-      "printFailedFallback": "Yazıcıya basılamadı, PDF paylaşımına geçiliyor"
+      "printFailedFallback": "Yazıcıya basılamadı, PDF paylaşımına geçiliyor",
+      "receipt": {
+        "orderPrefix": "SIPARIS #",
+        "pickup": "GEL-AL (PICKUP)",
+        "delivery": "TESLIMAT (DELIVERY)",
+        "customer": "Musteri",
+        "phone": "Telefon",
+        "address": "Adres",
+        "note": "Not",
+        "total": "TOPLAM",
+        "tip": "Bahsis (Tip)",
+        "thanks": "Tesekkurler!",
+        "guest": "Misafir",
+        "product": "Urun",
+        "testTitle": "TEST",
+        "testLine": "Yazici baglantisi basarili."
+      }
     }
   },
   "favorites": {
