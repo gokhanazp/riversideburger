@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
 import { Colors, Shadows } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
-import { createPaymentIntent, confirmPayment } from '../services/stripeService';
+import { createPaymentIntent, confirmPayment, attachOrderToPayment } from '../services/stripeService';
 import { createOrder } from '../services/orderService';
 import { createUberDelivery } from '../services/uberDeliveryService';
 import { Address } from '../types/database.types';
@@ -226,30 +226,39 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
         return;
       }
 
-      // Sunucu doğrulaması (Stripe = tek doğruluk kaynağı).
-      let serverConfirmed = false;
+      // Sunucu doğrulaması — Stripe = tek doğruluk kaynağı. Sunucu, Stripe'a
+      // paymentIntents.retrieve ile sorar ve gerçek durumu döndürür.
+      let verifiedStatus: string | null = null;
       try {
         const result = await confirmPayment(paymentIntentId);
-        if (result?.status && result.status !== 'succeeded') {
-          // Stripe açıkça succeeded değil diyor → siparişi OLUŞTURMA.
-          Toast.show({
-            type: 'error',
-            text1: t('payment.failed'),
-            text2: t('payment.notCompleted'),
-            visibilityTime: 4000,
-            topOffset: 60,
-          });
-          return;
-        }
-        serverConfirmed = result?.status === 'succeeded';
+        verifiedStatus = result?.status ?? null; // örn 'succeeded'
       } catch (verifyErr) {
-        // Sunucu doğrulaması ağ hatasıyla başarısız olursa: SDK zaten "Succeeded"
-        // döndürdüğü için (Stripe onayladı) siparişi oluşturuyoruz; müşteri ücretlendirilip
-        // siparişsiz kalmasın. Doğrulama durumunu logla.
-        console.warn('Server payment verification failed, trusting SDK Succeeded:', verifyErr);
+        // Doğrulama ağ hatasıyla başarısız oldu → durumu bilemiyoruz.
+        console.warn('Server payment verification failed:', verifyErr);
+        verifiedStatus = null;
       }
 
-      await createOrderAndNavigate('paid');
+      if (verifiedStatus && verifiedStatus !== 'succeeded') {
+        // Stripe açıkça "succeeded değil" diyor → siparişi OLUŞTURMA.
+        Toast.show({
+          type: 'error',
+          text1: t('payment.failed'),
+          text2: t('payment.notCompleted'),
+          visibilityTime: 4000,
+          topOffset: 60,
+        });
+        return;
+      }
+
+      // Fişteki "PAID" YALNIZCA sunucu-doğrulamalı 'succeeded' ile yazılır.
+      // Doğrulanamadıysa (verifiedStatus null): SDK 'Succeeded' dediği için ücret
+      // büyük olasılıkla alındı; siparişi kaybetmemek için oluşturuyoruz ama
+      // fişte "PENDING / ODEME ONAYLANMADI" uyarısı çıksın diye 'pending' işaretliyoruz.
+      // Böylece Stripe'dan doğrulanmamış hiçbir sipariş fişte PAID görünmez.
+      const orderPaymentStatus: 'paid' | 'pending' =
+        verifiedStatus === 'succeeded' ? 'paid' : 'pending';
+
+      await createOrderAndNavigate(orderPaymentStatus, paymentIntentId);
     } catch (error: any) {
       console.error('Payment error:', error);
       Toast.show({ type: 'error', text1: t('payment.failed'), text2: error.message || t('payment.tryAgain'), visibilityTime: 4000, topOffset: 60 });
@@ -276,7 +285,10 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     }
   };
 
-  const createOrderAndNavigate = async (paymentStatus: 'paid' | 'pending' = 'paid') => {
+  const createOrderAndNavigate = async (
+    paymentStatus: 'paid' | 'pending' = 'paid',
+    intentId?: string | null
+  ) => {
     const orderItems = items.map((item) => ({
       product_id: item.id,
       product_name: item.name,
@@ -312,6 +324,16 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       delivery_fee: deliveryFee,
       payment_status: paymentStatus,
     });
+
+    // Stripe ödeme kaydını bu siparişe bağla (payments.order_id).
+    // Böylece sipariş ↔ Stripe ödemesi ilişkisi kurulur (doğrulama/eşleştirme).
+    if (intentId) {
+      try {
+        await attachOrderToPayment(intentId, order.id);
+      } catch (linkErr) {
+        console.warn('attachOrderToPayment failed:', linkErr);
+      }
+    }
 
     clearCart();
 

@@ -115,6 +115,29 @@ export const confirmPayment = async (
 };
 
 /**
+ * Ödeme kaydını siparişe bağla (Link the payment record to an order)
+ * Sipariş ödemeden SONRA oluşturulduğu için payments.order_id başta boştur;
+ * sipariş oluşunca burada bağlarız. Böylece Stripe ödemesi ↔ sipariş ilişkisi kurulur
+ * (admin/muhasebe eşleştirmesi + Stripe kaynaklı doğrulama için).
+ * @param paymentIntentId - Stripe Payment Intent ID
+ * @param orderId - Oluşturulan sipariş ID
+ */
+export const attachOrderToPayment = async (
+  paymentIntentId: string,
+  orderId: string
+): Promise<void> => {
+  const { error } = await supabase
+    .from('payments')
+    .update({ order_id: orderId })
+    .eq('stripe_payment_intent_id', paymentIntentId);
+
+  if (error) {
+    // Bağlama başarısız olsa da sipariş akışını bozmayalım; sadece logla.
+    console.warn('⚠️ Could not link payment to order:', error.message);
+  }
+};
+
+/**
  * Kullanıcının ödeme geçmişini getir (Get user's payment history)
  * @param userId - Kullanıcı ID (User ID)
  */
