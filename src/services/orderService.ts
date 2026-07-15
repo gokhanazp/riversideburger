@@ -46,6 +46,8 @@ interface CreateOrderParams {
   delivery_fee?: number;
   tip_amount?: number;
   payment_status?: 'pending' | 'paid' | 'failed' | 'refunded'; // Ödeme durumu (Payment status)
+  campaign_id?: string | null; // Uygulanan kampanya (Applied campaign)
+  discount_amount?: number; // Kampanya indirimi (Campaign discount)
 }
 
 export const createOrder = async (params: CreateOrderParams): Promise<Order> => {
@@ -57,6 +59,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
       delivery_province, delivery_postal_code, delivery_country,
       delivery_lat, delivery_lng, delivery_instructions, delivery_fee,
       tip_amount = 0, payment_status = 'pending',
+      campaign_id = null, discount_amount = 0,
     } = params;
 
     // Sipariş oluştur (Create order)
@@ -89,6 +92,8 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
         tip_amount,
         payment_status,
         paid_at: payment_status === 'paid' ? new Date().toISOString() : null,
+        campaign_id,
+        discount_amount,
       })
       .select()
       .single();

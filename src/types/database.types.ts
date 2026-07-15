@@ -101,12 +101,41 @@ export interface Order {
   delivery_method: 'pickup' | 'delivery'; // Teslimat şekli (default 'delivery')
   payment_status?: 'pending' | 'paid' | 'failed' | 'refunded'; // Ödeme durumu (Payment status)
   paid_at?: string; // Ödemenin onaylandığı an (When payment succeeded)
+  campaign_id?: string | null; // Uygulanan kampanya (Applied campaign)
+  discount_amount?: number; // Kampanya indirimi tutarı (Campaign discount amount)
   created_at: string;
   updated_at?: string;
   // Relations
   user?: User;
   order_items?: OrderItem[];
   address?: Address; // Adres ilişkisi (Address relation)
+}
+
+// Kampanya (Campaign / Promotion)
+export type CampaignType = 'first_order' | 'percentage' | 'buy_x_get_y';
+export type CampaignTargetType = 'all' | 'category' | 'product';
+
+export interface Campaign {
+  id: string;
+  name_tr: string;
+  name_en: string;
+  description_tr?: string | null;
+  description_en?: string | null;
+  type: CampaignType;
+  discount_percent: number; // first_order + percentage
+  buy_quantity: number; // buy_x_get_y
+  free_quantity: number; // buy_x_get_y
+  target_type: CampaignTargetType;
+  target_category_ids: string[];
+  target_product_ids: string[];
+  min_order_amount: number;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  per_customer_limit?: number | null; // null = sınırsız
+  is_active: boolean;
+  priority: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Order Item (Sipariş Kalemi)

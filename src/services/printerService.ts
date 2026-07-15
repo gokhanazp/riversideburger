@@ -232,6 +232,11 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
   }
   await printer.addText(line() + '\n');
 
+  // Kampanya indirimi (Campaign discount) — uygulandıysa göster
+  if (order.discount_amount && order.discount_amount > 0) {
+    await printer.addText(twoColumns(rt('discount'), `-${money(order.discount_amount)}`) + '\n');
+  }
+
   // Toplam (büyük)
   await printer.addTextSize({ width: 2, height: 2 });
   await printer.addTextStyle({ em: C.TRUE });

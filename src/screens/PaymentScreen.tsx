@@ -62,6 +62,8 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     quoteId,
     address,
     deliveryMethod = 'delivery',
+    campaignId = null,
+    campaignDiscount = 0,
   } = route.params as {
     totalAmount: number;
     currency: string;
@@ -74,6 +76,8 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     quoteId?: string | null;
     address?: Address | null;
     deliveryMethod?: 'pickup' | 'delivery';
+    campaignId?: string | null;
+    campaignDiscount?: number;
   };
 
   // State
@@ -323,6 +327,8 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       delivery_instructions: deliveryMethod === 'delivery' ? (address?.delivery_instructions ?? null) : null,
       delivery_fee: deliveryFee,
       payment_status: paymentStatus,
+      campaign_id: campaignId,
+      discount_amount: campaignDiscount,
     });
 
     // Stripe ödeme kaydını bu siparişe bağla (payments.order_id).

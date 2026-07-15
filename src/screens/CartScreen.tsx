@@ -25,9 +25,10 @@ import { getDefaultAddress, getUserAddresses } from '../services/addressService'
 import { Address } from '../types/database.types';
 import { formatPrice, getCurrentCurrency } from '../services/currencyService';
 import { getDeliveryQuote, UberQuote } from '../services/uberDeliveryService';
+import { resolveBestCampaign, getCampaignName, AppliedCampaign } from '../services/campaignService';
 
 const CartScreen = ({ navigation }: any) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const { items, updateQuantity, removeItem, getTotalPrice } = useCartStore();
   const { isAuthenticated, user } = useAuthStore();
@@ -42,6 +43,7 @@ const CartScreen = ({ navigation }: any) => {
 
   const [userPoints, setUserPoints] = useState<number>(0);
   const [pointsToUse, setPointsToUse] = useState<number>(0);
+  const [appliedCampaign, setAppliedCampaign] = useState<AppliedCampaign | null>(null);
   const pointsInputRef = useRef<any>(null);
   const pointsTextRef = useRef<string>('');
 
@@ -110,7 +112,8 @@ const CartScreen = ({ navigation }: any) => {
       setPointsToUse(0);
       return;
     }
-    const maxPoints = Math.min(userPoints, getTotalPrice());
+    // Puan, kampanya indirimi sonrası kalan tutarı aşamaz
+    const maxPoints = Math.min(userPoints, Math.max(0, getTotalPrice() - campaignDiscount));
     if (numValue > maxPoints) {
       setPointsToUse(maxPoints);
       pointsTextRef.current = maxPoints.toFixed(2);
@@ -160,8 +163,31 @@ const CartScreen = ({ navigation }: any) => {
     };
   }, [selectedAddress, deliveryMethod, items]);
 
+  // En avantajlı kampanyayı otomatik hesapla (sepet/kullanıcı değişince)
+  useEffect(() => {
+    let cancelled = false;
+    const subtotal = getTotalPrice();
+    if (items.length === 0 || subtotal <= 0) {
+      setAppliedCampaign(null);
+      return;
+    }
+    const lines = items.map((it) => ({
+      product_id: it.id,
+      category_id: (it as any).category_id ?? null,
+      unit_price: it.price,
+      quantity: it.quantity,
+    }));
+    resolveBestCampaign(user?.id ?? null, lines, subtotal)
+      .then((res) => { if (!cancelled) setAppliedCampaign(res); })
+      .catch(() => { if (!cancelled) setAppliedCampaign(null); });
+    return () => { cancelled = true; };
+  }, [items, user?.id]);
+
+  const campaignDiscount = appliedCampaign?.discount ?? 0;
   const deliveryFee = deliveryMethod === 'pickup' ? 0 : (deliveryQuote?.fee ?? 0);
-  const getFinalPrice = () => Math.max(0, getTotalPrice() - pointsToUse) + deliveryFee;
+  // İndirim sırası: ürün ara toplamı - kampanya - puan, sonra + teslimat ücreti
+  const getFinalPrice = () =>
+    Math.max(0, getTotalPrice() - campaignDiscount - pointsToUse) + deliveryFee;
 
   const handleCheckout = () => {
     if (items.length === 0) {
@@ -211,6 +237,8 @@ const CartScreen = ({ navigation }: any) => {
       quoteId: deliveryMethod === 'pickup' ? null : (deliveryQuote?.quote_id ?? null),
       address: deliveryMethod === 'pickup' ? null : selectedAddress,
       deliveryMethod,
+      campaignId: appliedCampaign?.campaign.id ?? null,
+      campaignDiscount: campaignDiscount,
     });
   };
 
@@ -397,6 +425,19 @@ const CartScreen = ({ navigation }: any) => {
           <Text style={styles.summaryLabel}>{t('cart.subtotal')}</Text>
           <Text style={styles.summaryValue}>{formatPrice(getTotalPrice())}</Text>
         </View>
+        {appliedCampaign && campaignDiscount > 0 && (
+          <>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryItem}>
+              <Text style={[styles.summaryLabel, { color: Colors.primary }]} numberOfLines={1}>
+                🎉 {getCampaignName(appliedCampaign.campaign, i18n.language)}
+              </Text>
+              <Text style={[styles.summaryValue, { color: '#28A745' }]}>
+                -{formatPrice(campaignDiscount)}
+              </Text>
+            </View>
+          </>
+        )}
         <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>{t('cart.deliveryFee')}</Text>

@@ -53,6 +53,7 @@ import AdminContactSettings from '../screens/admin/AdminContactSettings';
 import AdminBanners from '../screens/admin/AdminBanners';
 import AdminDeliveryPartners from '../screens/admin/AdminDeliveryPartners';
 import AdminPrinterSettings from '../screens/admin/AdminPrinterSettings';
+import AdminCampaigns from '../screens/admin/AdminCampaigns';
 import AdminNotifications from '../screens/admin/AdminNotifications';
 import AdminReviews from '../screens/admin/AdminReviews';
 import AdminLanguageSettings from '../screens/admin/AdminLanguageSettings';
@@ -671,6 +672,11 @@ const AppNavigator = () => {
         <Stack.Screen
           name="AdminPrinterSettings"
           component={AdminPrinterSettings}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="AdminCampaigns"
+          component={AdminCampaigns}
           options={{ headerShown: false }}
         />
         <Stack.Screen
