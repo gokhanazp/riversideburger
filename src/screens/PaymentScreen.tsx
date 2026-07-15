@@ -83,6 +83,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [intentAmount, setIntentAmount] = useState<number | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const [initError, setInitError] = useState(false);
 
   // Tip state — sadece delivery için aktif (kuryeye gider)
   const [selectedTipPercent, setSelectedTipPercent] = useState<number | null>(null);
@@ -160,7 +161,11 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
         Constants.expoConfig?.extra?.stripePublishableKey ||
         process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
-      if (!stripeKey || stripeKey.includes('your_publishable_key_here')) {
+      // Demo mode YALNIZCA gerçek Stripe anahtarı yokken (geliştirme ortamı) devreye girer.
+      // pk_live_/pk_test_ ile başlayan gerçek anahtarlarda asla demo'ya düşmeyiz —
+      // aksi halde ödeme alınmadan sipariş oluşabilir.
+      const isRealStripeKey = stripeKey?.startsWith('pk_live_') || stripeKey?.startsWith('pk_test_');
+      if (!stripeKey || stripeKey.includes('your_publishable_key_here') || !isRealStripeKey) {
         setIsDemoMode(true);
         return;
       }
@@ -177,9 +182,14 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       setClientSecret(secret);
       setPaymentIntentId(intentId);
       setIntentAmount(amount);
+      setInitError(false);
     } catch (error: any) {
       console.error('Error initializing payment:', error);
-      setIsDemoMode(true);
+      // ÖNEMLİ: Gerçek anahtarla payment intent oluşturulamazsa demo mode'a DÜŞME.
+      // Ödemeyi engelle; kullanıcı tekrar denesin. Böylece ödemesiz sipariş oluşmaz.
+      setClientSecret(null);
+      setPaymentIntentId(null);
+      setInitError(true);
     }
   };
 
@@ -202,10 +212,44 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
       if (error) throw new Error(error.message);
 
-      if (paymentIntent?.status === 'Succeeded') {
-        await confirmPayment(paymentIntentId);
-        await createOrderAndNavigate();
+      // Stripe SDK ödemeyi doğrudan Stripe'a onaylatır. Yine de siparişi oluşturmadan
+      // önce durumu SUNUCU tarafında Stripe API'siyle bir kez daha doğrulıyoruz —
+      // sipariş yalnızca gerçekten "succeeded" olduğunda admin paneline düşsün.
+      if (paymentIntent?.status !== 'Succeeded') {
+        Toast.show({
+          type: 'error',
+          text1: t('payment.failed'),
+          text2: t('payment.notCompleted'),
+          visibilityTime: 4000,
+          topOffset: 60,
+        });
+        return;
       }
+
+      // Sunucu doğrulaması (Stripe = tek doğruluk kaynağı).
+      let serverConfirmed = false;
+      try {
+        const result = await confirmPayment(paymentIntentId);
+        if (result?.status && result.status !== 'succeeded') {
+          // Stripe açıkça succeeded değil diyor → siparişi OLUŞTURMA.
+          Toast.show({
+            type: 'error',
+            text1: t('payment.failed'),
+            text2: t('payment.notCompleted'),
+            visibilityTime: 4000,
+            topOffset: 60,
+          });
+          return;
+        }
+        serverConfirmed = result?.status === 'succeeded';
+      } catch (verifyErr) {
+        // Sunucu doğrulaması ağ hatasıyla başarısız olursa: SDK zaten "Succeeded"
+        // döndürdüğü için (Stripe onayladı) siparişi oluşturuyoruz; müşteri ücretlendirilip
+        // siparişsiz kalmasın. Doğrulama durumunu logla.
+        console.warn('Server payment verification failed, trusting SDK Succeeded:', verifyErr);
+      }
+
+      await createOrderAndNavigate('paid');
     } catch (error: any) {
       console.error('Payment error:', error);
       Toast.show({ type: 'error', text1: t('payment.failed'), text2: error.message || t('payment.tryAgain'), visibilityTime: 4000, topOffset: 60 });
@@ -223,7 +267,8 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     try {
       setIsLoading(true);
       await new Promise(resolve => setTimeout(resolve, 2000));
-      await createOrderAndNavigate();
+      // Demo mode gerçek ödeme almaz → 'pending' olarak işaretlenir (fişte belli olur).
+      await createOrderAndNavigate('pending');
     } catch (error: any) {
       Toast.show({ type: 'error', text1: t('payment.failed'), text2: error.message || t('payment.tryAgain'), visibilityTime: 4000, topOffset: 60 });
     } finally {
@@ -231,7 +276,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     }
   };
 
-  const createOrderAndNavigate = async () => {
+  const createOrderAndNavigate = async (paymentStatus: 'paid' | 'pending' = 'paid') => {
     const orderItems = items.map((item) => ({
       product_id: item.id,
       product_name: item.name,
@@ -265,6 +310,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       delivery_lng: deliveryMethod === 'delivery' ? (address?.longitude ?? null) : null,
       delivery_instructions: deliveryMethod === 'delivery' ? (address?.delivery_instructions ?? null) : null,
       delivery_fee: deliveryFee,
+      payment_status: paymentStatus,
     });
 
     clearCart();
@@ -330,6 +376,26 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
                 {t('payment.demoModeDesc') || 'Stripe test modunda. Gercek odeme alinmaz.'}
               </Text>
             </View>
+          </View>
+        )}
+
+        {/* Ödeme başlatma hatası — ödeme engellenir, tekrar denenebilir */}
+        {initError && !isDemoMode && (
+          <View style={[styles.demoWarning, { backgroundColor: '#FEECEC', borderColor: '#F5B5B5' }]}>
+            <View style={[styles.demoIconWrap, { backgroundColor: '#FBDADA' }]}>
+              <Ionicons name="alert-circle" size={18} color="#D32F2F" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.demoWarningTitle, { color: '#C62828' }]}>{t('payment.failed')}</Text>
+              <Text style={[styles.demoWarningText, { color: '#B71C1C' }]}>{t('payment.initFailed')}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => { setInitError(false); initializePayment(finalTotal); }}
+              style={styles.retryBtn}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.retryBtnText}>{t('payment.retry')}</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -544,9 +610,9 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
           <Text style={styles.footerAmount}>{formatPrice(finalTotal)}</Text>
         </View>
         <TouchableOpacity
-          style={[styles.payButton, (!cardComplete || isLoading) && styles.payButtonDisabled]}
+          style={[styles.payButton, (!cardComplete || isLoading || (initError && !isDemoMode)) && styles.payButtonDisabled]}
           onPress={handlePayment}
-          disabled={!cardComplete || isLoading}
+          disabled={!cardComplete || isLoading || (initError && !isDemoMode)}
           activeOpacity={0.85}
         >
           {isLoading ? (
@@ -691,6 +757,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#BF360C',
     lineHeight: 17,
+  },
+  retryBtn: {
+    backgroundColor: '#D32F2F',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  retryBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFF',
   },
   // Amount Card
   amountCard: {

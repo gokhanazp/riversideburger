@@ -45,6 +45,7 @@ interface CreateOrderParams {
   delivery_instructions?: string | null;
   delivery_fee?: number;
   tip_amount?: number;
+  payment_status?: 'pending' | 'paid' | 'failed' | 'refunded'; // Ödeme durumu (Payment status)
 }
 
 export const createOrder = async (params: CreateOrderParams): Promise<Order> => {
@@ -55,7 +56,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
       delivery_full_name, delivery_street, delivery_unit, delivery_city,
       delivery_province, delivery_postal_code, delivery_country,
       delivery_lat, delivery_lng, delivery_instructions, delivery_fee,
-      tip_amount = 0,
+      tip_amount = 0, payment_status = 'pending',
     } = params;
 
     // Sipariş oluştur (Create order)
@@ -86,6 +87,8 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
         delivery_instructions,
         delivery_fee,
         tip_amount,
+        payment_status,
+        paid_at: payment_status === 'paid' ? new Date().toISOString() : null,
       })
       .select()
       .single();

@@ -1201,7 +1201,13 @@
         "guest": "Misafir",
         "product": "Urun",
         "testTitle": "TEST",
-        "testLine": "Yazici baglantisi basarili."
+        "testLine": "Yazici baglantisi basarili.",
+        "payment": "Odeme",
+        "payPaid": "ODENDI (PAID)",
+        "payPending": "BEKLIYOR (PENDING)",
+        "payFailed": "BASARISIZ (FAILED)",
+        "payRefunded": "IADE (REFUNDED)",
+        "payWarning": "!!! ODEME ONAYLANMADI !!!"
       }
     }
   },
@@ -1290,7 +1296,10 @@
     "tipCustomConfirm": "Bahşişi Uygula",
     "tipCustomCancel": "İptal",
     "tipLabel": "Kurye Bahşişi",
-    "tipLabelPickup": "Bahşiş"
+    "tipLabelPickup": "Bahşiş",
+    "notCompleted": "Ödeme tamamlanmadı. Siparişiniz oluşturulmadı. Lütfen tekrar deneyin.",
+    "initFailed": "Ödeme başlatılamadı. Bağlantınızı kontrol edip tekrar deneyin.",
+    "retry": "Tekrar Dene"
   },
   "tracking": {
     "title": "Sipariş Takibi",

@@ -99,6 +99,8 @@ export interface Order {
   points_used: number; // Bu siparişte kullanılan puan (Points used in this order)
   tip_amount?: number; // Kuryeye giden bahşiş (Driver tip on delivery orders)
   delivery_method: 'pickup' | 'delivery'; // Teslimat şekli (default 'delivery')
+  payment_status?: 'pending' | 'paid' | 'failed' | 'refunded'; // Ödeme durumu (Payment status)
+  paid_at?: string; // Ödemenin onaylandığı an (When payment succeeded)
   created_at: string;
   updated_at?: string;
   // Relations

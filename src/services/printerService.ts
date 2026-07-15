@@ -243,6 +243,27 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
     await printer.addText(twoColumns(rt('tip'), money(order.tip_amount)) + '\n');
   }
 
+  // Ödeme durumu — normalde PAID olmalı. Değilse (pending/failed) bir hata
+  // olduğunu fişten anlayabilmek için belirgin şekilde basılır.
+  const payStatus = order.payment_status || 'pending';
+  const payLabelKey =
+    payStatus === 'paid' ? 'payPaid'
+    : payStatus === 'failed' ? 'payFailed'
+    : payStatus === 'refunded' ? 'payRefunded'
+    : 'payPending';
+  await printer.addText(line() + '\n');
+  await printer.addTextStyle({ em: C.TRUE });
+  await printer.addText(`${rt('payment')}: ${rt(payLabelKey)}\n`);
+  if (payStatus !== 'paid') {
+    // Ödemesi onaylanmamış sipariş — dikkat çeksin (ters renkli + ortalı)
+    await printer.addTextAlign(C.ALIGN_CENTER);
+    await printer.addTextStyle({ em: C.TRUE, reverse: C.TRUE });
+    await printer.addText(`${rt('payWarning')}\n`);
+    await printer.addTextStyle({ em: C.FALSE, reverse: C.FALSE });
+    await printer.addTextAlign(C.ALIGN_LEFT);
+  }
+  await printer.addTextStyle({ em: C.FALSE });
+
   // Alt boşluk + kesme
   await printer.addFeedLine(2);
   await printer.addTextAlign(C.ALIGN_CENTER);

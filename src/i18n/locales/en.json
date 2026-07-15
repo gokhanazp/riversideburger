@@ -1204,7 +1204,13 @@
         "guest": "Guest",
         "product": "Product",
         "testTitle": "TEST",
-        "testLine": "Printer connection successful."
+        "testLine": "Printer connection successful.",
+        "payment": "Payment",
+        "payPaid": "PAID",
+        "payPending": "PENDING",
+        "payFailed": "FAILED",
+        "payRefunded": "REFUNDED",
+        "payWarning": "!!! PAYMENT NOT CONFIRMED !!!"
       }
     }
   },
@@ -1293,7 +1299,10 @@
     "tipCustomConfirm": "Apply Tip",
     "tipCustomCancel": "Cancel",
     "tipLabel": "Driver Tip",
-    "tipLabelPickup": "Tip"
+    "tipLabelPickup": "Tip",
+    "notCompleted": "Payment was not completed. Your order was not created. Please try again.",
+    "initFailed": "Could not start payment. Check your connection and try again.",
+    "retry": "Try Again"
   },
   "tracking": {
     "title": "Order Tracking",
