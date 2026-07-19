@@ -35,10 +35,12 @@ const TARGETS: CampaignTargetType[] = ['all', 'category', 'product'];
 interface FormState {
   name_tr: string;
   name_en: string;
+  description_tr: string;
+  description_en: string;
   type: CampaignType;
   discount_percent: string;
-  buy_quantity: string;
-  free_quantity: string;
+  group_quantity: string; // grup: kaç üründe (buy + free)
+  free_quantity: string; // kaçı bedava
   target_type: CampaignTargetType;
   target_category_ids: string[];
   target_product_ids: string[];
@@ -51,9 +53,11 @@ interface FormState {
 const emptyForm: FormState = {
   name_tr: '',
   name_en: '',
+  description_tr: '',
+  description_en: '',
   type: 'first_order',
   discount_percent: '50',
-  buy_quantity: '1',
+  group_quantity: '3',
   free_quantity: '1',
   target_type: 'all',
   target_category_ids: [],
@@ -116,9 +120,11 @@ const AdminCampaigns = ({ navigation }: any) => {
     setForm({
       name_tr: c.name_tr,
       name_en: c.name_en,
+      description_tr: c.description_tr || '',
+      description_en: c.description_en || '',
       type: c.type,
       discount_percent: String(c.discount_percent ?? 0),
-      buy_quantity: String(c.buy_quantity ?? 1),
+      group_quantity: String((c.buy_quantity ?? 1) + (c.free_quantity ?? 1)),
       free_quantity: String(c.free_quantity ?? 1),
       target_type: c.target_type,
       target_category_ids: c.target_category_ids || [],
@@ -135,15 +141,19 @@ const AdminCampaigns = ({ navigation }: any) => {
     list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
 
   const validate = (): string | null => {
-    if (!form.name_tr.trim() || !form.name_en.trim()) return t('admin.campaigns.required');
+    // Sadece o anki seçili dildeki ad zorunlu; diğer dil kaydederken kopyalanır.
+    const currentName = isTr ? form.name_tr : form.name_en;
+    if (!currentName.trim()) return t('admin.campaigns.required');
     if (form.type === 'first_order' || form.type === 'percentage') {
       const p = parseFloat(form.discount_percent);
       if (!Number.isFinite(p) || p <= 0 || p > 100) return t('admin.campaigns.invalidPercent');
     }
     if (form.type === 'buy_x_get_y') {
-      const b = parseInt(form.buy_quantity, 10);
+      const g = parseInt(form.group_quantity, 10);
       const f = parseInt(form.free_quantity, 10);
-      if (!Number.isFinite(b) || b < 1 || !Number.isFinite(f) || f < 1) return t('admin.campaigns.invalidBuyGet');
+      if (!Number.isFinite(g) || !Number.isFinite(f) || f < 1 || g < 2 || f >= g) {
+        return t('admin.campaigns.invalidBuyGet');
+      }
     }
     if (form.type !== 'first_order') {
       if (form.target_type === 'category' && form.target_category_ids.length === 0) return t('admin.campaigns.selectAtLeastOne');
@@ -166,13 +176,24 @@ const AdminCampaigns = ({ navigation }: any) => {
       const days = parseInt(form.validity_days, 10);
       const hasValidity = Number.isFinite(days) && days > 0;
 
+      // Boş kalan dili, girilen dille doldur (AdminCategories ile aynı davranış)
+      const name_tr = (form.name_tr.trim() || form.name_en.trim());
+      const name_en = (form.name_en.trim() || form.name_tr.trim());
+      const description_tr = (form.description_tr.trim() || form.description_en.trim()) || null;
+      const description_en = (form.description_en.trim() || form.description_tr.trim()) || null;
+
       const payload: Partial<Campaign> = {
-        name_tr: form.name_tr.trim(),
-        name_en: form.name_en.trim(),
+        name_tr,
+        name_en,
+        description_tr,
+        description_en,
         type: form.type,
         discount_percent:
           form.type === 'buy_x_get_y' ? 0 : parseFloat(form.discount_percent) || 0,
-        buy_quantity: form.type === 'buy_x_get_y' ? parseInt(form.buy_quantity, 10) || 1 : 1,
+        // Grup ve bedavadan buy/free türet: ödenen = grup - bedava
+        buy_quantity: form.type === 'buy_x_get_y'
+          ? Math.max(1, (parseInt(form.group_quantity, 10) || 2) - (parseInt(form.free_quantity, 10) || 1))
+          : 1,
         free_quantity: form.type === 'buy_x_get_y' ? parseInt(form.free_quantity, 10) || 1 : 1,
         target_type: targetType,
         target_category_ids: targetType === 'category' ? form.target_category_ids : [],
@@ -230,7 +251,10 @@ const AdminCampaigns = ({ navigation }: any) => {
   };
 
   const summaryText = (c: Campaign): string => {
-    if (c.type === 'buy_x_get_y') return `${c.buy_quantity} + ${c.free_quantity} 🎁`;
+    if (c.type === 'buy_x_get_y') {
+      const group = (c.buy_quantity || 1) + (c.free_quantity || 1);
+      return isTr ? `${group} AL ${c.buy_quantity} ÖDE` : `${group} FOR ${c.buy_quantity}`;
+    }
     return `%${c.discount_percent}`;
   };
 
@@ -240,7 +264,7 @@ const AdminCampaigns = ({ navigation }: any) => {
     <Animated.View entering={FadeInDown.delay(index * 40)} style={styles.card}>
       <View style={styles.cardTop}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.cardName}>{isTr ? item.name_tr : item.name_en}</Text>
+          <Text style={styles.cardName}>{(isTr ? item.name_tr : item.name_en) || item.name_tr || item.name_en}</Text>
           <View style={styles.badgeRow}>
             <View style={styles.typeBadge}>
               <Text style={styles.typeBadgeText}>{typeLabel(item.type)}</Text>
@@ -318,11 +342,26 @@ const AdminCampaigns = ({ navigation }: any) => {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-              {/* İsim */}
-              <Text style={styles.label}>{t('admin.campaigns.nameTr')}</Text>
-              <TextInput style={styles.input} value={form.name_tr} onChangeText={(v) => setForm({ ...form, name_tr: v })} placeholder="1 Alana 1 Bedava" placeholderTextColor="#B0B0B0" />
-              <Text style={styles.label}>{t('admin.campaigns.nameEn')}</Text>
-              <TextInput style={styles.input} value={form.name_en} onChangeText={(v) => setForm({ ...form, name_en: v })} placeholder="Buy 1 Get 1 Free" placeholderTextColor="#B0B0B0" />
+              {/* İsim — o anki seçili dilde tek alan (diğer dil kaydederken kopyalanır) */}
+              <Text style={styles.label}>{t('admin.campaigns.name')}</Text>
+              <TextInput
+                style={styles.input}
+                value={isTr ? form.name_tr : form.name_en}
+                onChangeText={(v) => setForm({ ...form, [isTr ? 'name_tr' : 'name_en']: v })}
+                placeholder={t('admin.campaigns.namePlaceholder')}
+                placeholderTextColor="#B0B0B0"
+              />
+
+              {/* Açıklama — ana sayfa şeridinde/kampanya kartında gösterilir */}
+              <Text style={styles.label}>{t('admin.campaigns.description')}</Text>
+              <TextInput
+                style={[styles.input, { height: 72, textAlignVertical: 'top' }]}
+                value={isTr ? form.description_tr : form.description_en}
+                onChangeText={(v) => setForm({ ...form, [isTr ? 'description_tr' : 'description_en']: v })}
+                placeholder={t('admin.campaigns.descriptionPlaceholder')}
+                placeholderTextColor="#B0B0B0"
+                multiline
+              />
 
               {/* Tip */}
               <Text style={styles.label}>{t('admin.campaigns.type')}</Text>
@@ -343,8 +382,8 @@ const AdminCampaigns = ({ navigation }: any) => {
                 <>
                   <View style={styles.rowGap}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.label}>{t('admin.campaigns.buyQty')}</Text>
-                      <TextInput style={styles.input} value={form.buy_quantity} onChangeText={(v) => setForm({ ...form, buy_quantity: v })} keyboardType="number-pad" placeholder="1" placeholderTextColor="#B0B0B0" />
+                      <Text style={styles.label}>{t('admin.campaigns.groupQty')}</Text>
+                      <TextInput style={styles.input} value={form.group_quantity} onChangeText={(v) => setForm({ ...form, group_quantity: v })} keyboardType="number-pad" placeholder="3" placeholderTextColor="#B0B0B0" />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.label}>{t('admin.campaigns.freeQty')}</Text>
@@ -352,6 +391,19 @@ const AdminCampaigns = ({ navigation }: any) => {
                     </View>
                   </View>
                   <Text style={styles.hint}>{t('admin.campaigns.buyGetHint')}</Text>
+                  {/* Canlı önizleme (Live preview) */}
+                  {(() => {
+                    const g = parseInt(form.group_quantity, 10);
+                    const f = parseInt(form.free_quantity, 10);
+                    if (!Number.isFinite(g) || !Number.isFinite(f) || f < 1 || g < 2 || f >= g) return null;
+                    return (
+                      <View style={styles.previewBox}>
+                        <Text style={styles.previewText}>
+                          {t('admin.campaigns.buyGetPreview', { group: g, pay: g - f, free: f })}
+                        </Text>
+                      </View>
+                    );
+                  })()}
                 </>
               )}
 
@@ -454,6 +506,8 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 19, fontWeight: '800', color: Colors.text },
   label: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, marginTop: 14, marginBottom: 6 },
   hint: { fontSize: 12, color: Colors.textMuted, marginTop: 4, marginBottom: 4 },
+  previewBox: { backgroundColor: Colors.primary + '12', borderRadius: 10, padding: 12, marginTop: 8 },
+  previewText: { fontSize: 13, fontWeight: '700', color: Colors.primary },
   input: { backgroundColor: '#F4F5F7', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: Colors.text, borderWidth: 1, borderColor: '#EDEEF2' },
   rowGap: { flexDirection: 'row', gap: 12 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

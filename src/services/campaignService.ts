@@ -8,11 +8,52 @@ import { Campaign } from '../types/database.types';
 import {
   CampaignCartLine,
   AppliedCampaign,
+  ProductPromo,
+  CampaignNudge,
   computeBestCampaign,
+  computeNudge,
+  getFirstOrderCampaign,
 } from './campaignEngine';
 
-export type { CampaignCartLine, AppliedCampaign, CampaignContext } from './campaignEngine';
-export { computeBestCampaign, computeDiscount, isEligible } from './campaignEngine';
+export type {
+  CampaignCartLine,
+  AppliedCampaign,
+  CampaignContext,
+  ProductPromo,
+  ProductLike,
+  CampaignNudge,
+} from './campaignEngine';
+export {
+  computeBestCampaign,
+  computeDiscount,
+  isEligible,
+  getProductPromo,
+  computeNudge,
+  getFirstOrderCampaign,
+} from './campaignEngine';
+
+// buy_x_get_y için pazarlama etiketi: grup=al, ödenen=öde → "3 AL 2 ÖDE"
+function buyGetLabel(buy: number, free: number, lang: string): string {
+  const group = (buy || 1) + (free || 1);
+  return lang === 'tr' ? `${group} AL ${buy} ÖDE` : `${group} FOR ${buy}`;
+}
+
+// Promosyon rozeti metni (dile göre kısa etiket)
+export function formatPromoBadge(promo: ProductPromo, lang: string): string {
+  if (promo.kind === 'percentage') {
+    const p = promo.percent || 0;
+    return lang === 'tr' ? `%${p}` : `${p}%`;
+  }
+  return buyGetLabel(promo.buyQuantity ?? 1, promo.freeQuantity ?? 1, lang);
+}
+
+// Kampanya özeti (ana sayfa şeridi / listeler için kısa açıklama)
+export function getCampaignSummary(c: Campaign, lang: string): string {
+  if (c.type === 'buy_x_get_y') return buyGetLabel(c.buy_quantity, c.free_quantity, lang);
+  const p = c.discount_percent || 0;
+  if (c.type === 'first_order') return lang === 'tr' ? `İlk siparişe %${p}` : `${p}% off first order`;
+  return lang === 'tr' ? `%${p} indirim` : `${p}% off`;
+}
 
 // ---- Supabase erişimi (Data access) ----
 
@@ -110,6 +151,45 @@ export async function resolveBestCampaign(
     usageByCampaign: orderCtx.usageByCampaign,
     nowMs: Date.now(),
   });
+}
+
+// Sepet için kampanya durumunu tek seferde çöz: uygulanan + teşvik (nudge) + ilk sipariş.
+export interface CartCampaignState {
+  applied: AppliedCampaign | null;
+  nudge: CampaignNudge | null;
+  isFirstOrder: boolean;
+  firstOrderCampaign: Campaign | null;
+}
+
+export async function resolveCartCampaigns(
+  userId: string | null | undefined,
+  lines: CampaignCartLine[],
+  subtotal: number
+): Promise<CartCampaignState> {
+  const [campaigns, orderCtx] = await Promise.all([
+    getActiveCampaigns(),
+    getCustomerOrderContext(userId),
+  ]);
+  const nowMs = Date.now();
+  const ctx = {
+    subtotal,
+    isFirstOrder: orderCtx.isFirstOrder,
+    usageByCampaign: orderCtx.usageByCampaign,
+    nowMs,
+  };
+  const hasCart = lines.length > 0 && subtotal > 0;
+  return {
+    applied: hasCart ? computeBestCampaign(campaigns, lines, ctx) : null,
+    nudge: hasCart ? computeNudge(campaigns, lines, ctx) : null,
+    isFirstOrder: orderCtx.isFirstOrder,
+    firstOrderCampaign: getFirstOrderCampaign(campaigns, nowMs),
+  };
+}
+
+// Müşteri ilk siparişini mi veriyor? (ana sayfa banner'ı için)
+export async function checkIsFirstOrder(userId: string | null | undefined): Promise<boolean> {
+  const ctx = await getCustomerOrderContext(userId);
+  return ctx.isFirstOrder;
 }
 
 // Kampanya adını dile göre getir

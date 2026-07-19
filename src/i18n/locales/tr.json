@@ -132,14 +132,16 @@
     "fiveStarSatisfactionDesc": "Binlerce mutlu müşteri yorumu",
     "fiveStarSatisfactionBadge": "⭐ 4.9/5 Puan",
     "explore": "KEŞFET",
-    "delicacies": "Gurme Lezzetler"
+    "delicacies": "Gurme Lezzetler",
+    "campaigns": "Kampanyalar"
   },
   "menu": {
     "title": "Menu",
     "allCategories": "Tüm Kategoriler",
     "noItems": "Bu kategoride ürün bulunamadı",
     "addToCart": "Sepete Ekle",
-    "outOfStock": "Stokta Yok"
+    "outOfStock": "Stokta Yok",
+    "campaignProducts": "Kampanyalı ürünler"
   },
   "categories": {
     "burger": "Burger",
@@ -242,7 +244,9 @@
     "quoteNotReadyTitle": "Bir saniye",
     "quoteNotReadyDesc": "Teslimat ücreti hesaplanıyor, lütfen biraz bekleyin.",
     "quoteFailedTitle": "Teslimat ücreti alınamadı",
-    "outOfDeliveryRange": "Bu adres teslimat alanımızın dışında (restorana en fazla {{km}} km)."
+    "outOfDeliveryRange": "Bu adres teslimat alanımızın dışında (restorana en fazla {{km}} km).",
+    "nudgeAmount": "{{amount}} daha ekle, {{name}} kazan!",
+    "nudgeItems": "{{count}} ürün daha ekle, {{name}} aktif olsun!"
   },
   "checkout": {
     "title": "Sipariş Özeti",
@@ -1232,9 +1236,8 @@
       "typePercentage": "Yüzde İndirim",
       "typeBuyXGetY": "X Al Y Bedava",
       "percent": "İndirim Yüzdesi (%)",
-      "buyQty": "Kaç Adet Alınca (Al)",
       "freeQty": "Kaç Adet Bedava",
-      "buyGetHint": "1 alana 1 bedava → Al: 1, Bedava: 1  •  3 al 2 öde → Al: 2, Bedava: 1. En düşük fiyatlı ürün(ler) bedava olur.",
+      "buyGetHint": "3 AL 2 ÖDE → grup: 3, bedava: 1  •  1 alana 1 bedava → grup: 2, bedava: 1. En düşük fiyatlı ürün(ler) bedava olur.",
       "target": "Hangi Ürünlere?",
       "targetAll": "Tüm Sepet",
       "targetCategory": "Kategori",
@@ -1248,8 +1251,14 @@
       "perCustomerHint": "Boş = sınırsız",
       "required": "Türkçe ve İngilizce ad zorunlu",
       "invalidPercent": "Geçerli bir yüzde girin (1-100)",
-      "invalidBuyGet": "Al ve Bedava adetleri en az 1 olmalı",
-      "selectAtLeastOne": "En az bir kategori/ürün seçin"
+      "invalidBuyGet": "Grup en az 2 olmalı ve bedava adedi gruptan küçük olmalı",
+      "selectAtLeastOne": "En az bir kategori/ürün seçin",
+      "name": "Kampanya Adı",
+      "namePlaceholder": "Örn. 1 Alana 1 Bedava",
+      "description": "Açıklama (opsiyonel)",
+      "descriptionPlaceholder": "Kısa açıklama — ana sayfada gösterilir",
+      "groupQty": "Kaç üründe (grup)",
+      "buyGetPreview": "Her {{group}} üründe en ucuz {{free}} tanesi bedava (ödenen: {{pay}})."
     }
   },
   "favorites": {

@@ -10,6 +10,15 @@ import BannerSlider from '../components/BannerSlider';
 import { supabase } from '../lib/supabase';
 import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
+import { useAuthStore } from '../store/authStore';
+import {
+  getActiveCampaigns,
+  getCampaignName,
+  getCampaignSummary,
+  checkIsFirstOrder,
+  getFirstOrderCampaign,
+} from '../services/campaignService';
+import { Campaign } from '../types/database.types';
 import { LinearGradient } from 'expo-linear-gradient';
 import Toast from 'react-native-toast-message';
 import { formatPrice } from '../services/currencyService';
@@ -48,10 +57,39 @@ const HomeScreen = ({ navigation }: any) => {
   const [deliveryPartners, setDeliveryPartners] = useState<DeliveryPartner[]>([]);
   const [deliveryPartnersEnabled, setDeliveryPartnersEnabled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [isFirstOrder, setIsFirstOrder] = useState(false);
 
   // Store'lar (Stores)
   const { addItem } = useCartStore();
   const { favorites, toggleFavorite } = useFavoritesStore();
+  const user = useAuthStore((s) => s.user);
+
+  // Kampanyaları ve ilk-sipariş durumunu yükle (Load campaigns + first-order state)
+  useEffect(() => {
+    getActiveCampaigns().then(setCampaigns).catch(() => setCampaigns([]));
+  }, []);
+  useEffect(() => {
+    checkIsFirstOrder(user?.id ?? null).then(setIsFirstOrder).catch(() => setIsFirstOrder(false));
+  }, [user?.id]);
+
+  const firstOrderCampaign = getFirstOrderCampaign(campaigns, Date.now());
+  const stripCampaigns = campaigns.filter((c) => c.type !== 'first_order');
+
+  // Kampanyaya tıklayınca hedefine göre filtreli menüye git
+  // (kategori → o kategori, ürün → sadece o ürünler, tüm sepet → tüm menü)
+  const goToCampaign = (c: Campaign) => {
+    if (c.target_type === 'category' && c.target_category_ids?.length) {
+      navigation.navigate('MenuTab', { categoryId: c.target_category_ids[0] });
+    } else if (c.target_type === 'product' && c.target_product_ids?.length) {
+      navigation.navigate('MenuTab', {
+        productIds: c.target_product_ids,
+        campaignName: getCampaignName(c, i18n.language),
+      });
+    } else {
+      navigation.navigate('MenuTab');
+    }
+  };
 
   // Sayfa yüklendiğinde öne çıkan ürünleri, kategorileri ve restoran yorumlarını getir
   useEffect(() => {
@@ -264,6 +302,51 @@ const HomeScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* İlk sipariş banner'ı (yalnızca yeni müşteriye) */}
+        {isFirstOrder && firstOrderCampaign && (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => goToCampaign(firstOrderCampaign)}
+            style={styles.firstOrderBanner}
+          >
+            <LinearGradient colors={[Colors.primary, '#C62828']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.firstOrderGradient}>
+              <View style={styles.firstOrderIcon}><Text style={{ fontSize: 26 }}>🎉</Text></View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.firstOrderTitle}>{getCampaignName(firstOrderCampaign, i18n.language)}</Text>
+                <Text style={styles.firstOrderDesc} numberOfLines={2}>
+                  {firstOrderCampaign.description_tr || firstOrderCampaign.description_en
+                    ? (i18n.language === 'tr' ? firstOrderCampaign.description_tr : firstOrderCampaign.description_en)
+                    : getCampaignSummary(firstOrderCampaign, i18n.language)}
+                </Text>
+              </View>
+              <Ionicons name="arrow-forward-circle" size={26} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {/* Kampanyalar şeridi (First-order dışı aktif kampanyalar) */}
+        {stripCampaigns.length > 0 && (
+          <View style={styles.campaignSection}>
+            <View style={[styles.sectionHeader, { paddingRight: Spacing.lg }]}>
+              <Text style={styles.modernSectionTitle}>{t('home.campaigns')}</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.campaignScroll}>
+              {stripCampaigns.map((c) => {
+                const desc = (i18n.language === 'tr' ? c.description_tr : c.description_en) || '';
+                return (
+                  <TouchableOpacity key={c.id} activeOpacity={0.9} onPress={() => goToCampaign(c)} style={styles.campaignCard}>
+                    <View style={styles.campaignBadge}>
+                      <Text style={styles.campaignBadgeText}>{getCampaignSummary(c, i18n.language)}</Text>
+                    </View>
+                    <Text style={styles.campaignName} numberOfLines={2}>{getCampaignName(c, i18n.language)}</Text>
+                    {!!desc && <Text style={styles.campaignDesc} numberOfLines={2}>{desc}</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
       {/* Kategoriler bölümü (Categories section) */}
       <View style={styles.modernSection}>
@@ -737,6 +820,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...Shadows.small,
   },
+  firstOrderBanner: {
+    marginHorizontal: 24,
+    marginBottom: 8,
+    borderRadius: 18,
+    overflow: 'hidden',
+    ...Shadows.medium,
+  },
+  firstOrderGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+  },
+  firstOrderIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  firstOrderTitle: { color: '#FFF', fontSize: 16, fontWeight: '800' },
+  firstOrderDesc: { color: 'rgba(255,255,255,0.9)', fontSize: 13, marginTop: 2, lineHeight: 17 },
+  campaignSection: { marginTop: 8, marginBottom: 8 },
+  campaignScroll: { paddingHorizontal: 24, gap: 12, paddingVertical: 4 },
+  campaignCard: {
+    width: 220,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    ...Shadows.small,
+  },
+  campaignBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.primary + '15',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  campaignBadgeText: { color: Colors.primary, fontSize: 13, fontWeight: '800' },
+  campaignName: { fontSize: 15, fontWeight: '800', color: Colors.black },
+  campaignDesc: { fontSize: 12, color: Colors.textSecondary, marginTop: 4, lineHeight: 16 },
   searchWrapper: {
     paddingHorizontal: 24,
     marginTop: 20,

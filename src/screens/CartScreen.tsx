@@ -22,10 +22,10 @@ import Toast from 'react-native-toast-message';
 import ConfirmModal from '../components/ConfirmModal';
 import { getUserPoints } from '../services/pointsService';
 import { getDefaultAddress, getUserAddresses } from '../services/addressService';
-import { Address } from '../types/database.types';
+import { Address, Campaign } from '../types/database.types';
 import { formatPrice, getCurrentCurrency } from '../services/currencyService';
 import { getDeliveryQuote, UberQuote } from '../services/uberDeliveryService';
-import { resolveBestCampaign, getCampaignName, AppliedCampaign } from '../services/campaignService';
+import { resolveCartCampaigns, getCampaignName, getCampaignSummary, AppliedCampaign, CampaignNudge } from '../services/campaignService';
 
 const CartScreen = ({ navigation }: any) => {
   const { t, i18n } = useTranslation();
@@ -44,6 +44,9 @@ const CartScreen = ({ navigation }: any) => {
   const [userPoints, setUserPoints] = useState<number>(0);
   const [pointsToUse, setPointsToUse] = useState<number>(0);
   const [appliedCampaign, setAppliedCampaign] = useState<AppliedCampaign | null>(null);
+  const [campaignNudge, setCampaignNudge] = useState<CampaignNudge | null>(null);
+  const [firstOrderCampaign, setFirstOrderCampaign] = useState<Campaign | null>(null);
+  const [isFirstOrder, setIsFirstOrder] = useState(false);
   const pointsInputRef = useRef<any>(null);
   const pointsTextRef = useRef<string>('');
 
@@ -177,9 +180,19 @@ const CartScreen = ({ navigation }: any) => {
       unit_price: it.price,
       quantity: it.quantity,
     }));
-    resolveBestCampaign(user?.id ?? null, lines, subtotal)
-      .then((res) => { if (!cancelled) setAppliedCampaign(res); })
-      .catch(() => { if (!cancelled) setAppliedCampaign(null); });
+    resolveCartCampaigns(user?.id ?? null, lines, subtotal)
+      .then((res) => {
+        if (cancelled) return;
+        setAppliedCampaign(res.applied);
+        setCampaignNudge(res.nudge);
+        setIsFirstOrder(res.isFirstOrder);
+        setFirstOrderCampaign(res.firstOrderCampaign);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAppliedCampaign(null);
+        setCampaignNudge(null);
+      });
     return () => { cancelled = true; };
   }, [items, user?.id]);
 
@@ -419,6 +432,24 @@ const CartScreen = ({ navigation }: any) => {
         </View>
       )}
 
+      {/* Kampanya teşviki — eşiğe az kaldı (Cart nudge) */}
+      {campaignNudge && (
+        <View style={styles.nudgeBanner}>
+          <Ionicons name="gift" size={18} color={Colors.primary} />
+          <Text style={styles.nudgeText}>
+            {campaignNudge.kind === 'amount'
+              ? t('cart.nudgeAmount', {
+                  amount: formatPrice(campaignNudge.remaining),
+                  name: getCampaignName(campaignNudge.campaign, i18n.language),
+                })
+              : t('cart.nudgeItems', {
+                  count: campaignNudge.remaining,
+                  name: getCampaignName(campaignNudge.campaign, i18n.language),
+                })}
+          </Text>
+        </View>
+      )}
+
       {/* Özet Bölümü (Summary Section) */}
       <View style={styles.summaryGrid}>
         <View style={styles.summaryItem}>
@@ -605,12 +636,25 @@ const styles = StyleSheet.create({
   noPointsText: { fontSize: 14, color: '#999', fontStyle: 'italic' },
   quoteErrorBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FDECEA', borderRadius: 16, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#F5C6C2' },
   quoteErrorText: { flex: 1, fontSize: 13, fontWeight: '600', color: '#D32F2F', lineHeight: 18 },
-  summaryGrid: { 
-    flexDirection: 'row', 
-    backgroundColor: '#F8F9FA', 
-    borderRadius: 20, 
-    padding: 18, 
-    marginBottom: 20, 
+  nudgeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: Colors.primary + '10',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary + '22',
+  },
+  nudgeText: { flex: 1, fontSize: 13, fontWeight: '600', color: Colors.primary, lineHeight: 18 },
+  summaryGrid: {
+    flexDirection: 'row',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 20,
     alignItems: 'center', 
     ...Shadows.small,
     borderWidth: 1,

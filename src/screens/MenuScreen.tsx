@@ -26,9 +26,10 @@ import { MenuItem } from '../types';
 import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { getProducts, getCategories } from '../services/productService';
-import { Product, Category } from '../types/database.types';
+import { Product, Category, Campaign } from '../types/database.types';
 import { formatPrice } from '../services/currencyService';
 import { getProductReviewCount } from '../services/reviewService';
+import { getActiveCampaigns, getProductPromo, formatPromoBadge } from '../services/campaignService';
 import Toast from 'react-native-toast-message';
 
 const MenuScreen = ({ navigation, route }: any) => {
@@ -40,9 +41,13 @@ const MenuScreen = ({ navigation, route }: any) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [reviewCounts, setReviewCounts] = useState<{ [key: string]: number }>({});
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
 
   const [selectedCategory, setSelectedCategory] = useState<string>(route?.params?.categoryId || 'all');
   const [searchQuery, setSearchQuery] = useState(route?.params?.searchQuery || '');
+  // Kampanya filtresi: yalnızca belirli ürünler (indirimli/kampanyalı ürünler)
+  const [campaignProductIds, setCampaignProductIds] = useState<string[] | null>(route?.params?.productIds || null);
+  const [campaignName, setCampaignName] = useState<string | null>(route?.params?.campaignName || null);
   const [isGridView, setIsGridView] = useState(false);
 
   const addItem = useCartStore((state) => state.addItem);
@@ -56,10 +61,12 @@ const MenuScreen = ({ navigation, route }: any) => {
 
     try {
       setLoading(true);
-      const [productsData, categoriesData] = await Promise.all([
+      const [productsData, categoriesData, campaignsData] = await Promise.all([
         getProducts(),
         getCategories(),
+        getActiveCampaigns(),
       ]);
+      setCampaigns(campaignsData);
 
       // Fetch reviews in parallel
       const counts: { [key: string]: number } = {};
@@ -85,9 +92,10 @@ const MenuScreen = ({ navigation, route }: any) => {
   }, []);
 
   useEffect(() => {
-    if (route?.params?.categoryId) setSelectedCategory(route.params.categoryId);
+    if (route?.params?.categoryId) { setSelectedCategory(route.params.categoryId); setCampaignProductIds(null); setCampaignName(null); }
     if (route?.params?.searchQuery) setSearchQuery(route.params.searchQuery);
-  }, [route?.params?.categoryId, route?.params?.searchQuery]);
+    if (route?.params?.productIds) { setCampaignProductIds(route.params.productIds); setSelectedCategory('all'); setCampaignName(route?.params?.campaignName || null); }
+  }, [route?.params?.categoryId, route?.params?.searchQuery, route?.params?.productIds, route?.params?.campaignName]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -100,18 +108,24 @@ const MenuScreen = ({ navigation, route }: any) => {
   };
 
   const filteredItems = products.filter((item) => {
-    const categoryMatch = selectedCategory === 'all' || item.category_id === selectedCategory;
+    // Kampanya ürün filtresi aktifse yalnızca o ürünler; değilse kategori filtresi
+    const campaignMatch = campaignProductIds ? campaignProductIds.includes(item.id) : true;
+    const categoryMatch = campaignProductIds
+      ? true
+      : selectedCategory === 'all' || item.category_id === selectedCategory;
     const searchMatch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    return categoryMatch && searchMatch;
+    return campaignMatch && categoryMatch && searchMatch;
   });
+
+  const clearCampaignFilter = () => { setCampaignProductIds(null); setCampaignName(null); };
 
   const CategoryTab = ({ category, label, icon }: { category: string; label: string; icon?: string }) => {
     const isActive = selectedCategory === category;
     return (
       <TouchableOpacity
         style={[styles.categoryTab, isActive && styles.categoryTabActive]}
-        onPress={() => setSelectedCategory(category)}
+        onPress={() => { setSelectedCategory(category); clearCampaignFilter(); }}
         activeOpacity={0.7}
       >
         <Text style={[styles.categoryTabText, isActive && styles.categoryTabTextActive]}>
@@ -129,6 +143,7 @@ const MenuScreen = ({ navigation, route }: any) => {
       price: item.price,
       image: item.image_url,
       category: 'burger',
+      category_id: item.category_id,
       preparationTime: item.preparation_time || 15,
       calories: item.calories ?? null,
       available: item.is_active,
@@ -138,9 +153,14 @@ const MenuScreen = ({ navigation, route }: any) => {
     };
 
     const favorite = isFavorite(item.id);
+    const promo = getProductPromo(
+      { id: item.id, category_id: item.category_id, price: item.price },
+      campaigns,
+      Date.now()
+    );
 
     return (
-      <Animated.View 
+      <Animated.View
         entering={FadeInDown.delay(index * 50).springify()}
         style={isGridView ? { flex: 1 / numColumns, margin: 6 } : { marginBottom: 16 }}
       >
@@ -152,8 +172,17 @@ const MenuScreen = ({ navigation, route }: any) => {
           {/* Image Section */}
           <View style={isGridView ? styles.gridImageContainer : styles.listImageContainer}>
              <Image source={{ uri: item.image_url }} style={styles.productImage} />
-             <TouchableOpacity 
-                style={styles.favoriteBadge} 
+             {promo && (
+               <View style={styles.promoBadge}>
+                 <Text style={styles.promoBadgeText}>
+                   {promo.kind === 'percentage'
+                     ? `-${formatPromoBadge(promo, i18n.language)}`
+                     : `${formatPromoBadge(promo, i18n.language)} 🎁`}
+                 </Text>
+               </View>
+             )}
+             <TouchableOpacity
+                style={styles.favoriteBadge}
                 onPress={(e) => { e.stopPropagation(); toggleFavorite(menuItem); }}
               >
                 <Ionicons name={favorite ? 'heart' : 'heart-outline'} size={18} color={favorite ? '#FF4B4B' : '#FFF'} />
@@ -178,8 +207,15 @@ const MenuScreen = ({ navigation, route }: any) => {
             </View>
 
             <View style={styles.cardFooter}>
-              <Text style={styles.productPrice}>{formatPrice(item.price)}</Text>
-              <TouchableOpacity 
+              {promo?.kind === 'percentage' && promo.discountedPrice != null ? (
+                <View style={styles.priceCol}>
+                  <Text style={styles.oldPrice}>{formatPrice(item.price)}</Text>
+                  <Text style={[styles.productPrice, { color: Colors.primary }]}>{formatPrice(promo.discountedPrice)}</Text>
+                </View>
+              ) : (
+                <Text style={styles.productPrice}>{formatPrice(item.price)}</Text>
+              )}
+              <TouchableOpacity
                 style={styles.addButton} 
                 onPress={(e) => { 
                   e.stopPropagation(); 
@@ -246,6 +282,18 @@ const MenuScreen = ({ navigation, route }: any) => {
           </ScrollView>
         </View>
       </View>
+
+      {campaignProductIds && (
+        <View style={styles.campaignFilterBar}>
+          <Ionicons name="pricetag" size={16} color={Colors.primary} />
+          <Text style={styles.campaignFilterText} numberOfLines={1}>
+            {campaignName || t('menu.campaignProducts')}
+          </Text>
+          <TouchableOpacity onPress={clearCampaignFilter} style={styles.campaignFilterClose}>
+            <Ionicons name="close-circle" size={18} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {loading ? (
         <View style={styles.centerLoading}>
@@ -466,6 +514,43 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#1A1A1A',
   },
+  priceCol: {
+    flexDirection: 'column',
+  },
+  oldPrice: {
+    fontSize: 12,
+    color: '#9AA0A6',
+    textDecorationLine: 'line-through',
+    fontWeight: '600',
+  },
+  promoBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    zIndex: 2,
+  },
+  promoBadgeText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  campaignFilterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: Colors.primary + '12',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  campaignFilterText: { flex: 1, fontSize: 13, fontWeight: '700', color: Colors.primary },
+  campaignFilterClose: { padding: 2 },
   addButton: {
     backgroundColor: '#1A1A1A',
     width: 40,

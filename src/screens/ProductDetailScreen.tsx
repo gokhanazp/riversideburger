@@ -33,8 +33,9 @@ import { useFavoritesStore } from '../store/favoritesStore';
 import { customizationService } from '../services/customizationService';
 import { CategoryWithOptions, SelectedCustomization } from '../types/customization';
 import { getProductReviews, getProductRating } from '../services/reviewService';
-import { Review, ProductRating } from '../types/database.types';
+import { Review, ProductRating, Campaign } from '../types/database.types';
 import { formatPrice } from '../services/currencyService';
+import { getActiveCampaigns, getProductPromo, formatPromoBadge, getCampaignName } from '../services/campaignService';
 
 const { width, height } = Dimensions.get('window');
 const HERO_HEIGHT = width * 1.1;
@@ -50,7 +51,18 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [rating, setRating] = useState<ProductRating | null>(null);
   const [loadingReviews, setLoadingReviews] = useState(true);
-  
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+
+  useEffect(() => {
+    getActiveCampaigns().then(setCampaigns).catch(() => setCampaigns([]));
+  }, []);
+
+  const promo = getProductPromo(
+    { id: item.id, category_id: (item as any).category_id, price: item.price },
+    campaigns,
+    Date.now()
+  );
+
   const addItem = useCartStore((state) => state.addItem);
   const { toggleFavorite, isFavorite } = useFavoritesStore();
   const favorite = isFavorite(item.id);
@@ -306,9 +318,25 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
                 </View>
                 <Text style={styles.reviewVolume}>({reviews.length || 124} {t('reviews.title')})</Text>
               </View>
+              {promo && (
+                <View style={styles.promoPill}>
+                  <Ionicons name="pricetag" size={12} color={Colors.primary} />
+                  <Text style={styles.promoPillText} numberOfLines={1}>
+                    {getCampaignName(promo.campaign, i18n.language)}
+                    {promo.kind === 'percentage' ? `  -${formatPromoBadge(promo, i18n.language)}` : `  ${formatPromoBadge(promo, i18n.language)} 🎁`}
+                  </Text>
+                </View>
+              )}
             </View>
             <View style={styles.priceBadge}>
-              <Text style={styles.priceValue}>{formatPrice(item.price)}</Text>
+              {promo?.kind === 'percentage' && promo.discountedPrice != null ? (
+                <>
+                  <Text style={styles.priceStrike}>{formatPrice(item.price)}</Text>
+                  <Text style={styles.priceValue}>{formatPrice(promo.discountedPrice)}</Text>
+                </>
+              ) : (
+                <Text style={styles.priceValue}>{formatPrice(item.price)}</Text>
+              )}
             </View>
           </View>
 
@@ -437,6 +465,9 @@ const styles = StyleSheet.create({
   priceBadge: { backgroundColor: Colors.surface, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, flexDirection: 'row', alignItems: 'baseline' },
   currencySymbol: { fontSize: 14, fontWeight: '700', color: Colors.primary, marginRight: 2 },
   priceValue: { fontSize: 24, fontWeight: '900', color: Colors.primary },
+  priceStrike: { fontSize: 14, fontWeight: '700', color: '#9AA0A6', textDecorationLine: 'line-through', marginRight: 8 },
+  promoPill: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 10, backgroundColor: Colors.primary + '15', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
+  promoPillText: { fontSize: 13, fontWeight: '700', color: Colors.primary, flexShrink: 1 },
 
   statsRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
   statItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },

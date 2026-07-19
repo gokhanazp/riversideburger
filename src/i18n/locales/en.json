@@ -134,14 +134,16 @@
     "fiveStarSatisfactionDesc": "Thousands of happy customer reviews",
     "fiveStarSatisfactionBadge": "⭐ 4.9/5 Rating",
     "explore": "EXPLORE",
-    "delicacies": "Gourmet Delights"
+    "delicacies": "Gourmet Delights",
+    "campaigns": "Campaigns"
   },
   "menu": {
     "title": "Menu",
     "allCategories": "All Categories",
     "noItems": "No items found in this category",
     "addToCart": "Add to Cart",
-    "outOfStock": "Out of Stock"
+    "outOfStock": "Out of Stock",
+    "campaignProducts": "Campaign products"
   },
   "categories": {
     "burger": "Burger",
@@ -244,7 +246,9 @@
     "quoteNotReadyTitle": "Almost ready",
     "quoteNotReadyDesc": "Calculating delivery fee, please wait a moment.",
     "quoteFailedTitle": "Delivery fee unavailable",
-    "outOfDeliveryRange": "This address is outside our delivery area (max {{km}} km from the restaurant)."
+    "outOfDeliveryRange": "This address is outside our delivery area (max {{km}} km from the restaurant).",
+    "nudgeAmount": "Add {{amount}} more to unlock {{name}}!",
+    "nudgeItems": "Add {{count}} more item(s) to unlock {{name}}!"
   },
   "checkout": {
     "title": "Order Summary",
@@ -1235,9 +1239,8 @@
       "typePercentage": "Percentage Discount",
       "typeBuyXGetY": "Buy X Get Y Free",
       "percent": "Discount Percent (%)",
-      "buyQty": "Buy Quantity",
       "freeQty": "Free Quantity",
-      "buyGetHint": "Buy 1 get 1 free → Buy: 1, Free: 1  •  3 for 2 → Buy: 2, Free: 1. The cheapest item(s) become free.",
+      "buyGetHint": "3 for 2 → group: 3, free: 1  •  Buy 1 get 1 → group: 2, free: 1. The cheapest item(s) become free.",
       "target": "Applies To",
       "targetAll": "Whole Cart",
       "targetCategory": "Category",
@@ -1251,8 +1254,14 @@
       "perCustomerHint": "Empty = unlimited",
       "required": "Turkish and English names are required",
       "invalidPercent": "Enter a valid percent (1-100)",
-      "invalidBuyGet": "Buy and Free quantities must be at least 1",
-      "selectAtLeastOne": "Select at least one category/product"
+      "invalidBuyGet": "Group must be at least 2 and free count must be less than the group",
+      "selectAtLeastOne": "Select at least one category/product",
+      "name": "Campaign Name",
+      "namePlaceholder": "e.g. Buy 1 Get 1 Free",
+      "description": "Description (optional)",
+      "descriptionPlaceholder": "Short description — shown on home",
+      "groupQty": "Items in group",
+      "buyGetPreview": "For every {{group}} items, the cheapest {{free}} is free (pay for {{pay}})."
     }
   },
   "favorites": {
