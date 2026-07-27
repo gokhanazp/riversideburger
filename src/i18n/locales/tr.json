@@ -1332,6 +1332,7 @@
     "enterCardDetails": "Kart bilgilerinizi guvenle girin",
     "dataProtected": "Kart bilgileriniz saklanmaz",
     "acceptedCards": "Kabul edilen kartlar",
+    "orPayWithCard": "veya kartla öde",
     "demoModeDesc": "Stripe test modunda. Gercek odeme alinmaz.",
     "uberDispatchFailed": "Sipariş alındı, kurye atamasında sorun oluştu. Destek sizinle iletişime geçecek.",
     "mobileOnly": "Kart girişi sadece mobil uygulamada mevcuttur",

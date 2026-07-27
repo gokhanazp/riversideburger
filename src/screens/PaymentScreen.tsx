@@ -31,10 +31,19 @@ import Toast from 'react-native-toast-message';
 // Stripe sadece native platformlarda yükle (Load Stripe only on native platforms)
 let CardField: any = null;
 let useStripe: any = () => ({ confirmPayment: null });
+let PlatformPayButton: any = null;
+let PlatformPay: any = null;
+let isPlatformPaySupported: any = async () => false;
+let confirmPlatformPayPayment: any = null;
 if (Platform.OS !== 'web') {
   const stripe = require('@stripe/stripe-react-native');
   CardField = stripe.CardField;
   useStripe = stripe.useStripe;
+  // Apple Pay (iOS) / Google Pay (Android) — tek PlatformPay API'si
+  PlatformPayButton = stripe.PlatformPayButton;
+  PlatformPay = stripe.PlatformPay;
+  isPlatformPaySupported = stripe.isPlatformPaySupported;
+  confirmPlatformPayPayment = stripe.confirmPlatformPayPayment;
 }
 
 interface PaymentScreenProps {
@@ -88,6 +97,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
   const [intentAmount, setIntentAmount] = useState<number | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [initError, setInitError] = useState(false);
+  const [platformPaySupported, setPlatformPaySupported] = useState(false);
 
   // Tip state — sadece delivery için aktif (kuryeye gider)
   const [selectedTipPercent, setSelectedTipPercent] = useState<number | null>(null);
@@ -151,6 +161,14 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     ]).start();
   }, []);
 
+  // Apple Pay / Google Pay cihazda kullanılabilir mi? (Wallet availability)
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    isPlatformPaySupported({ googlePay: { testEnv: false } })
+      .then((supported: boolean) => setPlatformPaySupported(!!supported))
+      .catch(() => setPlatformPaySupported(false));
+  }, []);
+
   // Bahşiş değiştiğinde Stripe payment intent yeniden oluşturulur (debounced).
   useEffect(() => {
     const t = setTimeout(() => { initializePayment(finalTotal); }, 300);
@@ -197,6 +215,36 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     }
   };
 
+  // Ödeme onaylandıktan sonra ortak son adım: SUNUCU tarafında doğrula + siparişi oluştur.
+  // Kart ve Apple/Google Pay akışlarının ikisi de buraya düşer (tek doğruluk kaynağı: Stripe).
+  const finalizePayment = async (intentId: string) => {
+    // Sunucu doğrulaması — Stripe = tek doğruluk kaynağı. Sunucu, Stripe'a
+    // paymentIntents.retrieve ile sorar ve gerçek durumu döndürür.
+    let verifiedStatus: string | null = null;
+    try {
+      const result = await confirmPayment(intentId);
+      verifiedStatus = result?.status ?? null; // örn 'succeeded'
+    } catch (verifyErr) {
+      // Doğrulama ağ hatasıyla başarısız oldu → durumu bilemiyoruz.
+      console.warn('Server payment verification failed:', verifyErr);
+      verifiedStatus = null;
+    }
+
+    if (verifiedStatus && verifiedStatus !== 'succeeded') {
+      // Stripe açıkça "succeeded değil" diyor → siparişi OLUŞTURMA.
+      Toast.show({ type: 'error', text1: t('payment.failed'), text2: t('payment.notCompleted'), visibilityTime: 4000, topOffset: 60 });
+      return;
+    }
+
+    // Fişteki "PAID" YALNIZCA sunucu-doğrulamalı 'succeeded' ile yazılır.
+    // Doğrulanamadıysa (verifiedStatus null): SDK 'Succeeded' dediği için ücret
+    // büyük olasılıkla alındı; siparişi kaybetmemek için oluşturuyoruz ama
+    // fişte "PENDING / ODEME ONAYLANMADI" uyarısı çıksın diye 'pending' işaretliyoruz.
+    // Böylece Stripe'dan doğrulanmamış hiçbir sipariş fişte PAID görünmez.
+    const orderPaymentStatus: 'paid' | 'pending' = verifiedStatus === 'succeeded' ? 'paid' : 'pending';
+    await createOrderAndNavigate(orderPaymentStatus, intentId);
+  };
+
   const handlePayment = async () => {
     if (isDemoMode) return handleDemoPayment();
 
@@ -217,54 +265,77 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       if (error) throw new Error(error.message);
 
       // Stripe SDK ödemeyi doğrudan Stripe'a onaylatır. Yine de siparişi oluşturmadan
-      // önce durumu SUNUCU tarafında Stripe API'siyle bir kez daha doğrulıyoruz —
-      // sipariş yalnızca gerçekten "succeeded" olduğunda admin paneline düşsün.
+      // önce durumu sunucu tarafında bir kez daha doğrularız (finalizePayment).
       if (paymentIntent?.status !== 'Succeeded') {
-        Toast.show({
-          type: 'error',
-          text1: t('payment.failed'),
-          text2: t('payment.notCompleted'),
-          visibilityTime: 4000,
-          topOffset: 60,
-        });
+        Toast.show({ type: 'error', text1: t('payment.failed'), text2: t('payment.notCompleted'), visibilityTime: 4000, topOffset: 60 });
         return;
       }
 
-      // Sunucu doğrulaması — Stripe = tek doğruluk kaynağı. Sunucu, Stripe'a
-      // paymentIntents.retrieve ile sorar ve gerçek durumu döndürür.
-      let verifiedStatus: string | null = null;
-      try {
-        const result = await confirmPayment(paymentIntentId);
-        verifiedStatus = result?.status ?? null; // örn 'succeeded'
-      } catch (verifyErr) {
-        // Doğrulama ağ hatasıyla başarısız oldu → durumu bilemiyoruz.
-        console.warn('Server payment verification failed:', verifyErr);
-        verifiedStatus = null;
-      }
-
-      if (verifiedStatus && verifiedStatus !== 'succeeded') {
-        // Stripe açıkça "succeeded değil" diyor → siparişi OLUŞTURMA.
-        Toast.show({
-          type: 'error',
-          text1: t('payment.failed'),
-          text2: t('payment.notCompleted'),
-          visibilityTime: 4000,
-          topOffset: 60,
-        });
-        return;
-      }
-
-      // Fişteki "PAID" YALNIZCA sunucu-doğrulamalı 'succeeded' ile yazılır.
-      // Doğrulanamadıysa (verifiedStatus null): SDK 'Succeeded' dediği için ücret
-      // büyük olasılıkla alındı; siparişi kaybetmemek için oluşturuyoruz ama
-      // fişte "PENDING / ODEME ONAYLANMADI" uyarısı çıksın diye 'pending' işaretliyoruz.
-      // Böylece Stripe'dan doğrulanmamış hiçbir sipariş fişte PAID görünmez.
-      const orderPaymentStatus: 'paid' | 'pending' =
-        verifiedStatus === 'succeeded' ? 'paid' : 'pending';
-
-      await createOrderAndNavigate(orderPaymentStatus, paymentIntentId);
+      await finalizePayment(paymentIntentId);
     } catch (error: any) {
       console.error('Payment error:', error);
+      Toast.show({ type: 'error', text1: t('payment.failed'), text2: error.message || t('payment.tryAgain'), visibilityTime: 4000, topOffset: 60 });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Apple Pay cüzdan sayfasında gösterilecek dökümlü kalemler.
+  // Apple Pay son kalemi "toplam" (merchant satırı) olarak gösterir; Google Pay yalnızca toplamı kullanır.
+  const buildWalletCartItems = () => {
+    const immediate = PlatformPay.PaymentType.Immediate;
+    const cart: any[] = [{ label: t('cart.subtotal'), amount: tipBase.toFixed(2), paymentType: immediate }];
+    if (pointsUsed > 0) {
+      cart.push({ label: t('cart.pointsDiscount') || 'Points', amount: (-pointsUsed).toFixed(2), paymentType: immediate });
+    }
+    if (!isPickup && deliveryFee && deliveryFee > 0) {
+      cart.push({ label: t('cart.deliveryFee'), amount: deliveryFee.toFixed(2), paymentType: immediate });
+    }
+    if (tipAmount > 0) {
+      cart.push({ label: isPickup ? t('payment.tipLabelPickup') : t('payment.tipLabel'), amount: tipAmount.toFixed(2), paymentType: immediate });
+    }
+    // Son satır: toplam (Apple Pay bunu "MerchantName'e öde" satırı olarak gösterir)
+    cart.push({ label: 'Riverside Burgers', amount: finalTotal.toFixed(2), paymentType: immediate });
+    return cart;
+  };
+
+  // Apple Pay (iOS) / Google Pay (Android) ile öde
+  const handlePlatformPay = async () => {
+    if (!clientSecret || !paymentIntentId) {
+      Toast.show({ type: 'error', text1: t('payment.error'), text2: t('payment.initializationError'), visibilityTime: 3000, topOffset: 60 });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { error, paymentIntent } = await confirmPlatformPayPayment(clientSecret, {
+        applePay: {
+          cartItems: buildWalletCartItems(),
+          merchantCountryCode: 'CA',
+          currencyCode: currency,
+        },
+        googlePay: {
+          testEnv: false,
+          merchantName: 'Riverside Burgers',
+          merchantCountryCode: 'CA',
+          currencyCode: currency,
+        },
+      });
+
+      if (error) {
+        // Kullanıcı cüzdan sayfasını kapattı → sessizce çık, hata gösterme.
+        if (error.code === 'Canceled') return;
+        throw new Error(error.message);
+      }
+
+      if (paymentIntent?.status !== 'Succeeded') {
+        Toast.show({ type: 'error', text1: t('payment.failed'), text2: t('payment.notCompleted'), visibilityTime: 4000, topOffset: 60 });
+        return;
+      }
+
+      await finalizePayment(paymentIntentId);
+    } catch (error: any) {
+      console.error('Platform Pay error:', error);
       Toast.show({ type: 'error', text1: t('payment.failed'), text2: error.message || t('payment.tryAgain'), visibilityTime: 4000, topOffset: 60 });
     } finally {
       setIsLoading(false);
@@ -544,6 +615,24 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
             <View style={{ flex: 1 }}>
               <Text style={styles.demoWarningTitle}>{t('cart.deliveryMethodPickup')}</Text>
               <Text style={styles.demoWarningText}>{t('payment.pickupNote')}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Apple Pay (iOS) / Google Pay (Android) — cihaz destekliyor + ödeme hazırsa */}
+        {platformPaySupported && !isDemoMode && !initError && PlatformPayButton && (
+          <View style={styles.walletSection}>
+            <PlatformPayButton
+              type={PlatformPay.ButtonType.Pay}
+              appearance={PlatformPay.ButtonStyle.Black}
+              onPress={handlePlatformPay}
+              disabled={!clientSecret || isLoading}
+              style={styles.platformPayButton}
+            />
+            <View style={styles.walletDivider}>
+              <View style={styles.walletDividerLine} />
+              <Text style={styles.walletDividerText}>{t('payment.orPayWithCard')}</Text>
+              <View style={styles.walletDividerLine} />
             </View>
           </View>
         )}
@@ -899,6 +988,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     marginVertical: 14,
     marginLeft: 52,
+  },
+  // Wallet (Apple Pay / Google Pay)
+  walletSection: {
+    marginBottom: 14,
+  },
+  platformPayButton: {
+    width: '100%',
+    height: 50,
+  },
+  walletDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 18,
+  },
+  walletDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E0E0E0',
+  },
+  walletDividerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#999',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   // Card Section
   cardSection: {

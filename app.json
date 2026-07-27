@@ -68,7 +68,14 @@
         }
       ],
       "@maplibre/maplibre-react-native",
-      "./plugins/withEscPosPrinter"
+      "./plugins/withEscPosPrinter",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.riversideburgers",
+          "enableGooglePay": true
+        }
+      ]
     ],
     "extra": {
       "eas": {
