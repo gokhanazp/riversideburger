@@ -133,3 +133,49 @@ export const createUberDelivery = async (
   }
   return res.json();
 };
+
+// Uber Direct iptal sebepleri — yazım/case Uber dokümanıyla birebir eşleşmeli.
+// "other" seçilirse additional_description zorunludur.
+export const CANCELATION_REASONS = [
+  'out_of_items',
+  'store_closed',
+  'store_too_busy',
+  'customer_called_to_cancel',
+  'customer_changed_order_requirements',
+  'courier_delayed_en_route_to_pickup',
+  'too_expensive',
+  'delivery_vehicle_too_small',
+  'no_courier_assigned',
+  'other',
+] as const;
+
+export type CancelationReason = typeof CANCELATION_REASONS[number];
+
+/**
+ * Siparişi iptal et — Uber teslimatı varsa ÖNCE Uber'e cancel bildirilir (zorunlu),
+ * sonra sipariş 'cancelled' işaretlenir. Sadece admin çağırabilir (edge function doğrular).
+ * @param orderId Sipariş ID
+ * @param reason Uber'in kabul ettiği iptal sebebi
+ * @param description "other" için zorunlu ek açıklama; diğerlerinde opsiyonel
+ */
+export const cancelUberDelivery = async (
+  orderId: string,
+  reason: CancelationReason,
+  description?: string,
+): Promise<{ ok: boolean; uber_canceled: boolean }> => {
+  const headers = await authHeaders();
+  const res = await fetch(`${FUNCTIONS_URL}/uber-cancel-delivery`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      order_id: orderId,
+      cancelation_reason: reason,
+      additional_description: description,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Cancel delivery failed (${res.status}): ${text}`);
+  }
+  return res.json();
+};

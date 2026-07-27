@@ -12,6 +12,7 @@ import {
   Alert,
   Dimensions,
   StatusBar,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
@@ -29,6 +30,11 @@ import {
   getSavedPrinter,
   printOrder,
 } from '../../services/printerService';
+import {
+  cancelUberDelivery,
+  CANCELATION_REASONS,
+  CancelationReason,
+} from '../../services/uberDeliveryService';
 
 const { width } = Dimensions.get('window');
 
@@ -70,6 +76,11 @@ const AdminOrders = ({ navigation, route }: any) => {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>(filterParam || 'all');
+  // İptal (Uber cancel) akışı
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState<CancelationReason | null>(null);
+  const [cancelDesc, setCancelDesc] = useState('');
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -197,6 +208,14 @@ const AdminOrders = ({ navigation, route }: any) => {
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    // İptalde: Uber teslimatı varsa doğrudan iptal etme — sebep seç, Uber'e cancel bildir.
+    if (newStatus === 'cancelled' && selectedOrder?.uber_delivery_id) {
+      setShowStatusModal(false);
+      setCancelReason(null);
+      setCancelDesc('');
+      setShowCancelModal(true);
+      return;
+    }
     try {
       const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
       if (error) throw error;
@@ -205,6 +224,28 @@ const AdminOrders = ({ navigation, route }: any) => {
       fetchOrders();
     } catch (error) {
       Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.orders.errorUpdating') });
+    }
+  };
+
+  // Uber teslimatlı siparişi iptal et: önce Uber'e cancel (zorunlu), sonra 'cancelled'.
+  const confirmUberCancel = async () => {
+    if (!selectedOrder || !cancelReason) return;
+    if (cancelReason === 'other' && !cancelDesc.trim()) {
+      Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.orders.cancelDescRequired') });
+      return;
+    }
+    try {
+      setCancelling(true);
+      await cancelUberDelivery(selectedOrder.id, cancelReason, cancelDesc.trim() || undefined);
+      Toast.show({ type: 'success', text1: t('admin.orders.success'), text2: t('admin.orders.cancelSuccess') });
+      setShowCancelModal(false);
+      setCancelReason(null);
+      setCancelDesc('');
+      fetchOrders();
+    } catch (error: any) {
+      Toast.show({ type: 'error', text1: t('admin.error'), text2: error?.message || t('admin.orders.cancelError') });
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -356,6 +397,62 @@ const AdminOrders = ({ navigation, route }: any) => {
         </View>
       </Modal>
 
+      {/* Uber İptal Sebebi Modal */}
+      <Modal visible={showCancelModal} transparent animationType="fade" onRequestClose={() => setShowCancelModal(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.statusSheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>{t('admin.orders.cancelTitle')}</Text>
+              <TouchableOpacity onPress={() => setShowCancelModal(false)}>
+                <Ionicons name="close-circle" size={28} color="#ddd" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.cancelHint}>{t('admin.orders.cancelHint')}</Text>
+            <ScrollView style={styles.sheetBody}>
+              {CANCELATION_REASONS.map((reason) => {
+                const active = cancelReason === reason;
+                return (
+                  <TouchableOpacity
+                    key={reason}
+                    style={[styles.statusOption, active && { backgroundColor: '#DC354510', borderColor: '#DC3545' }]}
+                    onPress={() => setCancelReason(reason)}
+                  >
+                    <View style={[styles.optionDot, { backgroundColor: active ? '#DC3545' : '#ddd' }]} />
+                    <Text style={[styles.optionLabel, active && { color: '#DC3545', fontWeight: '800' }]}>
+                      {t(`admin.orders.cancelReasons.${reason}`)}
+                    </Text>
+                    {active && <Ionicons name="checkmark-circle" size={20} color="#DC3545" />}
+                  </TouchableOpacity>
+                );
+              })}
+              {/* "other" için açıklama zorunlu */}
+              {cancelReason === 'other' && (
+                <TextInput
+                  style={styles.cancelInput}
+                  value={cancelDesc}
+                  onChangeText={setCancelDesc}
+                  placeholder={t('admin.orders.cancelDescPlaceholder')}
+                  placeholderTextColor="#B0B0B0"
+                  multiline
+                />
+              )}
+            </ScrollView>
+            <TouchableOpacity
+              style={[styles.cancelConfirmBtn, (!cancelReason || cancelling) && { opacity: 0.4 }]}
+              onPress={confirmUberCancel}
+              disabled={!cancelReason || cancelling}
+              activeOpacity={0.85}
+            >
+              {cancelling ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <Text style={styles.cancelConfirmText}>{t('admin.orders.cancelConfirm')}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Details Modal */}
       {showDetailsModal && selectedOrder && (
         <Modal visible={showDetailsModal} transparent animationType="slide">
@@ -485,6 +582,10 @@ const styles = StyleSheet.create({
   statusOption: { flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: '#eee', gap: 12, marginBottom: 10 },
   optionDot: { width: 10, height: 10, borderRadius: 5 },
   optionLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: '#555' },
+  cancelHint: { fontSize: 13, color: '#888', lineHeight: 18, marginBottom: 16 },
+  cancelInput: { backgroundColor: '#F4F5F7', borderRadius: 14, padding: 14, fontSize: 15, color: Colors.text, borderWidth: 1, borderColor: '#EDEEF2', minHeight: 72, textAlignVertical: 'top', marginTop: 4, marginBottom: 6 },
+  cancelConfirmBtn: { backgroundColor: '#DC3545', borderRadius: 18, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
+  cancelConfirmText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
   detailsSheet: { backgroundColor: Colors.white, borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '90%' },
   detailsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: '#f1f1f1' },
   detailsHeaderTitle: { flexDirection: 'row', alignItems: 'center', gap: 12 },

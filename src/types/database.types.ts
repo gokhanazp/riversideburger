@@ -103,6 +103,13 @@ export interface Order {
   paid_at?: string; // Ödemenin onaylandığı an (When payment succeeded)
   campaign_id?: string | null; // Uygulanan kampanya (Applied campaign)
   discount_amount?: number; // Kampanya indirimi tutarı (Campaign discount amount)
+  // Uber Direct teslimat (Uber Direct delivery)
+  uber_delivery_id?: string | null; // Uber delivery id (del_…)
+  uber_status?: string | null; // Uber tarafı durum (pending, pickup, delivered, canceled…)
+  uber_tracking_url?: string | null;
+  // İptal (Cancelation — Uber Direct certification)
+  cancelation_reason?: string | null;
+  cancelation_description?: string | null;
   created_at: string;
   updated_at?: string;
   // Relations

@@ -345,6 +345,10 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus): P
 };
 
 // Sipariş iptal et (Cancel order)
+// ⚠️ UYARI: Bu yalnızca iç durumu 'cancelled' yapar; Uber'e HABER VERMEZ.
+// Uber Direct teslimatı olan (uber_delivery_id dolu) bir siparişi iptal ederken
+// bunu KULLANMA — cancelUberDelivery() üzerinden git (zorunlu: Uber cancel endpoint).
+// Aksi halde kurye yönlendirilmeye devam eder ve operasyon Uber ile uyumsuz kalır.
 export const cancelOrder = async (orderId: string): Promise<Order> => {
   try {
     const { data, error } = await supabase
