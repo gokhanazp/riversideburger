@@ -217,30 +217,30 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
   // Ödeme onaylandıktan sonra ortak son adım: SUNUCU tarafında doğrula + siparişi oluştur.
   // Kart ve Apple/Google Pay akışlarının ikisi de buraya düşer (tek doğruluk kaynağı: Stripe).
+  // ÖNEMLİ: Buraya YALNIZCA SDK ödemeyi hatasız onayladığında (error yok) gelinir —
+  // yani PARA ALINDI. O yüzden sipariş HER DURUMDA oluşturulur; siparişi asla düşürmeyiz.
+  // Sunucu doğrulaması yalnızca payment_status'u belirler:
+  //   sunucu 'succeeded' → 'paid';  aksi halde (processing / doğrulanamadı) → 'pending'.
+  // Apple/Google Pay çoğu zaman önce 'processing' döner ve saniyeler içinde 'succeeded'a
+  // geçer; bu yüzden kısa aralıklarla birkaç kez yeniden sorarız.
   const finalizePayment = async (intentId: string) => {
-    // Sunucu doğrulaması — Stripe = tek doğruluk kaynağı. Sunucu, Stripe'a
-    // paymentIntents.retrieve ile sorar ve gerçek durumu döndürür.
     let verifiedStatus: string | null = null;
-    try {
-      const result = await confirmPayment(intentId);
-      verifiedStatus = result?.status ?? null; // örn 'succeeded'
-    } catch (verifyErr) {
-      // Doğrulama ağ hatasıyla başarısız oldu → durumu bilemiyoruz.
-      console.warn('Server payment verification failed:', verifyErr);
-      verifiedStatus = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const result = await confirmPayment(intentId);
+        verifiedStatus = result?.status ?? null; // 'succeeded' | 'processing' | ...
+      } catch (verifyErr) {
+        // Doğrulama ağ hatasıyla başarısız oldu → durumu bilemiyoruz (pending olarak devam).
+        console.warn('Server payment verification failed:', verifyErr);
+        verifiedStatus = null;
+      }
+      // 'processing' ise kısa süre sonra 'succeeded'a döner — birkaç kez dene
+      if (verifiedStatus !== 'processing') break;
+      await new Promise((r) => setTimeout(r, 1500));
     }
 
-    if (verifiedStatus && verifiedStatus !== 'succeeded') {
-      // Stripe açıkça "succeeded değil" diyor → siparişi OLUŞTURMA.
-      Toast.show({ type: 'error', text1: t('payment.failed'), text2: t('payment.notCompleted'), visibilityTime: 4000, topOffset: 60 });
-      return;
-    }
-
-    // Fişteki "PAID" YALNIZCA sunucu-doğrulamalı 'succeeded' ile yazılır.
-    // Doğrulanamadıysa (verifiedStatus null): SDK 'Succeeded' dediği için ücret
-    // büyük olasılıkla alındı; siparişi kaybetmemek için oluşturuyoruz ama
-    // fişte "PENDING / ODEME ONAYLANMADI" uyarısı çıksın diye 'pending' işaretliyoruz.
-    // Böylece Stripe'dan doğrulanmamış hiçbir sipariş fişte PAID görünmez.
+    // 'paid' YALNIZCA sunucu-doğrulamalı 'succeeded' ile. Diğer tüm durumlarda 'pending',
+    // ama sipariş HER HALÜKÂRDA oluşturulur — para alındı, siparişi kaybetmeyiz.
     const orderPaymentStatus: 'paid' | 'pending' = verifiedStatus === 'succeeded' ? 'paid' : 'pending';
     await createOrderAndNavigate(orderPaymentStatus, intentId);
   };
@@ -260,16 +260,11 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
     try {
       setIsLoading(true);
-      const { error, paymentIntent } = await stripeConfirmPayment(clientSecret, { paymentMethodType: 'Card' });
+      const { error } = await stripeConfirmPayment(clientSecret, { paymentMethodType: 'Card' });
 
+      // error yoksa Stripe ödemeyi kabul etti (Succeeded/Processing) → para alındı.
+      // Sipariş oluşturmayı finalizePayment'e bırak; o asla siparişi düşürmez.
       if (error) throw new Error(error.message);
-
-      // Stripe SDK ödemeyi doğrudan Stripe'a onaylatır. Yine de siparişi oluşturmadan
-      // önce durumu sunucu tarafında bir kez daha doğrularız (finalizePayment).
-      if (paymentIntent?.status !== 'Succeeded') {
-        Toast.show({ type: 'error', text1: t('payment.failed'), text2: t('payment.notCompleted'), visibilityTime: 4000, topOffset: 60 });
-        return;
-      }
 
       await finalizePayment(paymentIntentId);
     } catch (error: any) {
@@ -308,7 +303,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
     try {
       setIsLoading(true);
-      const { error, paymentIntent } = await confirmPlatformPayPayment(clientSecret, {
+      const { error } = await confirmPlatformPayPayment(clientSecret, {
         applePay: {
           cartItems: buildWalletCartItems(),
           merchantCountryCode: 'CA',
@@ -328,11 +323,8 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
         throw new Error(error.message);
       }
 
-      if (paymentIntent?.status !== 'Succeeded') {
-        Toast.show({ type: 'error', text1: t('payment.failed'), text2: t('payment.notCompleted'), visibilityTime: 4000, topOffset: 60 });
-        return;
-      }
-
+      // error yoksa Apple/Google Pay ödemeyi kabul etti (Succeeded/Processing) → para alındı.
+      // Sipariş MUTLAKA oluşturulmalı — bu yüzden status kontrolüyle erken çıkış YOK.
       await finalizePayment(paymentIntentId);
     } catch (error: any) {
       console.error('Platform Pay error:', error);
