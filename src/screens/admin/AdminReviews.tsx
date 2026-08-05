@@ -64,9 +64,9 @@ const AdminReviews = () => {
           const { data: reviewData } = await supabase.from('reviews').select(`*, user:users(full_name), product:products(name)`).eq('id', payload.new.id).single();
           if (reviewData) {
             if (Platform.OS !== 'web') {
-               await sendLocalNotification('Yeni Yorum', `${reviewData.user?.full_name} - ${reviewData.product?.name}`, { reviewId: reviewData.id }, 'orders');
+               await sendLocalNotification(t('admin.reviews.newReviewToast'), `${reviewData.user?.full_name} - ${reviewData.product?.name}`, { reviewId: reviewData.id }, 'orders');
             }
-            Toast.show({ type: 'info', text1: 'Yeni Yorum', text2: `${reviewData.user?.full_name}` });
+            Toast.show({ type: 'info', text1: t('admin.reviews.newReviewToast'), text2: `${reviewData.user?.full_name}` });
             fetchReviews();
           }
         }
@@ -215,8 +215,8 @@ const AdminReviews = () => {
                   <Text style={styles.modalTitle}>{t('admin.reviews.approveTitle')}</Text>
                   <Text style={styles.modalDesc}>{t('admin.reviews.approveConfirm')}</Text>
                   <View style={styles.modalActs}>
-                      <TouchableOpacity onPress={() => setApproveModalVisible(false)} style={styles.modalCancel}><Text style={styles.modalBtnText}>İptal</Text></TouchableOpacity>
-                      <TouchableOpacity onPress={handleApproveConfirm} style={styles.modalOk}><Text style={[styles.modalBtnText, {color:'#FFF'}]}>Onayla</Text></TouchableOpacity>
+                      <TouchableOpacity onPress={() => setApproveModalVisible(false)} style={styles.modalCancel}><Text style={styles.modalBtnText}>{t('common.cancel')}</Text></TouchableOpacity>
+                      <TouchableOpacity onPress={handleApproveConfirm} style={styles.modalOk}><Text style={[styles.modalBtnText, {color:'#FFF'}]}>{t('admin.reviews.approve')}</Text></TouchableOpacity>
                   </View>
               </View>
           </View>
@@ -225,11 +225,11 @@ const AdminReviews = () => {
       <Modal visible={rejectModalVisible} transparent animationType="fade">
           <View style={styles.modalBg}>
               <View style={styles.modalCard}>
-                  <Text style={styles.modalTitle}>{t('admin.reviews.rejectTitle')}</Text>
-                  <TextInput style={styles.reasonInput} placeholder={t('admin.reviews.rejectPlaceholder')} multiline value={rejectionReason} onChangeText={setRejectionReason} />
+                  <Text style={styles.modalTitle}>{t('admin.reviews.modalTitle')}</Text>
+                  <TextInput style={styles.reasonInput} placeholder={t('admin.reviews.modalPlaceholder')} multiline value={rejectionReason} onChangeText={setRejectionReason} />
                   <View style={styles.modalActs}>
-                      <TouchableOpacity onPress={() => setRejectModalVisible(false)} style={styles.modalCancel}><Text style={styles.modalBtnText}>İptal</Text></TouchableOpacity>
-                      <TouchableOpacity onPress={handleRejectConfirm} style={[styles.modalOk, {backgroundColor:'#F44336'}]}><Text style={[styles.modalBtnText, {color:'#FFF'}]}>Reddet</Text></TouchableOpacity>
+                      <TouchableOpacity onPress={() => setRejectModalVisible(false)} style={styles.modalCancel}><Text style={styles.modalBtnText}>{t('admin.reviews.modalCancel')}</Text></TouchableOpacity>
+                      <TouchableOpacity onPress={handleRejectConfirm} style={[styles.modalOk, {backgroundColor:'#F44336'}]}><Text style={[styles.modalBtnText, {color:'#FFF'}]}>{t('admin.reviews.modalConfirm')}</Text></TouchableOpacity>
                   </View>
               </View>
           </View>

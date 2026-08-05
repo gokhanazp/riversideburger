@@ -1,6 +1,7 @@
 // Review Service - Değerlendirme ve yorum yönetimi
 // Review and rating management service
 
+import i18n from '../i18n';
 import { supabase } from '../lib/supabase';
 import { Review, ProductRating } from '../types/database.types';
 
@@ -24,7 +25,7 @@ export async function createReview(
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (userError || !user) {
-      throw new Error('Kullanıcı oturumu bulunamadı');
+      throw new Error(i18n.t('errors.notAuthenticated'));
     }
 
     // Değerlendirme oluştur (Create review)
@@ -44,8 +45,10 @@ export async function createReview(
       .single();
 
     if (error) {
+      // Ham Postgres hatası kullanıcıya gösterilmez; log'a düşer, kullanıcı
+      // çevrilmiş mesajı görür (eskiden ekranda "violates check constraint" çıkıyordu).
       console.error('Review creation error:', error);
-      throw new Error('Değerlendirme oluşturulamadı: ' + error.message);
+      throw new Error(i18n.t('orderReview.errorSubmit'));
     }
 
     // Admin kullanıcılarına push notification gönder (Send push notification to admins)
@@ -99,7 +102,7 @@ export async function getUserReviews(): Promise<Review[]> {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (userError || !user) {
-      throw new Error('Kullanıcı oturumu bulunamadı');
+      throw new Error(i18n.t('errors.notAuthenticated'));
     }
 
     const { data, error } = await supabase
@@ -114,7 +117,7 @@ export async function getUserReviews(): Promise<Review[]> {
 
     if (error) {
       console.error('Get user reviews error:', error);
-      throw new Error('Değerlendirmeler getirilemedi');
+      throw new Error(i18n.t('reviews.loadError'));
     }
 
     return data || [];
@@ -143,7 +146,7 @@ export async function getProductReviews(productId: string): Promise<Review[]> {
 
     if (error) {
       console.error('Get product reviews error:', error);
-      throw new Error('Ürün değerlendirmeleri getirilemedi');
+      throw new Error(i18n.t('reviews.productLoadError'));
     }
 
     return data || [];
@@ -171,7 +174,7 @@ export async function getProductRating(productId: string): Promise<ProductRating
         return null;
       }
       console.error('Get product rating error:', error);
-      throw new Error('Ürün puanı getirilemedi');
+      throw new Error(i18n.t('reviews.ratingLoadError'));
     }
 
     return data;
@@ -190,7 +193,7 @@ export async function getReviewableProducts(orderId: string): Promise<any[]> {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (userError || !user) {
-      throw new Error('Kullanıcı oturumu bulunamadı');
+      throw new Error(i18n.t('errors.notAuthenticated'));
     }
 
     // Sipariş detaylarını ve ürünleri getir (Get order details and products)
@@ -209,7 +212,7 @@ export async function getReviewableProducts(orderId: string): Promise<any[]> {
       .single();
 
     if (orderError || !order) {
-      throw new Error('Sipariş bulunamadı');
+      throw new Error(i18n.t('reviews.orderNotFound'));
     }
 
     // Sadece teslim edilen siparişler değerlendirilebilir (Only delivered orders can be reviewed)
@@ -293,7 +296,7 @@ export async function getPendingReviews(): Promise<Review[]> {
     if (error) {
       console.error('❌ Get pending reviews error:', error);
       console.error('❌ Error details:', JSON.stringify(error, null, 2));
-      throw new Error(`Bekleyen değerlendirmeler getirilemedi: ${error.message}`);
+      throw new Error(i18n.t('reviews.pendingLoadError'));
     }
 
     return data || [];
@@ -312,7 +315,7 @@ export async function approveReview(reviewId: string): Promise<void> {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      throw new Error('Kullanıcı oturumu bulunamadı');
+      throw new Error(i18n.t('errors.notAuthenticated'));
     }
 
     const { error } = await supabase
@@ -327,7 +330,7 @@ export async function approveReview(reviewId: string): Promise<void> {
 
     if (error) {
       console.error('Approve review error:', error);
-      throw new Error('Değerlendirme onaylanamadı: ' + error.message);
+      throw new Error(i18n.t('reviews.approveError'));
     }
   } catch (error: any) {
     console.error('Approve review error:', error);
@@ -345,7 +348,7 @@ export async function rejectReview(reviewId: string, reason?: string): Promise<v
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (userError || !user) {
-      throw new Error('Kullanıcı oturumu bulunamadı');
+      throw new Error(i18n.t('errors.notAuthenticated'));
     }
 
     const { error } = await supabase
@@ -361,7 +364,7 @@ export async function rejectReview(reviewId: string, reason?: string): Promise<v
 
     if (error) {
       console.error('Reject review error:', error);
-      throw new Error('Değerlendirme reddedilemedi');
+      throw new Error(i18n.t('reviews.rejectError'));
     }
   } catch (error: any) {
     console.error('Reject review error:', error);
@@ -398,7 +401,7 @@ export async function getAllReviews(status: 'all' | 'pending' | 'approved' | 're
     if (error) {
       console.error('❌ Get all reviews error:', error);
       console.error('❌ Error details:', JSON.stringify(error, null, 2));
-      throw new Error(`Değerlendirmeler getirilemedi: ${error.message}`);
+      throw new Error(i18n.t('reviews.loadError'));
     }
 
     return data || [];
@@ -422,7 +425,7 @@ export async function createRestaurantReview(
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      throw new Error('Kullanıcı oturumu bulunamadı');
+      throw new Error(i18n.t('errors.notAuthenticated'));
     }
 
     // Kullanıcının daha önce restoran yorumu yapıp yapmadığını kontrol et
@@ -435,7 +438,7 @@ export async function createRestaurantReview(
       .single();
 
     if (existingReview) {
-      throw new Error('Daha önce restoran hakkında yorum yaptınız');
+      throw new Error(i18n.t('restaurantReview.alreadyReviewed'));
     }
 
     // Restoran yorumu oluştur (Create restaurant review)
@@ -456,7 +459,7 @@ export async function createRestaurantReview(
 
     if (error) {
       console.error('Restaurant review creation error:', error);
-      throw new Error('Restoran yorumu oluşturulamadı: ' + error.message);
+      throw new Error(i18n.t('restaurantReview.errorSubmit'));
     }
 
     return data;
@@ -484,7 +487,7 @@ export async function getRestaurantReviews(): Promise<Review[]> {
 
     if (error) {
       console.error('Get restaurant reviews error:', error);
-      throw new Error('Restoran yorumları getirilemedi');
+      throw new Error(i18n.t('reviews.restaurantLoadError'));
     }
 
     return data || [];

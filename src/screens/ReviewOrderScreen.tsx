@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import { Colors, Spacing } from '../constants/theme';
 import { getReviewableProducts, createReview } from '../services/reviewService';
@@ -34,6 +35,7 @@ interface ProductReview {
 const ReviewOrderScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const { t } = useTranslation();
   const { orderId } = route.params as { orderId: string };
 
   const [loading, setLoading] = useState(true);
@@ -65,8 +67,8 @@ const ReviewOrderScreen = () => {
       console.error('Fetch reviewable products error:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: 'Ürünler yüklenirken bir hata oluştu',
+        text1: t('common.error'),
+        text2: t('orderReview.loadError'),
       });
       navigation.goBack();
     } finally {
@@ -99,7 +101,7 @@ const ReviewOrderScreen = () => {
       const hasAnyRating = Array.from(reviews.values()).some(review => review.rating > 0);
       
       if (!hasAnyRating) {
-        Alert.alert('Uyarı', 'Lütfen en az bir ürün için puan verin.');
+        Alert.alert(t('common.warning'), t('orderReview.pleaseRate'));
         return;
       }
 
@@ -119,8 +121,8 @@ const ReviewOrderScreen = () => {
 
       Toast.show({
         type: 'success',
-        text1: 'Başarılı!',
-        text2: 'Değerlendirmeniz alındı. Admin onayından sonra yayınlanacak.',
+        text1: t('orderReview.successTitle'),
+        text2: t('orderReview.successMessage'),
       });
 
       navigation.goBack();
@@ -128,8 +130,8 @@ const ReviewOrderScreen = () => {
       console.error('Submit reviews error:', error);
       Toast.show({
         type: 'error',
-        text1: 'Hata',
-        text2: error.message || 'Değerlendirme gönderilemedi',
+        text1: t('common.error'),
+        text2: error.message || t('orderReview.errorSubmit'),
       });
     } finally {
       setSubmitting(false);
@@ -161,7 +163,7 @@ const ReviewOrderScreen = () => {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}...</Text>
       </View>
     );
   }
@@ -170,10 +172,10 @@ const ReviewOrderScreen = () => {
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="checkmark-circle-outline" size={80} color="#CCC" />
-        <Text style={styles.emptyTitle}>Tüm Ürünler Değerlendirildi</Text>
-        <Text style={styles.emptyText}>Bu siparişteki tüm ürünleri zaten değerlendirdiniz.</Text>
+        <Text style={styles.emptyTitle}>{t('orderReview.allReviewedTitle')}</Text>
+        <Text style={styles.emptyText}>{t('orderReview.allReviewedText')}</Text>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>Geri Dön</Text>
+          <Text style={styles.backButtonText}>{t('orderReview.goBack')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -186,7 +188,7 @@ const ReviewOrderScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backIconButton}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Siparişi Değerlendir</Text>
+        <Text style={styles.headerTitle}>{t('orderReview.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -196,7 +198,7 @@ const ReviewOrderScreen = () => {
           <View style={styles.infoBox}>
             <Ionicons name="information-circle" size={20} color={Colors.primary} />
             <Text style={styles.infoText}>
-              Değerlendirmeniz admin onayından sonra yayınlanacaktır.
+              {t('orderReview.infoText')}
             </Text>
           </View>
 
@@ -215,15 +217,11 @@ const ReviewOrderScreen = () => {
 
                 {/* Yıldızlar (Stars) */}
                 <View style={styles.ratingSection}>
-                  <Text style={styles.ratingLabel}>Puanınız:</Text>
+                  <Text style={styles.ratingLabel}>{t('orderReview.ratingLabel')}</Text>
                   {renderStars(product.id, review.rating)}
                   {review.rating > 0 && (
                     <Text style={styles.ratingText}>
-                      {review.rating === 1 && '😞 Çok Kötü'}
-                      {review.rating === 2 && '😕 Kötü'}
-                      {review.rating === 3 && '😐 Orta'}
-                      {review.rating === 4 && '😊 İyi'}
-                      {review.rating === 5 && '😍 Mükemmel'}
+                      {t(`orderReview.rating${review.rating}`)}
                     </Text>
                   )}
                 </View>
@@ -231,10 +229,10 @@ const ReviewOrderScreen = () => {
                 {/* Yorum (Comment) */}
                 {review.rating > 0 && (
                   <View style={styles.commentSection}>
-                    <Text style={styles.commentLabel}>Yorumunuz (Opsiyonel):</Text>
+                    <Text style={styles.commentLabel}>{t('orderReview.commentLabel')}</Text>
                     <TextInput
                       style={styles.commentInput}
-                      placeholder="Ürün hakkında düşüncelerinizi paylaşın..."
+                      placeholder={t('orderReview.commentPlaceholder')}
                       placeholderTextColor="#999"
                       multiline
                       numberOfLines={4}
@@ -262,7 +260,7 @@ const ReviewOrderScreen = () => {
             ) : (
               <>
                 <Ionicons name="checkmark-circle" size={20} color="#FFF" />
-                <Text style={styles.submitButtonText}>Değerlendirmeyi Gönder</Text>
+                <Text style={styles.submitButtonText}>{t('orderReview.submitButton')}</Text>
               </>
             )}
           </TouchableOpacity>

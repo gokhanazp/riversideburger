@@ -3,6 +3,7 @@
     "loading": "Loading",
     "error": "Error",
     "success": "Success",
+    "warning": "Warning",
     "cancel": "Cancel",
     "confirm": "Confirm",
     "save": "Save",
@@ -309,7 +310,15 @@
     "approve": "Approve",
     "reject": "Reject",
     "rejectionReason": "Rejection Reason",
-    "rejectionReasonPlaceholder": "Write rejection reason..."
+    "rejectionReasonPlaceholder": "Write rejection reason...",
+    "loadError": "Reviews could not be loaded",
+    "productLoadError": "Product reviews could not be loaded",
+    "ratingLoadError": "Product rating could not be loaded",
+    "orderNotFound": "Order not found",
+    "pendingLoadError": "Pending reviews could not be loaded",
+    "approveError": "Review could not be approved",
+    "rejectError": "Review could not be rejected",
+    "restaurantLoadError": "Restaurant reviews could not be loaded"
   },
   "profile": {
     "title": "My Profile",
@@ -467,6 +476,7 @@
     "deleteModalMessage": "Are you sure you want to delete your account? This action cannot be undone and all your data (orders, points etc.) will be deleted.",
     "deleteModalConfirm": "Yes, Delete",
     "deleteModalCancel": "Cancel",
+    "deleteAccountError": "An error occurred while deleting your account.",
     "personalInfo": "Personal Information",
     "memberSince": "Member since",
     "pointsLabel": "points",
@@ -500,6 +510,27 @@
     "successMessage": "Your review has been submitted successfully. It will be published after admin approval.",
     "errorSubmit": "An error occurred while submitting review",
     "alreadyReviewed": "You have already reviewed the restaurant"
+  },
+  "orderReview": {
+    "title": "Rate Your Order",
+    "infoText": "Your review will be published after admin approval.",
+    "ratingLabel": "Your Rating:",
+    "rating1": "😞 Very Bad",
+    "rating2": "😕 Bad",
+    "rating3": "😐 Average",
+    "rating4": "😊 Good",
+    "rating5": "😍 Excellent",
+    "commentLabel": "Your Comment (Optional):",
+    "commentPlaceholder": "Share your thoughts about the product...",
+    "submitButton": "Submit Review",
+    "pleaseRate": "Please rate at least one product.",
+    "successTitle": "Success!",
+    "successMessage": "Your review has been received. It will be published after admin approval.",
+    "errorSubmit": "Review could not be submitted",
+    "loadError": "An error occurred while loading products",
+    "allReviewedTitle": "All Products Reviewed",
+    "allReviewedText": "You have already reviewed every product in this order.",
+    "goBack": "Go Back"
   },
   "notifications": {
     "unreadCount": "{{count}} unread notification",
@@ -837,6 +868,7 @@
       "rejectionReasonLabel": "Rejection Reason:",
       "buttonApprove": "Approve",
       "buttonReject": "Reject",
+      "newReviewToast": "New Review",
       "emptyTitle": "No Reviews",
       "emptyPending": "No pending reviews",
       "emptyApproved": "No approved reviews",
@@ -1319,7 +1351,8 @@
     "weakPassword": "Password is too weak",
     "requiredField": "This field is required",
     "invalidEmail": "Invalid email address",
-    "invalidPhone": "Invalid phone number"
+    "invalidPhone": "Invalid phone number",
+    "notAuthenticated": "You need to sign in to continue"
   },
   "payment": {
     "title": "Payment",

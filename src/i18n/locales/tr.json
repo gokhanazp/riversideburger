@@ -3,6 +3,7 @@
     "loading": "Yükleniyor",
     "error": "Hata",
     "success": "Başarılı",
+    "warning": "Uyarı",
     "cancel": "İptal",
     "confirm": "Onayla",
     "save": "Kaydet",
@@ -307,7 +308,15 @@
     "approve": "Onayla",
     "reject": "Reddet",
     "rejectionReason": "Red Nedeni",
-    "rejectionReasonPlaceholder": "Red nedenini yazın..."
+    "rejectionReasonPlaceholder": "Red nedenini yazın...",
+    "loadError": "Değerlendirmeler getirilemedi",
+    "productLoadError": "Ürün değerlendirmeleri getirilemedi",
+    "ratingLoadError": "Ürün puanı getirilemedi",
+    "orderNotFound": "Sipariş bulunamadı",
+    "pendingLoadError": "Bekleyen değerlendirmeler getirilemedi",
+    "approveError": "Değerlendirme onaylanamadı",
+    "rejectError": "Değerlendirme reddedilemedi",
+    "restaurantLoadError": "Restoran yorumları getirilemedi"
   },
   "profile": {
     "title": "Profilim",
@@ -465,6 +474,7 @@
     "deleteModalMessage": "Hesabınızı silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm verileriniz (siparişler, puanlar vb.) silinecektir.",
     "deleteModalConfirm": "Evet, Sil",
     "deleteModalCancel": "Vazgeç",
+    "deleteAccountError": "Hesap silinirken bir hata oluştu.",
     "personalInfo": "Kişisel Bilgiler",
     "memberSince": "Üyelik",
     "pointsLabel": "puan",
@@ -498,6 +508,27 @@
     "successMessage": "Yorumunuz başarıyla gönderildi. Admin onayından sonra yayınlanacaktır.",
     "errorSubmit": "Yorum gönderilirken bir hata oluştu",
     "alreadyReviewed": "Daha önce restoran hakkında yorum yaptınız"
+  },
+  "orderReview": {
+    "title": "Siparişi Değerlendir",
+    "infoText": "Değerlendirmeniz admin onayından sonra yayınlanacaktır.",
+    "ratingLabel": "Puanınız:",
+    "rating1": "😞 Çok Kötü",
+    "rating2": "😕 Kötü",
+    "rating3": "😐 Orta",
+    "rating4": "😊 İyi",
+    "rating5": "😍 Mükemmel",
+    "commentLabel": "Yorumunuz (Opsiyonel):",
+    "commentPlaceholder": "Ürün hakkında düşüncelerinizi paylaşın...",
+    "submitButton": "Değerlendirmeyi Gönder",
+    "pleaseRate": "Lütfen en az bir ürün için puan verin.",
+    "successTitle": "Başarılı!",
+    "successMessage": "Değerlendirmeniz alındı. Admin onayından sonra yayınlanacak.",
+    "errorSubmit": "Değerlendirme gönderilemedi",
+    "loadError": "Ürünler yüklenirken bir hata oluştu",
+    "allReviewedTitle": "Tüm Ürünler Değerlendirildi",
+    "allReviewedText": "Bu siparişteki tüm ürünleri zaten değerlendirdiniz.",
+    "goBack": "Geri Dön"
   },
   "notifications": {
     "unreadCount": "{{count}} okunmamış bildirim",
@@ -834,6 +865,7 @@
       "rejectionReasonLabel": "Red Nedeni:",
       "buttonApprove": "Onayla",
       "buttonReject": "Reddet",
+      "newReviewToast": "Yeni Yorum",
       "emptyTitle": "Yorum Yok",
       "emptyPending": "Bekleyen yorum bulunmuyor",
       "emptyApproved": "Onaylanmış yorum bulunmuyor",
@@ -1316,7 +1348,8 @@
     "weakPassword": "Şifre çok zayıf",
     "requiredField": "Bu alan zorunludur",
     "invalidEmail": "Geçersiz e-posta adresi",
-    "invalidPhone": "Geçersiz telefon numarası"
+    "invalidPhone": "Geçersiz telefon numarası",
+    "notAuthenticated": "Devam etmek için giriş yapmanız gerekiyor"
   },
   "payment": {
     "title": "Ödeme",

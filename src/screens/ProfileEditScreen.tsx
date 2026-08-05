@@ -104,7 +104,7 @@ const ProfileEditScreen = ({ navigation }: any) => {
       navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
     } catch (error: any) {
       console.error('Account deletion error:', error);
-      Toast.show({ type: 'error', text1: 'Hata', text2: error.message || 'Hesap silinirken bir hata oluştu.', topOffset: 60 });
+      Toast.show({ type: 'error', text1: t('common.error'), text2: error.message || t('profileEdit.deleteAccountError'), topOffset: 60 });
     } finally {
       setIsDeleting(false);
     }
