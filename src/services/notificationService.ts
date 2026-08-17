@@ -4,6 +4,7 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { Asset } from 'expo-asset';
+import { markOrderAlerted } from './orderAlertRegistry';
 
 // ── Web'de admin sipariş sesi (Web admin order alert sound) ──
 // Native'de ses bildirim üzerinden çalar. Web'de tarayıcı autoplay politikası
@@ -119,10 +120,32 @@ if (Platform.OS !== 'web') {
     handleNotification: async (notification) => {
       // Admin sipariş bildirimleri için özel ayarlar
       // (Special settings for admin order notifications)
-      const isAdminOrder = notification.request.content.data?.type === 'new_order_admin';
+      const data = notification.request.content.data as any;
+      const isAdminOrder = data?.type === 'new_order_admin';
+
+      // Aynı sipariş için hem uygulama içi yerel bildirim hem de sunucudan gelen
+      // push düşebiliyor (ikisi bilerek var: biri anında, diğeri uygulama
+      // kapalıyken çalışıyor). Ön planda ikisi çakışırsa admin çift ses duymasın —
+      // ilk gelen gösterilir, aynı orderId ile gelen ikincisi sessizce yutulur.
+      if (isAdminOrder && typeof data?.orderId === 'string') {
+        const isFirstAlert = markOrderAlerted(data.orderId);
+        if (!isFirstAlert) {
+          console.log('🔇 Bu sipariş için zaten uyarı verildi, kopyası yutuldu:', data.orderId);
+          return {
+            shouldShowAlert: false,
+            shouldShowBanner: false,
+            shouldShowList: false,
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+            priority: Notifications.AndroidNotificationPriority.LOW,
+          };
+        }
+      }
 
       return {
-        shouldShowAlert: true, // Bildirim göster (Show notification)
+        shouldShowAlert: true, // Eski API (deprecated ama geriye dönük uyumluluk)
+        shouldShowBanner: true, // Ön planda banner göster (SDK 54+)
+        shouldShowList: true, // Bildirim merkezine ekle (SDK 54+)
         shouldPlaySound: true, // Ses çal (Play sound)
         shouldSetBadge: true, // Badge göster (Show badge)
         // iOS için kritik bildirim (Critical notification for iOS)

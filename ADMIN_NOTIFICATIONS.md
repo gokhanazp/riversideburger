@@ -1,5 +1,12 @@
 # Admin Sipariş Bildirimleri
 
+> ⚠️ **Güncel akış için [ADMIN_PUSH_SETUP.md](ADMIN_PUSH_SETUP.md)'e bak.**
+> Bu belgedeki "Push notification (orderService.ts)" adımı artık geçerli değil:
+> push'u müşterinin cihazı gönderiyordu ve RLS yüzünden hiç çalışmıyordu.
+> Yerine `orders` INSERT trigger'ı + `notify-admin-new-order` Edge Function'ı
+> geldi (sunucu tarafı, uygulama kapalıyken de çalışır). Kurulum, test ve
+> sorun giderme adımlarının tamamı o belgede.
+
 ## 🔔 Özellikler
 
 Admin kullanıcıları için özel sipariş bildirim sistemi eklendi. Bu sistem, yeni siparişler geldiğinde admin kullanıcılarını anında bilgilendirir.

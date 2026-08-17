@@ -29,6 +29,7 @@ import {
 } from './src/services/notificationService';
 import { getAppSettings } from './src/services/appSettingsService';
 import { loadCurrency } from './src/services/currencyService';
+import { navigationRef } from './src/navigation/navigationRef';
 import i18n from './src/i18n';
 
 // Stripe Publishable Key (Test Mode)
@@ -95,12 +96,23 @@ export default function App() {
 
     // Bildirime tıklandığında (When notification is tapped)
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as any;
       console.log('👆 Bildirime tıklandı:', {
         title: response.notification.request.content.title,
-        data: response.notification.request.content.data,
+        data,
       });
       // Badge sayısını temizle (Clear badge count)
       clearBadgeCount();
+
+      // Yeni sipariş bildirimine dokunan admin'i doğrudan sipariş listesine götür.
+      // Tablet uyurken push geldiğinde tek dokunuşla siparişi görebilsin.
+      if (
+        data?.type === 'new_order_admin' &&
+        user.role === 'admin' &&
+        navigationRef.isReady()
+      ) {
+        navigationRef.navigate('AdminOrders' as never);
+      }
     });
 
     // Cleanup - sadece mobilde ve removeNotificationSubscription varsa çalışır

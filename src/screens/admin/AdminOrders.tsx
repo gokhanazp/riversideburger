@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
 import { Order, OrderStatus } from '../../types/database.types';
@@ -35,8 +37,18 @@ import {
   CANCELATION_REASONS,
   CancelationReason,
 } from '../../services/uberDeliveryService';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 
 const { width } = Dimensions.get('window');
+
+// Listenin gerçekten değişip değişmediğini anlamak için hafif bir parmak izi.
+// Sadece admin ekranında değişebilen alanlar yeterli.
+const ordersSignature = (rows: Order[]) =>
+  rows
+    .map((o) =>
+      [o.id, o.status, o.payment_status ?? '', o.uber_status ?? '', o.updated_at ?? ''].join(':')
+    )
+    .join('|');
 
 // Sipariş durumu renkleri (Order status colors) - Elite Palette
 const STATUS_COLORS: Record<OrderStatus, string> = {
@@ -81,61 +93,96 @@ const AdminOrders = ({ navigation, route }: any) => {
   const [cancelReason, setCancelReason] = useState<CancelationReason | null>(null);
   const [cancelDesc, setCancelDesc] = useState('');
   const [cancelling, setCancelling] = useState(false);
+  // Son çekilen listenin parmak izi — gereksiz render'ları engellemek için
+  const signatureRef = useRef<string | null>(null);
 
   useEffect(() => {
+    // Filtre değişince parmak izi geçersiz — listeyi mutlaka yenile
+    signatureRef.current = null;
     fetchOrders();
   }, [filterStatus]);
 
-  // Sipariş listesini realtime canlı tut. Ses + toast global bildirimci
-  // (useAdminOrderNotifier) tarafından yönetilir; burada sadece liste yenilenir.
-  useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    let cancelled = false;
+  // Ekran açıkken tabletin uykuya geçmesini engelle. Ekran kapanınca OS
+  // uygulamayı arka plana alıp realtime bağlantısını kesiyor ve siparişler
+  // düşmüyordu. (Keep the tablet awake while the orders screen is focused.)
+  useFocusEffect(
+    useCallback(() => {
+      activateKeepAwakeAsync('admin-orders').catch(() => {});
+      return () => {
+        // Zaten kapalıysa hata verebilir — sorun değil
+        deactivateKeepAwake('admin-orders').catch(() => {});
+      };
+    }, [])
+  );
 
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        supabase.realtime.setAuth(session.access_token);
-      }
-      if (cancelled) return;
-
-      channel = supabase
-        .channel('admin-orders-list')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'orders' },
-          () => { fetchOrders(); }
-        )
-        .subscribe((status) => {
-          console.log('[admin-orders-list realtime] status:', status);
-        });
-    })();
-
-    return () => {
-      cancelled = true;
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const fetchOrders = async () => {
+  const fetchOrders = async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       let query = supabase.from('orders').select('*, user:users(email, full_name, phone), order_items(*, product:products(name, image_url)), order_item_customizations(*)').order('created_at', { ascending: false });
       if (filterStatus !== 'all') query = query.eq('status', filterStatus);
       const { data, error } = await query;
       if (error) throw error;
+
+      // Değişiklik yoksa state'e dokunma. Aksi halde 20 saniyelik polling
+      // listeyi her seferinde yeniden render edip kart animasyonlarını
+      // baştan oynatıyor. (Skip the state update when nothing actually changed.)
+      const signature = ordersSignature(data || []);
+      if (signature === signatureRef.current) return;
+      signatureRef.current = signature;
       setOrders(data || []);
     } catch (error: any) {
-      Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.orders.errorLoading') });
+      // Sessiz yenilemede hata gösterme — 20 saniyede bir toast yağmasın
+      if (!silent) {
+        Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.orders.errorLoading') });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
       setRefreshing(false);
     }
   };
 
+  // fetchOrders her render'da yeniden üretiliyor; realtime callback'lerinin
+  // her zaman güncel filtreyle çalışan sürümü çağırması için ref'te tut.
+  const fetchOrdersRef = useRef(fetchOrders);
+  fetchOrdersRef.current = fetchOrders;
+
+  // Tek siparişte birden çok event (INSERT + UPDATE) gelebiliyor; art arda
+  // gelen event'leri tek sorguya indir. (Debounce burst realtime events.)
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleSilentRefresh = () => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => {
+      refreshTimerRef.current = null;
+      fetchOrdersRef.current({ silent: true });
+    }, 400);
+  };
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, []);
+
+  // Sipariş listesini realtime canlı tut. Ses + toast global bildirimci
+  // (useAdminOrderNotifier) tarafından yönetilir; burada sadece liste yenilenir.
+  // useRealtimeTable kopan bağlantıyı yeniden kurar, uygulama ön plana
+  // döndüğünde tazeler ve realtime tamamen ölse bile polling ile liste güncel kalır.
+  const { status: realtimeStatus } = useRealtimeTable({
+    channel: 'admin-orders-list',
+    table: 'orders',
+    event: '*',
+    onEvent: scheduleSilentRefresh,
+    onResync: (reason) => {
+      // İlk abonelikte liste zaten mount'ta çekiliyor — sorguyu tekrarlamayalım
+      if (reason === 'subscribed') return;
+      fetchOrdersRef.current({ silent: true });
+    },
+    pollIntervalMs: 20000,
+  });
+
   const onRefresh = () => {
     setRefreshing(true);
-    fetchOrders();
+    fetchOrders({ silent: true });
   };
 
   const handlePrintOrder = async (order: Order) => {
@@ -334,6 +381,17 @@ const AdminOrders = ({ navigation, route }: any) => {
             <View style={styles.headerTitleBox}>
                 <Text style={styles.headerSubtitle}>{t('admin.dashboard')}</Text>
                 <Text style={styles.headerTitle}>{t('admin.orders.title')}</Text>
+                {/* Canlı bağlantı göstergesi — liste gerçekten güncel mi? */}
+                <View style={styles.liveRow}>
+                    <View style={[styles.liveDot, { backgroundColor: realtimeStatus === 'live' ? '#28A745' : realtimeStatus === 'connecting' ? '#FFC107' : '#DC3545' }]} />
+                    <Text style={styles.liveText}>
+                        {realtimeStatus === 'live'
+                          ? t('admin.orders.liveConnected')
+                          : realtimeStatus === 'connecting'
+                          ? t('admin.orders.liveConnecting')
+                          : t('admin.orders.liveOffline')}
+                    </Text>
+                </View>
             </View>
             <TouchableOpacity style={styles.refreshCircle} onPress={onRefresh}>
                 <Ionicons name="refresh" size={18} color={Colors.white} />
@@ -545,6 +603,9 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
   headerTitle: { fontSize: 24, fontWeight: '900', color: Colors.white },
   refreshCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  liveRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  liveDot: { width: 7, height: 7, borderRadius: 4 },
+  liveText: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },
   filterBar: { marginTop: 20, paddingLeft: 20 },
   filterBarContent: { paddingRight: 40, gap: 10, paddingBottom: 15 },
   filterItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, gap: 8 },

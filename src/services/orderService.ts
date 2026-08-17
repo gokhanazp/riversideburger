@@ -184,36 +184,14 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
       await usePoints(user_id, orderData.id, points_used);
     }
 
-    // Admin kullanıcılarına push notification gönder (Send push notification to admins)
-    try {
-      // Müşteri bilgilerini al (Get customer info)
-      const { data: userData } = await supabase
-        .from('users')
-        .select('full_name')
-        .eq('id', user_id)
-        .single();
-
-      const customerName = userData?.full_name || 'Müşteri';
-      const methodTag = delivery_method === 'pickup' ? ' [Pickup]' : '';
-
-      // Push notification gönder (Send push notification)
-      const { sendPushNotificationToAdmins } = await import('./notificationService');
-      await sendPushNotificationToAdmins(
-        `🔔 Yeni Sipariş!${methodTag}`,
-        `${customerName} - $${total_amount.toFixed(2)}`,
-        {
-          orderId: orderData.id,
-          orderNumber: orderData.order_number,
-          type: 'new_order_admin',
-          deliveryMethod: delivery_method,
-        }
-      );
-
-      console.log('✅ Admin push notification gönderildi');
-    } catch (notifError) {
-      // Bildirim hatası siparişi etkilemez (Notification error doesn't affect order)
-      console.error('⚠️ Admin bildirim hatası:', notifError);
-    }
+    // Admin push bildirimi ARTIK BURADAN GÖNDERİLMİYOR.
+    // Eskiden push'u siparişi veren müşterinin cihazı gönderiyordu; müşteri RLS
+    // yüzünden ne `users` üzerinden admin listesini ne de `push_tokens` tablosunu
+    // okuyabildiği için istek her seferinde boş dönüyor, hiç bildirim gitmiyordu.
+    // Bunun yerine orders INSERT trigger'ı (trg_push_admins_on_new_order) sunucudaki
+    // notify-admin-new-order Edge Function'ını çağırıyor ve push service role ile
+    // gönderiliyor — uygulama kapalı olsa bile çalışır.
+    // Bkz. supabase/migrations/20260817120000_admin_push_on_new_order.sql
 
     return orderData;
   } catch (error: any) {
