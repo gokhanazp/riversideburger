@@ -219,10 +219,22 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
     ).data;
 
     console.log('✅ Push token:', token);
-  } catch (error) {
-    // Expo Go'da projectId hatası bekleniyor, sessizce logla
-    // (projectId error is expected in Expo Go, log silently)
-    console.log('ℹ️ Push token alınamadı (Expo Go modunda normal). Yerel bildirimler çalışacak.');
+  } catch (error: any) {
+    // ÖNEMLİ: burada eskiden her hata "Expo Go modunda normal" diye yutuluyordu.
+    // Bu yüzden gerçek bir sorun (Android'de Firebase/FCM yapılandırmasının
+    // eksikliği) hiç fark edilmedi: production build'de de aynı zararsız mesaj
+    // basıldığı için hiçbir Android cihazı token kaydetmemesine rağmen kimse
+    // görmedi. Artık gerçek hata ve olası sebebi yazılıyor.
+    const message = error?.message || String(error);
+    console.warn(`❌ Push token alınamadı (${Platform.OS}): ${message}`);
+    if (Platform.OS === 'android') {
+      console.warn(
+        '   Android push için Firebase/FCM yapılandırması şart: google-services.json ' +
+          'app.json içinde android.googleServicesFile ile tanımlanmalı ve FCM V1 ' +
+          'service account anahtarı EAS credentials\'a yüklenmeli. Eksikse token alınamaz.'
+      );
+    }
+    console.warn('   Bu cihaz uygulama kapalıyken bildirim ALMAYACAK; uygulama açıkken yerel bildirim çalışır.');
   }
 
   // Android için bildirim kanalı oluştur (Create notification channel for Android)
