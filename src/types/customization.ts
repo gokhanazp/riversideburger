@@ -44,6 +44,9 @@ export interface OrderItemCustomization {
   product_name: string;
   option_id?: string;
   option_name: string;
+  // Sipariş anındaki İngilizce ad (product_options.name_en kopyası).
+  // Eski kayıtlarda boş olabilir; o durumda option_name kullanılır.
+  option_name_en?: string | null;
   option_price: number;
   quantity: number;
   special_instructions?: string;

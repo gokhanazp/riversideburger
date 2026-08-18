@@ -33,7 +33,10 @@ export default function RegisterScreen({ navigation }: any) {
     console.log('📝 Register button pressed');
 
     // Validasyon (Validation)
-    if (!fullName || !email || !phone || !password || !confirmPassword) {
+    // Telefon bilerek zorunlu değil: App Store incelemesi hesap açmak için
+    // telefon numarası istenmesine itiraz etti. Numara gerektiğinde (teslimat
+    // adresi eklerken veya restorandan teslim alma siparişinde) isteniyor.
+    if (!fullName || !email || !password || !confirmPassword) {
       console.log('❌ Validation failed: Missing fields');
       Toast.show({
         type: 'error',
@@ -177,7 +180,7 @@ export default function RegisterScreen({ navigation }: any) {
             <Ionicons name="call-outline" size={20} color="#6C757D" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder={t('auth.phone')}
+              placeholder={t('auth.phoneOptional')}
               placeholderTextColor="#ADB5BD"
               value={phone}
               onChangeText={setPhone}

@@ -176,7 +176,7 @@ const AdminSettings = ({ navigation }: any) => {
 
   const handleSaveWorkingHours = async (workingHours: WorkingHours, autoCloseEnabled: boolean) => {
     try {
-      const success = await updateWorkingHours(workingHours, autoCloseEnabled);
+      const success = await updateWorkingHours(workingHours, autoCloseEnabled, settings.id);
       if (!success) throw new Error('Failed');
       setSettings({ ...settings, working_hours: workingHours, auto_close_enabled: autoCloseEnabled });
       Toast.show({ type: 'success', text1: t('admin.settings.workingHours.saved') });

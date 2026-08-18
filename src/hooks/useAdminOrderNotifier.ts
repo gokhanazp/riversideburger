@@ -76,7 +76,9 @@ export function useAdminOrderNotifier() {
 
       const { data: fullOrder } = await supabase
         .from('orders')
-        .select('*, user:users(full_name, phone), order_items(*, product:products(name))')
+        // Özelleştirmeler de çekilmeli: fişte "Domates Çıkar" gibi satırlar
+        // bunlardan basılıyor, eksik select yüzünden fişe hiç düşmüyordu.
+        .select('*, user:users(full_name, phone), order_items(*, product:products(name)), order_item_customizations(*)')
         .eq('id', orderId)
         .single();
 

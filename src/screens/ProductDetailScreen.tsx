@@ -228,9 +228,13 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
   };
 
   const handleAddToCart = () => {
+    // İki dili birlikte taşı: sipariş kaydı geçmişe dönük bir kopya olduğu için
+    // admin paneli siparişi kendi dilinde gösterebilsin (seçenek sonradan
+    // yeniden adlandırılsa bile siparişteki metin değişmesin).
     const customizationsData = selectedOptions.map(sel => ({
       option_id: sel.option.id,
       option_name: sel.option.name,
+      option_name_en: sel.option.name_en ?? null,
       option_price: sel.option.price,
     }));
 

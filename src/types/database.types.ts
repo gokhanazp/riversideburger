@@ -116,6 +116,21 @@ export interface Order {
   user?: User;
   order_items?: OrderItem[];
   address?: Address; // Adres ilişkisi (Address relation)
+  // Seçilen/çıkarılan malzemeler (order_item_customizations ilişkisi).
+  // Ürünle product_id üzerinden eşleşir; fiş ve admin detayında gösterilir.
+  order_item_customizations?: OrderCustomizationRow[];
+}
+
+// Sipariş özelleştirme satırı (order_item_customizations)
+// Ayrıntılı tip src/types/customization.ts içinde; burada fiş/admin gösterimi
+// için gereken alanlar tutulur.
+export interface OrderCustomizationRow {
+  id: string;
+  product_id?: string | null;
+  option_name: string;
+  option_name_en?: string | null;
+  option_price?: number | null;
+  special_instructions?: string | null;
 }
 
 // Kampanya (Campaign / Promotion)

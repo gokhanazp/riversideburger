@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, TextInput, ActivityIndicator, StatusBar } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
@@ -100,6 +101,26 @@ const HomeScreen = ({ navigation }: any) => {
     loadDeliveryPartners();
   }, []);
 
+  // Anasayfa bir sekme olduğu için bir kez mount edilip açık kalıyor; içerik de
+  // yalnızca mount'ta yükleniyordu. Admin panelinden adres/iletişim bilgisi veya
+  // ürün güncellendiğinde değişiklik anasayfaya ancak uygulama yeniden başlarsa
+  // yansıyordu. Ekran yeniden odağa geldiğinde tazeliyoruz (ilk odak mount'un
+  // yüklemesiyle çakışmasın diye atlanıyor).
+  const hasBeenFocusedRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasBeenFocusedRef.current) {
+        hasBeenFocusedRef.current = true;
+        return;
+      }
+      fetchFeaturedProducts();
+      fetchCategories();
+      fetchRestaurantReviews();
+      loadContactInfo();
+      loadDeliveryPartners();
+    }, [])
+  );
+
   const loadContactInfo = async () => {
     try {
       const info = await getContactInfo();
@@ -107,6 +128,41 @@ const HomeScreen = ({ navigation }: any) => {
     } catch (error) {
       console.error('Error loading contact info:', error);
     }
+  };
+
+  // Footer'daki tek bir konum (adres + opsiyonel telefon).
+  // Eskiden adres ve telefonun İKİSİ de dolu olmadıkça konum hiç render edilmiyordu;
+  // admin adresi girip telefonu boş bıraktığında konum sessizce kayboluyordu.
+  // Artık adres varsa gösteriliyor, telefon varsa altına eklenip tıklanabilir oluyor.
+  const renderLocation = (address: string, phone: string) => {
+    if (!address?.trim()) return null;
+
+    const lines = address.split('\n');
+    const content = (
+      <Text style={styles.footerText}>
+        {lines.map((line, i) => (
+          <React.Fragment key={i}>
+            {line}
+            {i < lines.length - 1 && '\n'}
+          </React.Fragment>
+        ))}
+        {phone?.trim() ? `\n${phone}` : ''}
+      </Text>
+    );
+
+    if (!phone?.trim()) {
+      return <View style={styles.locationItem}>{content}</View>;
+    }
+
+    return (
+      <TouchableOpacity
+        style={styles.locationItem}
+        onPress={() => Linking.openURL(getPhoneLink(phone))}
+        activeOpacity={0.7}
+      >
+        {content}
+      </TouchableOpacity>
+    );
   };
 
   const loadDeliveryPartners = async () => {
@@ -697,7 +753,11 @@ const HomeScreen = ({ navigation }: any) => {
         <View style={styles.footerSection}>
           <Text style={styles.footerTitle}>About Us</Text>
           <Text style={styles.footerText}>
-            {contactInfo?.footerAbout || 'Riverside Burgers was established in 2019. Our passion for fresh and high quality burgers led us to creating our Signature Burger.'}
+            {/* Yüklenirken varsayılan metni göster, ama admin alanı temizlediyse
+                kodda gömülü metne dönme — boş kalması bilinçli bir tercih. */}
+            {contactInfo
+              ? contactInfo.footerAbout
+              : 'Riverside Burgers was established in 2019. Our passion for fresh and high quality burgers led us to creating our Signature Burger.'}
           </Text>
           {/* Social Media */}
           {contactInfo && (
@@ -729,40 +789,8 @@ const HomeScreen = ({ navigation }: any) => {
           <View style={styles.footerSection}>
             <Text style={styles.footerTitle}>Locations</Text>
             <View style={styles.locationsRow}>
-              {contactInfo.address1 && contactInfo.phone1 && (
-                <TouchableOpacity
-                  style={styles.locationItem}
-                  onPress={() => Linking.openURL(getPhoneLink(contactInfo.phone1))}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.footerText}>
-                    {contactInfo.address1.split('\n').map((line, i) => (
-                      <React.Fragment key={i}>
-                        {line}
-                        {i < contactInfo.address1.split('\n').length - 1 && '\n'}
-                      </React.Fragment>
-                    ))}
-                    {'\n'}{contactInfo.phone1}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {contactInfo.address2 && contactInfo.phone2 && (
-                <TouchableOpacity
-                  style={styles.locationItem}
-                  onPress={() => Linking.openURL(getPhoneLink(contactInfo.phone2))}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.footerText}>
-                    {contactInfo.address2.split('\n').map((line, i) => (
-                      <React.Fragment key={i}>
-                        {line}
-                        {i < contactInfo.address2.split('\n').length - 1 && '\n'}
-                      </React.Fragment>
-                    ))}
-                    {'\n'}{contactInfo.phone2}
-                  </Text>
-                </TouchableOpacity>
-              )}
+              {renderLocation(contactInfo.address1, contactInfo.phone1)}
+              {renderLocation(contactInfo.address2, contactInfo.phone2)}
             </View>
             {contactInfo.email && (
               <TouchableOpacity

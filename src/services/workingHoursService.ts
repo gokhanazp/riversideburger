@@ -146,19 +146,47 @@ export const getWorkingHours = async (): Promise<WorkingHours | null> => {
 
 /**
  * Çalışma saatlerini güncelle (Update working hours)
+ *
+ * Önemli: filtre olmadan UPDATE göndermek veritabanı tarafından reddediliyor
+ * ("UPDATE requires a WHERE clause", SQLSTATE 21000) ve .limit(1) filtre yerine
+ * geçmiyor. Eskiden filtre hiç yoktu, bu yüzden çalışma saatleri kaydetme her
+ * seferinde sessizce başarısız oluyordu. Artık satır id'si ile güncelliyoruz.
  */
 export const updateWorkingHours = async (
   workingHours: WorkingHours,
-  autoCloseEnabled: boolean
+  autoCloseEnabled: boolean,
+  settingsId?: string
 ): Promise<boolean> => {
   try {
+    let targetId = settingsId;
+
+    // Çağıran id vermediyse ayar satırını bul
+    if (!targetId) {
+      const { data, error: lookupError } = await supabase
+        .from('settings')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+
+      if (lookupError) {
+        console.error('❌ Error looking up settings row:', lookupError);
+        return false;
+      }
+      targetId = data?.id;
+    }
+
+    if (!targetId) {
+      console.error('❌ No settings row found to update working hours');
+      return false;
+    }
+
     const { error } = await supabase
       .from('settings')
       .update({
         working_hours: workingHours,
         auto_close_enabled: autoCloseEnabled,
       })
-      .limit(1);
+      .eq('id', targetId);
 
     if (error) {
       console.error('❌ Error updating working hours:', error);

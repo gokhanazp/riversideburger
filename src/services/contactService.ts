@@ -80,6 +80,12 @@ const DEFAULT_CONTACT_INFO: ContactInfo = {
 
 // Global cache (to avoid multiple async calls)
 let cachedContactInfo: ContactInfo | null = null;
+let cachedAt = 0;
+// Cache süresiz tutulduğunda admin adresi/iletişimi güncellediğinde müşteri
+// cihazları uygulama yeniden başlayana kadar eski bilgiyi gösteriyordu.
+// Kısa bir TTL ile kendini tazeliyor. (Admin kendi cihazında clearContactCache
+// çağırdığı için orada değişiklik anında görünüyor.)
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 /**
  * İletişim bilgilerini getir (Get contact information)
@@ -87,8 +93,8 @@ let cachedContactInfo: ContactInfo | null = null;
  * (Returns from cache, loads from database if not cached)
  */
 export const getContactInfo = async (): Promise<ContactInfo> => {
-  // Cache'de varsa döndür (Return from cache if available)
-  if (cachedContactInfo) {
+  // Cache tazeyse döndür (Return from cache while it is still fresh)
+  if (cachedContactInfo && Date.now() - cachedAt < CACHE_TTL_MS) {
     return cachedContactInfo;
   }
 
@@ -171,11 +177,18 @@ export const getContactInfo = async (): Promise<ContactInfo> => {
         else if (key === 'home_why_f3_desc_en') key = 'whyFeature3DescEn';
       }
 
-      contactInfo[key] = item.setting_value || DEFAULT_CONTACT_INFO[key as keyof ContactInfo];
+      // Boş değer bilinçli bir tercihtir: admin alanı temizlediyse varsayılana
+      // DÖNMEMELİ. Eskiden `|| DEFAULT_CONTACT_INFO[key]` kullanılıyordu; boş string
+      // falsy olduğu için admin ikinci adresi silince anasayfa kodda gömülü eski
+      // adresi göstermeye devam ediyordu (admin ekranı boş, anasayfa dolu).
+      // Varsayılan artık yalnızca ayar satırı hiç yoksa geçerli — contactInfo
+      // DEFAULT_CONTACT_INFO kopyasıyla başladığı için o durum kendiliğinden korunuyor.
+      contactInfo[key] = item.setting_value ?? '';
     });
 
     // Cache'e kaydet (Save to cache)
     cachedContactInfo = contactInfo;
+    cachedAt = Date.now();
     return contactInfo;
   } catch (error) {
     console.error('Error in getContactInfo:', error);
@@ -190,6 +203,7 @@ export const getContactInfo = async (): Promise<ContactInfo> => {
  */
 export const clearContactCache = () => {
   cachedContactInfo = null;
+  cachedAt = 0;
   console.log('📞 Contact info cache cleared');
 };
 

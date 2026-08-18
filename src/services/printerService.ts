@@ -177,6 +177,22 @@ function line(char = '-', width = CHARS_PER_LINE): string {
   return char.repeat(width);
 }
 
+// Yazıcı ANK karakter setiyle sürülüyor (MODEL_ANK) ve Türkçe harfleri basamıyor;
+// fişteki sabit metinler bu yüzden zaten ASCII ("Musteri", "Tesekkurler").
+// Veritabanından gelen metinler (ürün adı, özelleştirme, müşteri adı, adres, not)
+// aynı işlemden geçmiyordu ve "Domates Çıkar" gibi değerler bozuk basılıyordu.
+const TR_TO_ASCII: Record<string, string> = {
+  ç: 'c', Ç: 'C', ğ: 'g', Ğ: 'G', ı: 'i', İ: 'I',
+  ö: 'o', Ö: 'O', ş: 's', Ş: 'S', ü: 'u', Ü: 'U',
+};
+
+function ascii(text: string | null | undefined): string {
+  return (text || '')
+    .replace(/[çÇğĞıİöÖşŞüÜ]/g, (ch) => TR_TO_ASCII[ch] ?? ch)
+    // Kalan basılamaz/ASCII dışı karakterleri at (emoji, özel tireler vb.)
+    .replace(/[^\x20-\x7E\n]/g, '');
+}
+
 // Order + ESC/POS komutlarını yazıcıya kuyruklar. sendData() çağrılmadan önce.
 async function buildReceipt(printer: any, order: Order): Promise<void> {
   const C = PrinterConstants;
@@ -209,26 +225,50 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
   await printer.addTextAlign(C.ALIGN_LEFT);
   await printer.addText(line() + '\n');
 
-  const customerName = order.user?.full_name || rt('guest');
-  const phone = order.phone || order.user?.phone || '-';
+  const customerName = ascii(order.user?.full_name) || rt('guest');
+  const phone = ascii(order.phone || order.user?.phone) || '-';
   await printer.addText(`${rt('customer')}: ${customerName}\n`);
   await printer.addText(`${rt('phone')}: ${phone}\n`);
   if (order.delivery_method !== 'pickup' && order.delivery_address) {
-    await printer.addText(`${rt('address')}:\n${order.delivery_address}\n`);
+    await printer.addText(`${rt('address')}:\n${ascii(order.delivery_address)}\n`);
   }
 
   if (order.notes) {
     await printer.addTextStyle({ em: C.TRUE });
-    await printer.addText(`${rt('note')}: ${order.notes}\n`);
+    await printer.addText(`${rt('note')}: ${ascii(order.notes)}\n`);
     await printer.addTextStyle({ em: C.FALSE });
   }
 
   // Ürünler
   await printer.addText(line() + '\n');
   const items = order.order_items || [];
+  const customizations = order.order_item_customizations || [];
   for (const item of items) {
-    const name = `${item.quantity}x ${item.product?.name || rt('product')}`;
+    const name = `${item.quantity}x ${ascii(item.product?.name) || rt('product')}`;
     await printer.addText(twoColumns(name, money(item.subtotal)) + '\n');
+
+    // Seçilen/çıkarılan malzemeleri ürünün altına yaz. Mutfak siparişi fişten
+    // hazırlıyor; "Domates Çıkar" fişte görünmezse yanlış burger çıkıyor.
+    // Kaçırılmaması için koyu (em) basılıyor.
+    const itemCustomizations = customizations.filter((c) => c.product_id === item.product_id);
+    for (const custom of itemCustomizations) {
+      const label =
+        i18n.language === 'en'
+          ? custom.option_name_en || custom.option_name
+          : custom.option_name;
+      await printer.addTextStyle({ em: C.TRUE });
+      await printer.addText(`  >> ${ascii(label)}\n`);
+      await printer.addTextStyle({ em: C.FALSE });
+    }
+
+    // Ürüne yazılan özel not (varsa). Aynı not her özelleştirme satırına
+    // kopyalandığı için bir kez basılır.
+    const itemNote = itemCustomizations.find((c) => c.special_instructions?.trim())?.special_instructions;
+    if (itemNote) {
+      await printer.addTextStyle({ em: C.TRUE });
+      await printer.addText(`  ${rt('note')}: ${ascii(itemNote)}\n`);
+      await printer.addTextStyle({ em: C.FALSE });
+    }
   }
   await printer.addText(line() + '\n');
 

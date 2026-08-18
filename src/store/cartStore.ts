@@ -4,7 +4,7 @@ import { CartItem, MenuItem } from '../types';
 // Sepet store'u için interface tanımı (Cart store interface definition)
 interface CartStore {
   items: CartItem[]; // Sepetteki ürünler (Items in cart)
-  addItem: (item: MenuItem, customizations?: Array<{option_id: string; option_name: string; option_price: number}>, specialInstructions?: string) => void; // Sepete ürün ekle (Add item to cart)
+  addItem: (item: MenuItem, customizations?: Array<{option_id: string; option_name: string; option_name_en?: string | null; option_price: number}>, specialInstructions?: string) => void; // Sepete ürün ekle (Add item to cart)
   removeItem: (itemId: string) => void; // Sepetten ürün çıkar (Remove item from cart)
   updateQuantity: (itemId: string, quantity: number) => void; // Ürün miktarını güncelle (Update item quantity)
   clearCart: () => void; // Sepeti temizle (Clear cart)
@@ -17,7 +17,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
 
   // Sepete ürün ekleme fonksiyonu (Add item to cart function)
-  addItem: (item: MenuItem, customizations?: Array<{option_id: string; option_name: string; option_price: number}>, specialInstructions?: string) => {
+  addItem: (item: MenuItem, customizations?: Array<{option_id: string; option_name: string; option_name_en?: string | null; option_price: number}>, specialInstructions?: string) => {
     const currentItems = get().items;
 
     // Özelleştirmeli ürünler her zaman yeni item olarak eklenir

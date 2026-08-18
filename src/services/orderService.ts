@@ -25,6 +25,7 @@ interface CreateOrderParams {
     customizations?: Array<{
       option_id: string;
       option_name: string;
+      option_name_en?: string | null;
       option_price: number;
     }>;
     specialInstructions?: string;
@@ -134,6 +135,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
             product_name: item.product_name,
             option_id: custom.option_id,
             option_name: custom.option_name,
+            option_name_en: custom.option_name_en ?? null,
             option_price: custom.option_price,
             quantity: item.quantity,
             special_instructions: item.specialInstructions || null,
@@ -163,6 +165,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
             product_name: item.product_name,
             option_id: null, // Dinamik seçenekler için option_id null
             option_name: custom.option_name,
+            option_name_en: custom.option_name_en ?? null,
             option_price: custom.option_price,
             quantity: item.quantity,
             special_instructions: item.specialInstructions || null,

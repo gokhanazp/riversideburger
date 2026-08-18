@@ -36,6 +36,7 @@ export interface CartItem extends MenuItem {
   customizations?: Array<{
     option_id: string;
     option_name: string;
+    option_name_en?: string | null; // Sipariş kaydına İngilizce adı da taşımak için
     option_price: number;
   }>;
   specialInstructions?: string;

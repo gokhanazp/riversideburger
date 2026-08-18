@@ -236,12 +236,29 @@ const AdminOrders = ({ navigation, route }: any) => {
               <div><b>Address:</b><br/>${order.delivery_address}</div>
             </div>
             <div class="section">
-              ${order.order_items?.map(item => `
+              ${order.order_items?.map(item => {
+                // Seçilen/çıkarılan malzemeleri ürünün altına yaz — mutfak fişten
+                // hazırlıyor, bu satırlar olmadan yanlış ürün çıkıyor.
+                const customs = (order.order_item_customizations || [])
+                  .filter(c => c.product_id === item.product_id);
+                const customLines = customs.map(c =>
+                  `<div style="padding-left:14px; font-weight:bold;">&gt;&gt; ${
+                    i18n.language === 'en' ? (c.option_name_en || c.option_name) : c.option_name
+                  }</div>`
+                ).join('');
+                const itemNote = customs.find(c => c.special_instructions?.trim())?.special_instructions;
+                const noteLine = itemNote
+                  ? `<div style="padding-left:14px; font-weight:bold;">${t('admin.printer.receipt.note')}: ${itemNote}</div>`
+                  : '';
+                return `
                 <div style="display:flex; justify-content:space-between; font-weight:bold;">
                   <span>${item.quantity}x ${item.product?.name}</span>
                   <span>${currencySymbol}${item.subtotal.toFixed(2)}</span>
                 </div>
-              `).join('')}
+                ${customLines}
+                ${noteLine}
+              `;
+              }).join('')}
             </div>
             <div class="total-row"><span>TOTAL:</span> <span>${currencySymbol}${order.total_amount.toFixed(2)}</span></div>
           </body>
@@ -553,8 +570,13 @@ const AdminOrders = ({ navigation, route }: any) => {
                                 <View style={styles.itQtyBox}><Text style={styles.itQty}>{it.quantity}x</Text></View>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.itName}>{it.product?.name}</Text>
+                                    {/* Özelleştirmeyi panelin dilinde göster. option_name_en sipariş
+                                        anında kaydediliyor; eski siparişlerde boş olabilir, o zaman
+                                        Türkçe ada düşülür. */}
                                     {(selectedOrder as any).order_item_customizations?.filter((c:any)=>c.product_id===it.product_id).map((c:any, i:number) => (
-                                        <Text key={i} style={styles.itCustom}>• {c.option_name}</Text>
+                                        <Text key={i} style={styles.itCustom}>
+                                            • {i18n.language === 'en' ? (c.option_name_en || c.option_name) : c.option_name}
+                                        </Text>
                                     ))}
                                 </View>
                             </View>

@@ -57,6 +57,12 @@ const CartScreen = ({ navigation }: any) => {
   // Teslimat şekli (Delivery method): 'pickup' = restorandan al, 'delivery' = adrese teslimat
   const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('delivery');
 
+  // Restorandan teslim alma siparişi için iletişim telefonu.
+  // Kayıt ekranında telefon artık zorunlu değil (App Store gerekliliği), bu yüzden
+  // profilde numara olmayabiliyor. Teslimatta numara adresten geliyor; pickup'ta
+  // ise burada isteniyor ve profile de kaydediliyor, böylece bir kez sorulur.
+  const [pickupPhone, setPickupPhone] = useState<string>('');
+
   // Uber Direct delivery quote state
   const [deliveryQuote, setDeliveryQuote] = useState<UberQuote | null>(null);
   const [isLoadingQuote, setIsLoadingQuote] = useState(false);
@@ -67,6 +73,11 @@ const CartScreen = ({ navigation }: any) => {
       loadUserPoints();
     }
   }, [isAuthenticated, user]);
+
+  // Profildeki numarayı pickup alanına ön-doldur (varsa)
+  useEffect(() => {
+    setPickupPhone(user?.phone?.trim() || '');
+  }, [user?.id, user?.phone]);
 
   // Adresleri ekran her odağa geldiğinde tazele — başka ekrandan (AddressEdit)
   // yeni adres ekleyip sepete dönünce listede görünsün, hard refresh gerekmesin.
@@ -208,6 +219,22 @@ const CartScreen = ({ navigation }: any) => {
       return;
     }
     if (!isAuthenticated) { setShowLoginModal(true); return; }
+    if (deliveryMethod === 'pickup') {
+      // Restoranın müşteriye ulaşabilmesi için numara şart. Kayıtta zorunlu
+      // olmadığı için burada isteniyor. Ülkeye özel katı format doğrulaması
+      // yapmıyoruz — checkout'ta geçerli bir numarayı reddedip siparişi kaybetmek
+      // en kötü sonuç. Sadece anlamsız girişi eleyecek kadar rakam arıyoruz.
+      if (pickupPhone.replace(/\D/g, '').length < 7) {
+        Toast.show({
+          type: 'error',
+          text1: t('cart.pickupPhoneRequiredTitle'),
+          text2: t('cart.pickupPhoneRequiredDesc'),
+          position: 'top',
+          topOffset: 60,
+        });
+        return;
+      }
+    }
     if (deliveryMethod === 'delivery') {
       if (!selectedAddress) {
         Toast.show({ type: 'error', text1: t('cart.noAddressSelectedTitle'), text2: t('cart.noAddressSelectedDesc'), position: 'top', topOffset: 60 });
@@ -231,6 +258,16 @@ const CartScreen = ({ navigation }: any) => {
     if (!user) return;
     setShowCheckoutModal(false);
 
+    // Pickup'ta girilen numarayı profile de yaz — bir daha sorulmasın.
+    // Sipariş akışını bloklamasın diye hata yutuluyor.
+    const trimmedPickupPhone = pickupPhone.trim();
+    if (deliveryMethod === 'pickup' && trimmedPickupPhone && trimmedPickupPhone !== user.phone) {
+      import('../services/userService')
+        .then(({ updateUserProfile }) => updateUserProfile(user.id, { phone: trimmedPickupPhone }))
+        .then(() => useAuthStore.getState().setUser({ ...user, phone: trimmedPickupPhone }))
+        .catch((error) => console.log('Pickup telefonu profile kaydedilemedi:', error));
+    }
+
     // Pickup için adres gönderme; delivery için seçilen adresi gönder
     const fullAddress = deliveryMethod === 'pickup'
       ? `${t('cart.deliveryMethodPickup')}: Riverside Burgers`
@@ -242,7 +279,7 @@ const CartScreen = ({ navigation }: any) => {
       totalAmount: getFinalPrice(),
       currency: getCurrentCurrency(),
       deliveryAddress: fullAddress,
-      phone: deliveryMethod === 'pickup' ? (user.phone ?? '') : (selectedAddress?.phone || t('cart.phoneNotSpecified')),
+      phone: deliveryMethod === 'pickup' ? trimmedPickupPhone : (selectedAddress?.phone || t('cart.phoneNotSpecified')),
       notes: pointsToUse > 0 ? t('cart.pointsUsed', { points: pointsToUse.toFixed(2) }) : '',
       pointsUsed: pointsToUse,
       addressId: deliveryMethod === 'pickup' ? null : (selectedAddress?.id || null),
@@ -323,6 +360,32 @@ const CartScreen = ({ navigation }: any) => {
               {t('cart.deliveryMethodPickup')}
             </Text>
           </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Telefon Bölümü — sadece restorandan teslim alma seçilince.
+          Teslimatta numara adresten geliyor; pickup'ta profil boş olabileceği için
+          (kayıtta telefon opsiyonel) burada isteniyor. */}
+      {isAuthenticated && deliveryMethod === 'pickup' && (
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.headerTitleRow}>
+              <Ionicons name="call" size={20} color={Colors.primary} />
+              <Text style={styles.sectionTitleText}>{t('cart.pickupPhoneTitle')}</Text>
+            </View>
+          </View>
+          <View style={styles.pickupPhoneBody}>
+            <Text style={styles.pickupPhoneHint}>{t('cart.pickupPhoneHint')}</Text>
+            <TextInput
+              style={styles.pickupPhoneInput}
+              value={pickupPhone}
+              onChangeText={setPickupPhone}
+              placeholder={t('cart.pickupPhonePlaceholder')}
+              placeholderTextColor="#ADB5BD"
+              keyboardType="phone-pad"
+              autoComplete="tel"
+            />
+          </View>
         </View>
       )}
 
@@ -621,6 +684,9 @@ const styles = StyleSheet.create({
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerSubtitle: { fontSize: 12, color: '#888', maxWidth: 120 },
   sectionTitleText: { fontSize: 13, fontWeight: '700', color: '#1A1A1A', textTransform: 'uppercase', letterSpacing: 0.5 },
+  pickupPhoneBody: { marginTop: 12, gap: 8 },
+  pickupPhoneHint: { fontSize: 12, color: '#6C757D', lineHeight: 17 },
+  pickupPhoneInput: { backgroundColor: '#F8F9FA', borderWidth: 1, borderColor: '#E9ECEF', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: '#1A1A1A' },
   expandedContent: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#F5F5F5' },
   addressCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#EDEEF2' },
   addressCardInfo: { flex: 1 },
