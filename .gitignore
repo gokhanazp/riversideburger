@@ -44,6 +44,15 @@ yarn-error.*
 # Google Play Service Account
 google-service-account.json
 
+# Firebase / Google servis hesabı ÖZEL ANAHTARLARI — asla commit edilmemeli.
+# Bu depo herkese açık; bu dosyalar Firebase projesine yönetici erişimi verir.
+# (google-services.json bunlardan DEĞİL: o istemci yapılandırması, APK içinde
+# zaten herkese açık ve build için repoda bulunması gerekiyor.)
+*adminsdk*.json
+*-service-account*.json
+service-account*.json
+firebase-adminsdk*.json
+
 # Keystores
 *.keystore
 *.jks

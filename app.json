@@ -3,7 +3,7 @@
     "name": "Riverside Burgers",
     "slug": "riverside-burgers",
     "scheme": "riversideburgers",
-    "version": "2.0.3",
+    "version": "2.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -37,6 +37,7 @@
     },
     "android": {
       "package": "com.riverside_burgers.app",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "384217534818",
+    "project_id": "riverside-burgers",
+    "storage_bucket": "riverside-burgers.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:384217534818:android:de1d46191921ed91fcdc3b",
+        "android_client_info": {
+          "package_name": "com.riverside_burgers.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACm20e1ole3CqF3fMuoGrtRQdGm5hMZ-Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
