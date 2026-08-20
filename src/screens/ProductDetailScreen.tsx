@@ -228,6 +228,19 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
   };
 
   const handleAddToCart = () => {
+    // Tükenen ürün sepete eklenemez. Menüde buton pasif ama bu ekrana favoriler
+    // gibi başka yollardan da gelinebiliyor; kontrolü burada da yapıyoruz.
+    if (item.available === false) {
+      Toast.show({
+        type: 'error',
+        text1: item.name,
+        text2: t('menu.soldOutDesc'),
+        position: 'top',
+        topOffset: 60,
+      });
+      return;
+    }
+
     // İki dili birlikte taşı: sipariş kaydı geçmişe dönük bir kopya olduğu için
     // admin paneli siparişi kendi dilinde gösterebilsin (seçenek sonradan
     // yeniden adlandırılsa bile siparişteki metin değişmesin).
@@ -421,12 +434,25 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
               <Ionicons name="add" size={20} color={Colors.black} />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.addBtn} onPress={handleAddToCart}>
-            <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.addBtnGradient}>
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={handleAddToCart}
+            disabled={item.available === false}
+          >
+            <LinearGradient
+              colors={item.available === false ? ['#B0B0B0', '#909090'] : [Colors.primary, Colors.primaryDark]}
+              style={styles.addBtnGradient}
+            >
               <View style={styles.addBtnContent}>
-                <Text style={styles.addBtnText}>{t('menu.addToCart')}</Text>
-                <View style={styles.addBtnSpacer} />
-                <Text style={styles.addBtnPrice}>{formatPrice(calculateTotalPrice())}</Text>
+                <Text style={styles.addBtnText}>
+                  {item.available === false ? t('menu.soldOut') : t('menu.addToCart')}
+                </Text>
+                {item.available !== false && (
+                  <>
+                    <View style={styles.addBtnSpacer} />
+                    <Text style={styles.addBtnPrice}>{formatPrice(calculateTotalPrice())}</Text>
+                  </>
+                )}
               </View>
             </LinearGradient>
           </TouchableOpacity>

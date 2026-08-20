@@ -142,6 +142,9 @@
     "allCategories": "Tüm Kategoriler",
     "noItems": "Bu kategoride ürün bulunamadı",
     "addToCart": "Sepete Ekle",
+    "soldOut": "Tükendi",
+    "soldOutDesc": "Bu ürün şu anda mevcut değil",
+    "soldOutInCart": "Sepetinizdeki şu ürünler tükendi: {{names}}. Lütfen sepetten çıkarın.",
     "outOfStock": "Stokta Yok",
     "campaignProducts": "Kampanyalı ürünler"
   },

@@ -26,6 +26,7 @@ import { Address, Campaign } from '../types/database.types';
 import { formatPrice, getCurrentCurrency } from '../services/currencyService';
 import { getDeliveryQuote, UberQuote } from '../services/uberDeliveryService';
 import { resolveCartCampaigns, getCampaignName, getCampaignSummary, AppliedCampaign, CampaignNudge } from '../services/campaignService';
+import { supabase } from '../lib/supabase';
 
 const CartScreen = ({ navigation }: any) => {
   const { t, i18n } = useTranslation();
@@ -213,7 +214,29 @@ const CartScreen = ({ navigation }: any) => {
   const getFinalPrice = () =>
     Math.max(0, getTotalPrice() - campaignDiscount - pointsToUse) + deliveryFee;
 
-  const handleCheckout = () => {
+  // Sepetteki ürünlerin hâlâ stokta olup olmadığını sipariş anında doğrula.
+  // Menüde tükenen ürünün butonu pasif ama sepete girmenin başka yolları var:
+  // favorilerde saklanan eski kayıt, ya da sepete eklendikten SONRA tükenen ürün.
+  // Restoranın elinde olmayan ürünün siparişini almasını engelleyen gerçek nokta burası.
+  const findSoldOutItems = async (): Promise<string[]> => {
+    const productIds = [...new Set(items.map((i) => i.id))];
+    if (!productIds.length) return [];
+
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, stock_status, is_active')
+      .in('id', productIds);
+
+    // Kontrol edilemiyorsa (ağ yok vb.) siparişi bloklamıyoruz — müşteriyi
+    // sipariş veremez halde bırakmak, nadir bir stok hatasından daha kötü.
+    if (error || !data) return [];
+
+    return data
+      .filter((p: any) => p.stock_status !== 'in_stock' || p.is_active === false)
+      .map((p: any) => p.name);
+  };
+
+  const handleCheckout = async () => {
     if (items.length === 0) {
       Toast.show({ type: 'error', text1: t('cart.emptyCartTitle'), text2: t('cart.emptyCartDesc'), position: 'top', topOffset: 60 });
       return;
@@ -251,6 +274,21 @@ const CartScreen = ({ navigation }: any) => {
         return;
       }
     }
+
+    // Son kontrol: sepette tükenen ürün varsa siparişi başlatma
+    const soldOut = await findSoldOutItems();
+    if (soldOut.length > 0) {
+      Toast.show({
+        type: 'error',
+        text1: t('menu.soldOut'),
+        text2: t('menu.soldOutInCart', { names: soldOut.join(', ') }),
+        position: 'top',
+        topOffset: 60,
+        visibilityTime: 6000,
+      });
+      return;
+    }
+
     setShowCheckoutModal(true);
   };
 

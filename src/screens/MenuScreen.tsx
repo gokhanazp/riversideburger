@@ -146,7 +146,13 @@ const MenuScreen = ({ navigation, route }: any) => {
       category_id: item.category_id,
       preparationTime: item.preparation_time || 15,
       calories: item.calories ?? null,
-      available: item.is_active,
+      // is_active = ürün menüde listeleniyor mu (admin tamamen gizleyebilir)
+      // stock_status = geçici olarak tükendi mi
+      // İkisi farklı şey; burada eskiden yalnızca is_active'e bakılıyordu ve
+      // getProducts() zaten is_active=true filtreliyor olduğu için `available`
+      // her zaman true çıkıyordu. Sonuç: admin "stokta yok" yapmasına rağmen
+      // ürün menüde normal görünüyor, sepete eklenip sipariş edilebiliyordu.
+      available: item.is_active && item.stock_status === 'in_stock',
       rating: 4.5,
       reviews: reviewCounts[item.id] || 0,
       ingredients: item.ingredients || [],
@@ -171,7 +177,17 @@ const MenuScreen = ({ navigation, route }: any) => {
         >
           {/* Image Section */}
           <View style={isGridView ? styles.gridImageContainer : styles.listImageContainer}>
-             <Image source={{ uri: item.image_url }} style={styles.productImage} />
+             <Image
+               source={{ uri: item.image_url }}
+               style={[styles.productImage, !menuItem.available && styles.productImageUnavailable]}
+             />
+             {/* Tükendi: ürünü gizlemek yerine soluk gösterip işaretliyoruz —
+                 müşteri ürünün var olduğunu görüyor ama sipariş edemiyor. */}
+             {!menuItem.available && (
+               <View style={styles.soldOutOverlay}>
+                 <Text style={styles.soldOutText}>{t('menu.soldOut')}</Text>
+               </View>
+             )}
              {promo && (
                <View style={styles.promoBadge}>
                  <Text style={styles.promoBadgeText}>
@@ -216,10 +232,23 @@ const MenuScreen = ({ navigation, route }: any) => {
                 <Text style={styles.productPrice}>{formatPrice(item.price)}</Text>
               )}
               <TouchableOpacity
-                style={styles.addButton} 
-                onPress={(e) => { 
-                  e.stopPropagation(); 
-                  addItem(menuItem); 
+                style={[styles.addButton, !menuItem.available && styles.addButtonDisabled]}
+                disabled={!menuItem.available}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  // Tükenen ürün sepete eklenemez — restoran elinde olmayan
+                  // ürünün siparişini almasın.
+                  if (!menuItem.available) {
+                    Toast.show({
+                      type: 'error',
+                      text1: menuItem.name,
+                      text2: t('menu.soldOutDesc'),
+                      position: 'top',
+                      topOffset: 60,
+                    });
+                    return;
+                  }
+                  addItem(menuItem);
                   Toast.show({
                     type: 'success',
                     text1: menuItem.name,
@@ -229,7 +258,7 @@ const MenuScreen = ({ navigation, route }: any) => {
                   });
                 }}
               >
-                <Ionicons name="add" size={24} color="#FFF" />
+                <Ionicons name={menuItem.available ? 'add' : 'close'} size={24} color="#FFF" />
               </TouchableOpacity>
             </View>
           </View>
@@ -456,6 +485,31 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
+  productImageUnavailable: {
+    opacity: 0.35,
+  },
+  soldOutOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  soldOutText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
   favoriteBadge: {
     position: 'absolute',
     top: 8,
@@ -559,6 +613,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...Shadows.medium,
+  },
+  addButtonDisabled: {
+    backgroundColor: '#C7C7C7',
   },
   centerLoading: {
     flex: 1,
