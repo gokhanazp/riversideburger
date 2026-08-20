@@ -15,8 +15,49 @@ const supabaseAnonKey =
   Constants.expoConfig?.extra?.supabaseAnonKey ||
   '';
 
+// İsteklere üst sınır koyan fetch (Fetch with a hard timeout)
+//
+// React Native'in fetch'inde varsayılan timeout YOK. Tablet saatlerce açık
+// kalınca (Wi-Fi güç tasarrufu, IP değişimi, uyku/uyanma) TCP bağlantısı yarı
+// açık kalabiliyor ve istek sonsuza kadar asılı kalıyor.
+//
+// Bu tek başına da kötü, ama asıl felaket şu zincirde: token yenileme isteği
+// auth kilidinin (processLock) İÇİNDE çalışıyor ve supabase-js kilidi
+// acquireTimeout = -1 ile alıyor — yani süresiz bekliyor. Yenileme isteği
+// asılı kalırsa kilit hiç bırakılmıyor; ondan sonra getSession() çağıran
+// HER ŞEY sonsuza kadar bekliyor. Her PostgREST sorgusu access token için
+// getSession() çağırdığı için sonuç: sipariş ekranında aşağı çekip yenileme
+// spinner'da takılıyor, hiç hata da vermiyor ve yalnızca uygulamayı kapatıp
+// açmak düzeltiyor (kilit bellekte olduğu için restart onu temizliyor).
+//
+// Çözüm: AbortController ile her isteğe üst sınır. Asılı istek hata verip
+// kilidi bırakır, bir sonraki deneme çalışır — uygulama kendini toparlar.
+// Amaç hızlı olmayı zorlamak değil, SONSUZ beklemeyi kırmak. Bu yüzden sınır
+// normal gecikmenin çok üstünde: restoranın yavaş Wi-Fi'sinde gerçek bir sorguyu
+// boşuna kesip kullanıcıya hata göstermek istemiyoruz.
+const REQUEST_TIMEOUT_MS = 20000;
+// Depolama yüklemeleri (ürün fotoğrafı) yavaş bağlantıda uzun sürebilir;
+// onları erken kesmek gerçek bir yüklemeyi bozar.
+const UPLOAD_TIMEOUT_MS = 120000;
+
+const timeoutFetch = (input: any, init?: any): Promise<Response> => {
+  // Çağıran kendi AbortSignal'ini verdiyse ona karışma
+  if (init?.signal) return fetch(input, init);
+
+  const url = typeof input === 'string' ? input : input?.url ?? String(input);
+  const limitMs = url.includes('/storage/v1/') ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), limitMs);
+
+  return fetch(input, { ...init, signal: controller.signal }).finally(() =>
+    clearTimeout(timer)
+  );
+};
+
 // Supabase client oluştur (Create Supabase client)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  global: { fetch: timeoutFetch },
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,

@@ -41,6 +41,14 @@ import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 
 const { width } = Dimensions.get('window');
 
+// Sipariş sorgusunun üst sınırı. Ağ katmanındaki sınırdan (20 sn) BİLEREK daha
+// uzun: iki farklı arıza var ve ikisi de kapatılmalı.
+//   • İstek yola çıktı ama yanıt gelmiyor → ağ katmanı 20 sn'de keser
+//   • İstek HİÇ yola çıkmadı, tıkanmış auth kilidinde kuyrukta bekliyor →
+//     ortada fetch olmadığı için ağ sınırı devreye girmez, spinner'ı yalnızca
+//     buradaki sınır kurtarır
+const FETCH_TIMEOUT_MS = 25000;
+
 // Listenin gerçekten değişip değişmediğini anlamak için hafif bir parmak izi.
 // Sadece admin ekranında değişebilen alanlar yeterli.
 const ordersSignature = (rows: Order[]) =>
@@ -115,13 +123,28 @@ const AdminOrders = ({ navigation, route }: any) => {
     }, [])
   );
 
-  const fetchOrders = async (opts?: { silent?: boolean }) => {
+  const fetchOrders = async (opts?: { silent?: boolean; notifyErrors?: boolean }) => {
     const silent = opts?.silent === true;
+    // Hata bildirimi spinner'dan ayrı: kullanıcı elle yenilediğinde (aşağı çekme)
+    // spinner'ı listeyi kaplamasın diye "silent" kullanıyoruz ama sessiz kalmak
+    // yanlış olur — hiçbir geri bildirim olmadan dönen spinner tam olarak
+    // kullanıcının şikâyet ettiği belirsizlikti.
+    const notifyErrors = opts?.notifyErrors ?? !silent;
     try {
       if (!silent) setLoading(true);
       let query = supabase.from('orders').select('*, user:users(email, full_name, phone), order_items(*, product:products(name, image_url)), order_item_customizations(*)').order('created_at', { ascending: false });
       if (filterStatus !== 'all') query = query.eq('status', filterStatus);
-      const { data, error } = await query;
+
+      // Sorguya üst sınır koy. Supabase auth kilidi tıkanırsa sorgu hiç
+      // başlamıyor ve await sonsuza kadar bekliyordu; finally çalışmadığı için
+      // yenileme spinner'ı dönüp duruyordu. Artık en kötü durumda hata verip
+      // spinner'ı bırakıyor ve bir sonraki denemede toparlanıyor.
+      const { data, error } = (await Promise.race([
+        query,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('ORDERS_FETCH_TIMEOUT')), FETCH_TIMEOUT_MS)
+        ),
+      ])) as any;
       if (error) throw error;
 
       // Değişiklik yoksa state'e dokunma. Aksi halde 20 saniyelik polling
@@ -132,10 +155,12 @@ const AdminOrders = ({ navigation, route }: any) => {
       signatureRef.current = signature;
       setOrders(data || []);
     } catch (error: any) {
-      // Sessiz yenilemede hata gösterme — 20 saniyede bir toast yağmasın
-      if (!silent) {
+      // Arka plandaki polling'de hata gösterme — 20 saniyede bir toast yağmasın.
+      // Elle yenilemede ise mutlaka göster.
+      if (notifyErrors) {
         Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.orders.errorLoading') });
       }
+      console.log('[AdminOrders] sipariş çekilemedi:', error?.message || error);
     } finally {
       if (!silent) setLoading(false);
       setRefreshing(false);
@@ -182,7 +207,8 @@ const AdminOrders = ({ navigation, route }: any) => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchOrders({ silent: true });
+    // Kullanıcı elle çekti: spinner listeyi kaplamasın ama hata olursa görsün
+    fetchOrders({ silent: true, notifyErrors: true });
   };
 
   const handlePrintOrder = async (order: Order) => {

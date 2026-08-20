@@ -47,6 +47,12 @@ interface UseRealtimeTableOptions {
 
 // Artan bekleme: hızlı toparlanma ama sunucuyu da dövmeyen üst sınır
 const RETRY_DELAYS_MS = [1000, 2000, 5000, 10000, 20000, 30000];
+// getSession() beklemesinin üst sınırı. Supabase auth kilidi süresiz beklediği
+// için (acquireTimeout = -1), asılı bir token yenilemesi bu çağrıyı sonsuza
+// kadar bloklayabiliyor. Öyle olursa aboneliği token doğrulamadan kurmayı
+// deniyoruz — çalışmazsa status callback'i zaten yeniden denemeyi tetikler.
+// Bu sınır olmadan `subscribing` bayrağı asılı kalıp watchdog'u da öldürüyordu.
+const SESSION_WAIT_MS = 10000;
 
 export function useRealtimeTable({
   channel: channelName,
@@ -110,19 +116,30 @@ export function useRealtimeTable({
       subscribing = true;
       clearRetry();
 
+      try {
+        await subscribeInner();
+      } finally {
+        // Ne olursa olsun bayrağı indir. Aksi halde tek bir asılı çağrı
+        // watchdog'u ve yeniden abone olmayı kalıcı olarak devre dışı bırakıyor.
+        subscribing = false;
+      }
+    };
+
+    const subscribeInner = async () => {
       const myGen = ++generation;
 
       // Oturumu doğrula — token'ın süresi geçmişse burada yenilenir. Aksi halde
       // realtime sunucusu bizi anon rolde bırakıp orders RLS'inde tüm event'leri eler.
+      // Süre sınırı şart: auth kilidi tıkanmışsa bu çağrı asla dönmeyebiliyor.
       try {
-        await supabase.auth.getSession();
+        await Promise.race([
+          supabase.auth.getSession(),
+          new Promise((resolve) => setTimeout(resolve, SESSION_WAIT_MS)),
+        ]);
       } catch {
         // Ağ yoksa yine de dene; hata subscribe status'ünden yakalanır
       }
-      if (disposed || myGen !== generation) {
-        subscribing = false;
-        return;
-      }
+      if (disposed || myGen !== generation) return;
 
       // Her denemede topic'e yeni bir nesil eki ver. supabase.channel() aynı
       // isimde bir kanal varsa YENİ kanal üretmeyip mevcut (ölmüş) kanalı geri
