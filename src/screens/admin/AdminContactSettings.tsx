@@ -57,6 +57,45 @@ interface ContactSettings {
   whyFeature3DescEn: string;
 }
 
+// ÖNEMLİ: Bu iki bileşen bilerek modül seviyesinde. Eskiden AdminContactSettings'in
+// İÇİNDE tanımlıydılar; her render'da yeni bir fonksiyon (yani yeni bir bileşen
+// TİPİ) üretildiği için React tüm alt ağacı söküp yeniden kuruyordu. Sonuç: her
+// tuş vuruşunda TextInput odağı kaybediyor ve FadeInDown animasyonu baştan
+// oynuyordu — kullanıcının "her işlemde sayfa yenileniyor" dediği şey buydu.
+const SettingCard = ({ icon, title, description, children, delay = 0 }: any) => (
+  <Animated.View entering={FadeInDown.delay(delay).springify()} style={styles.card}>
+    <View style={styles.cardHeader}>
+      <View style={styles.iconContainer}>
+        <Ionicons name={icon} size={22} color={Colors.primary} />
+      </View>
+      <View style={styles.headerTexts}>
+        <Text style={styles.cardTitle}>{title}</Text>
+        <Text style={styles.cardDesc}>{description}</Text>
+      </View>
+    </View>
+    <View style={styles.cardContent}>{children}</View>
+  </Animated.View>
+);
+
+// Kontrolsüz input (defaultValue): yazarken state güncellenmediği için render
+// hiç tetiklenmiyor. Değer settingsRef'te tutuluyor ve kaydetme oradan okuyor.
+// AdminSettings ekranında zaten bu kalıp kullanılıyordu; burada eksik kalmıştı.
+const InputField = ({ label, defaultValue, onChangeText, placeholder, multiline = false, keyboardType = 'default' }: any) => (
+  <View style={styles.inputContainer}>
+    <Text style={styles.label}>{label}</Text>
+    <TextInput
+      style={[styles.input, multiline && styles.textArea]}
+      defaultValue={defaultValue}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor="#999"
+      multiline={multiline}
+      numberOfLines={multiline ? 3 : 1}
+      keyboardType={keyboardType}
+    />
+  </View>
+);
+
 const AdminContactSettings = ({ navigation }: any) => {
   const { t, i18n } = useTranslation();
   
@@ -108,9 +147,12 @@ const AdminContactSettings = ({ navigation }: any) => {
   }, []);
 
   const handleInputChange = useCallback((field: keyof ContactSettings, value: string) => {
+    // Yalnızca ref'e yaz. Eskiden burada setSettings de çağrılıyordu; her tuş
+    // vuruşunda render tetikleniyor, o da (modül seviyesine taşınana kadar)
+    // input'ların yeniden kurulmasına ve odağın kaybedilmesine yol açıyordu.
+    // State'e ihtiyaç yok: input'lar kontrolsüz (defaultValue) ve kaydetme
+    // settingsRef.current'tan okuyor.
     settingsRef.current[field] = value;
-    // UI güncellemesi için state de güncellenmeli
-    setSettings(prev => ({ ...prev, [field]: value }));
   }, []);
 
   const fetchSettings = useCallback(async () => {
@@ -235,37 +277,6 @@ const AdminContactSettings = ({ navigation }: any) => {
     }
   };
 
-  const SettingCard = ({ icon, title, description, children, delay = 0 }: any) => (
-    <Animated.View entering={FadeInDown.delay(delay).springify()} style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.iconContainer}>
-          <Ionicons name={icon} size={22} color={Colors.primary} />
-        </View>
-        <View style={styles.headerTexts}>
-          <Text style={styles.cardTitle}>{title}</Text>
-          <Text style={styles.cardDesc}>{description}</Text>
-        </View>
-      </View>
-      <View style={styles.cardContent}>{children}</View>
-    </Animated.View>
-  );
-
-  const InputField = ({ label, value, onChangeText, placeholder, multiline = false, keyboardType = 'default' }: any) => (
-    <View style={styles.inputContainer}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[styles.input, multiline && styles.textArea]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#999"
-        multiline={multiline}
-        numberOfLines={multiline ? 3 : 1}
-        keyboardType={keyboardType}
-      />
-    </View>
-  );
-
   if (loading) {
      return (
         <View style={styles.loadingContainer}>
@@ -306,8 +317,8 @@ const AdminContactSettings = ({ navigation }: any) => {
           title={t('admin.contactSettings.phoneNumbers')} 
           description={t('admin.contactSettings.phoneNumbersDesc')}
         >
-          <InputField label={t('admin.contactSettings.phone1')} value={settings.phone1} onChangeText={(t: string) => handleInputChange('phone1', t)} placeholder="+1 (416) 850-7026" keyboardType="phone-pad" />
-          <InputField label={t('admin.contactSettings.phone2')} value={settings.phone2} onChangeText={(t: string) => handleInputChange('phone2', t)} placeholder="+1 (416) 935-6600" keyboardType="phone-pad" />
+          <InputField label={t('admin.contactSettings.phone1')} defaultValue={settings.phone1} onChangeText={(t: string) => handleInputChange('phone1', t)} placeholder="+1 (416) 850-7026" keyboardType="phone-pad" />
+          <InputField label={t('admin.contactSettings.phone2')} defaultValue={settings.phone2} onChangeText={(t: string) => handleInputChange('phone2', t)} placeholder="+1 (416) 935-6600" keyboardType="phone-pad" />
         </SettingCard>
 
         <SettingCard 
@@ -316,7 +327,7 @@ const AdminContactSettings = ({ navigation }: any) => {
           title={t('admin.contactSettings.emailAddress')} 
           description={t('admin.contactSettings.emailAddressDesc')}
         >
-          <InputField label={t('admin.contactSettings.email')} value={settings.email} onChangeText={(t: string) => handleInputChange('email', t)} placeholder="info@riversideburgers.com" keyboardType="email-address" />
+          <InputField label={t('admin.contactSettings.email')} defaultValue={settings.email} onChangeText={(t: string) => handleInputChange('email', t)} placeholder="info@riversideburgers.com" keyboardType="email-address" />
         </SettingCard>
 
         <SettingCard 
@@ -325,8 +336,8 @@ const AdminContactSettings = ({ navigation }: any) => {
           title={t('admin.contactSettings.addresses')} 
           description={t('admin.contactSettings.addressesDesc')}
         >
-          <InputField label={t('admin.contactSettings.address1')} value={settings.address1} onChangeText={(t: string) => handleInputChange('address1', t)} placeholder="688 Queen Street East, Toronto" multiline />
-          <InputField label={t('admin.contactSettings.address2')} value={settings.address2} onChangeText={(t: string) => handleInputChange('address2', t)} placeholder="1228 King St W, Toronto" multiline />
+          <InputField label={t('admin.contactSettings.address1')} defaultValue={settings.address1} onChangeText={(t: string) => handleInputChange('address1', t)} placeholder="688 Queen Street East, Toronto" multiline />
+          <InputField label={t('admin.contactSettings.address2')} defaultValue={settings.address2} onChangeText={(t: string) => handleInputChange('address2', t)} placeholder="1228 King St W, Toronto" multiline />
         </SettingCard>
 
         {/* SOCIAL */}
@@ -336,9 +347,9 @@ const AdminContactSettings = ({ navigation }: any) => {
           title={t('admin.contactSettings.socialMedia')} 
           description={t('admin.contactSettings.socialMediaDesc')}
         >
-          <InputField label="Facebook" value={settings.facebook} onChangeText={(t: string) => handleInputChange('facebook', t)} placeholder="https://facebook.com/..." />
-          <InputField label="Instagram" value={settings.instagram} onChangeText={(t: string) => handleInputChange('instagram', t)} placeholder="https://instagram.com/..." />
-          <InputField label="WhatsApp" value={settings.whatsapp} onChangeText={(t: string) => handleInputChange('whatsapp', t)} placeholder="+14168507026" keyboardType="phone-pad" />
+          <InputField label="Facebook" defaultValue={settings.facebook} onChangeText={(t: string) => handleInputChange('facebook', t)} placeholder="https://facebook.com/..." />
+          <InputField label="Instagram" defaultValue={settings.instagram} onChangeText={(t: string) => handleInputChange('instagram', t)} placeholder="https://instagram.com/..." />
+          <InputField label="WhatsApp" defaultValue={settings.whatsapp} onChangeText={(t: string) => handleInputChange('whatsapp', t)} placeholder="+14168507026" keyboardType="phone-pad" />
         </SettingCard>
 
         {/* FOOTER */}
@@ -348,8 +359,8 @@ const AdminContactSettings = ({ navigation }: any) => {
           title={t('admin.contactSettings.footerTexts')} 
           description={t('admin.contactSettings.footerTextsDesc')}
         >
-          <InputField label={t('admin.contactSettings.footerAbout')} value={settings.footerAbout} onChangeText={(t: string) => handleInputChange('footerAbout', t)} placeholder="..." multiline />
-          <InputField label={t('admin.contactSettings.footerCopyright')} value={settings.footerCopyright} onChangeText={(t: string) => handleInputChange('footerCopyright', t)} placeholder="© 2024 Riverside Burgers" />
+          <InputField label={t('admin.contactSettings.footerAbout')} defaultValue={settings.footerAbout} onChangeText={(t: string) => handleInputChange('footerAbout', t)} placeholder="..." multiline />
+          <InputField label={t('admin.contactSettings.footerCopyright')} defaultValue={settings.footerCopyright} onChangeText={(t: string) => handleInputChange('footerCopyright', t)} placeholder="© 2024 Riverside Burgers" />
         </SettingCard>
 
         {/* ABOUT US */}
@@ -362,17 +373,17 @@ const AdminContactSettings = ({ navigation }: any) => {
            {i18n.language === 'tr' ? (
               <>
                  <View style={styles.langSwitch}><Text style={styles.langTag}>TR</Text></View>
-                 <InputField label="Başlık (TR)" value={settings.aboutTitleTr} onChangeText={(t: string) => handleInputChange('aboutTitleTr', t)} />
-                 <InputField label="Açıklama (TR)" value={settings.aboutDescTr} onChangeText={(t: string) => handleInputChange('aboutDescTr', t)} multiline />
+                 <InputField label="Başlık (TR)" defaultValue={settings.aboutTitleTr} onChangeText={(t: string) => handleInputChange('aboutTitleTr', t)} />
+                 <InputField label="Açıklama (TR)" defaultValue={settings.aboutDescTr} onChangeText={(t: string) => handleInputChange('aboutDescTr', t)} multiline />
               </>
            ) : (
               <>
                  <View style={[styles.langSwitch, {backgroundColor: '#E3F2FD'}]}><Text style={[styles.langTag, {color: '#1976D2'}]}>EN</Text></View>
-                 <InputField label="Title (EN)" value={settings.aboutTitleEn} onChangeText={(t: string) => handleInputChange('aboutTitleEn', t)} />
-                 <InputField label="Description (EN)" value={settings.aboutDescEn} onChangeText={(t: string) => handleInputChange('aboutDescEn', t)} multiline />
+                 <InputField label="Title (EN)" defaultValue={settings.aboutTitleEn} onChangeText={(t: string) => handleInputChange('aboutTitleEn', t)} />
+                 <InputField label="Description (EN)" defaultValue={settings.aboutDescEn} onChangeText={(t: string) => handleInputChange('aboutDescEn', t)} multiline />
               </>
            )}
-           <InputField label="Görsel URL / Image URL" value={settings.aboutImage} onChangeText={(t: string) => handleInputChange('aboutImage', t)} placeholder="https://..." />
+           <InputField label="Görsel URL / Image URL" defaultValue={settings.aboutImage} onChangeText={(t: string) => handleInputChange('aboutImage', t)} placeholder="https://..." />
         </SettingCard>
 
       </ScrollView>
