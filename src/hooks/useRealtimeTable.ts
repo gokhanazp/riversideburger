@@ -38,7 +38,7 @@ interface UseRealtimeTableOptions {
    * döndüğünde ve her polling tikinde çağrılır. Bağlantının koptuğu sürede
    * kaçan kayıtları yakalamak için buradan veri çekilmeli.
    */
-  onResync?: (reason: ResyncReason) => void;
+  onResync?: (reason: ResyncReason) => void | Promise<void> | Promise<boolean>;
   /** Realtime tamamen ölse bile çalışan güvenlik ağı (ms). 0 = kapalı */
   pollIntervalMs?: number;
   /** Kanal sağlığını kontrol eden watchdog aralığı (ms) */
@@ -53,6 +53,11 @@ const RETRY_DELAYS_MS = [1000, 2000, 5000, 10000, 20000, 30000];
 // deniyoruz — çalışmazsa status callback'i zaten yeniden denemeyi tetikler.
 // Bu sınır olmadan `subscribing` bayrağı asılı kalıp watchdog'u da öldürüyordu.
 const SESSION_WAIT_MS = 10000;
+// Bu süre boyunca hiç başarılı veri gelmediyse (ne realtime event, ne polling)
+// arıza sebebini teşhis etmeye çalışmadan zorla toparlanıyoruz. Sebep odaklı
+// kontroller (socket açık mı, kanal joined mı, appState ne) yanlış olabiliyor;
+// "veri bayat" ölçütü arıza türünden bağımsız ve yanılmıyor.
+const STALE_LIMIT_MS = 90000;
 
 export function useRealtimeTable({
   channel: channelName,
@@ -88,6 +93,34 @@ export function useRealtimeTable({
     let generation = 0;
     let subscribing = false;
     let appState: AppStateStatus = AppState.currentState;
+    // Son kez ne zaman GERÇEKTEN veri aldık (realtime event veya başarılı fetch)
+    let lastOkAt = Date.now();
+    let lastHardResetAt = 0;
+
+    const markOk = () => {
+      lastOkAt = Date.now();
+    };
+
+    // onResync'i çağır ve başarıyla tamamlanırsa "veri geldi" olarak işaretle
+    const resync = (reason: ResyncReason) => {
+      try {
+        const maybePromise = onResyncRef.current?.(reason);
+        if (maybePromise && typeof (maybePromise as any).then === 'function') {
+          // false dönerse BAŞARISIZ sayılır. Bu şart: fetch fonksiyonları hatayı
+          // kendi içinde yakalayıp sessizce dönüyor; her çağrıyı başarı saysak
+          // bayat-veri kontrolü hiç tetiklenmez ve tek kurtarma yolumuz ölür.
+          (maybePromise as Promise<any>)
+            .then((ok) => {
+              if (ok !== false) markOk();
+            })
+            .catch(() => {});
+        } else {
+          markOk();
+        }
+      } catch {
+        // onResync hatası kurtarma döngüsünü bozmasın
+      }
+    };
 
     const log = (msg: string) => console.log(`[realtime:${channelName}] ${msg}`);
 
@@ -156,6 +189,7 @@ export function useRealtimeTable({
       // eşleşmiyor; filtre nesnesini cast ediyoruz.
       nextChannel.on('postgres_changes', { event, schema: 'public', table } as any, (payload: any) => {
         if (disposed) return;
+        markOk();
         onEventRef.current?.(payload);
       });
 
@@ -173,7 +207,7 @@ export function useRealtimeTable({
           attempt = 0;
           setStatus('live');
           // Bağlantının kapalı olduğu sürede kaçan kayıtları yakala
-          onResyncRef.current?.(wasRecovering ? 'reconnect' : 'subscribed');
+          resync(wasRecovering ? 'reconnect' : 'subscribed');
         } else if (
           subStatus === 'CHANNEL_ERROR' ||
           subStatus === 'TIMED_OUT' ||
@@ -186,9 +220,43 @@ export function useRealtimeTable({
 
     subscribe();
 
-    // 2) Watchdog — kanal/socket sağlığını periyodik kontrol et
+    // 2) Watchdog — kanal/socket sağlığını ve verinin tazeliğini kontrol et
+    //
+    // DİKKAT: burada eskiden `appState !== 'active'` kapısı vardı ve bu bir
+    // hataydı. appState yalnızca AppState 'change' olayıyla güncellenen bir
+    // closure değişkeni; bir kez 'active' dışında bir değerde takılırsa watchdog
+    // ve polling KALICI olarak devre dışı kalıyor, realtime de ölürse hiçbir şey
+    // toparlamıyordu. Admin tabletinde her siparişte push bildirimi geldiği ve
+    // bildirim başlığı uygulamayı geçici olarak 'inactive' yaptığı için bu
+    // senaryo çok olası. Arka planda çalışmasının maliyeti bir sorgu; sessizce
+    // ölmesinin maliyeti kaçan sipariş.
     const watchdog = setInterval(() => {
-      if (disposed || appState !== 'active' || subscribing || retryTimer) return;
+      if (disposed || subscribing || retryTimer) return;
+
+      // Sebep ne olursa olsun uzun süre veri gelmediyse zorla toparlan.
+      // Son çare olduğu için nadir: en fazla STALE_LIMIT_MS'de bir.
+      const staleFor = Date.now() - lastOkAt;
+      if (staleFor > STALE_LIMIT_MS && Date.now() - lastHardResetAt > STALE_LIMIT_MS) {
+        lastHardResetAt = Date.now();
+        log(`${Math.round(staleFor / 1000)}sn veri yok → zorla toparlanma`);
+        setStatus('offline');
+        attempt = 0;
+        clearRetry();
+        try {
+          // Socket zombi olabilir: JS tarafında açık görünüp veri akmıyor olabilir.
+          // Tamamen kapat, yeni abonelik sıfırdan bağlansın.
+          supabase.realtime.disconnect();
+        } catch {
+          // zaten kapalıysa sorun değil
+        }
+        resync('poll');
+        // subscribe()'i DOĞRUDAN çağırmıyoruz: disconnect() socket'i
+        // 'disconnecting' durumuna alıyor ve o durumda connect() erken dönüyor,
+        // yani yeni kanal hiç bağlanmazdı. scheduleResubscribe en az 1 sn
+        // beklediği için kapanma tamamlanıyor.
+        scheduleResubscribe('stale-hard-reset');
+        return;
+      }
 
       if (!supabase.realtime.isConnected()) {
         log('socket kapalı görünüyor → yeniden bağlanılıyor');
@@ -212,8 +280,8 @@ export function useRealtimeTable({
     const poller =
       pollIntervalMs > 0
         ? setInterval(() => {
-            if (disposed || appState !== 'active') return;
-            onResyncRef.current?.('poll');
+            if (disposed) return;
+            resync('poll');
           }, pollIntervalMs)
         : null;
 
@@ -227,7 +295,7 @@ export function useRealtimeTable({
       attempt = 0;
       clearRetry();
       // Arka planda kaçan kayıtları hemen çek; abonelik paralelde kurulur
-      onResyncRef.current?.('foreground');
+      resync('foreground');
       subscribe();
     });
 

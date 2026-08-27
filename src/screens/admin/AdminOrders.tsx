@@ -123,7 +123,10 @@ const AdminOrders = ({ navigation, route }: any) => {
     }, [])
   );
 
-  const fetchOrders = async (opts?: { silent?: boolean; notifyErrors?: boolean }) => {
+  // true = veri çekildi, false = başarısız. Dönüş değeri useRealtimeTable'ın
+  // bayat-veri kontrolü için kullanılıyor; başarısızlığı yutmak o mekanizmayı
+  // devre dışı bırakır.
+  const fetchOrders = async (opts?: { silent?: boolean; notifyErrors?: boolean }): Promise<boolean> => {
     const silent = opts?.silent === true;
     // Hata bildirimi spinner'dan ayrı: kullanıcı elle yenilediğinde (aşağı çekme)
     // spinner'ı listeyi kaplamasın diye "silent" kullanıyoruz ama sessiz kalmak
@@ -151,9 +154,10 @@ const AdminOrders = ({ navigation, route }: any) => {
       // listeyi her seferinde yeniden render edip kart animasyonlarını
       // baştan oynatıyor. (Skip the state update when nothing actually changed.)
       const signature = ordersSignature(data || []);
-      if (signature === signatureRef.current) return;
+      if (signature === signatureRef.current) return true;
       signatureRef.current = signature;
       setOrders(data || []);
+      return true;
     } catch (error: any) {
       // Arka plandaki polling'de hata gösterme — 20 saniyede bir toast yağmasın.
       // Elle yenilemede ise mutlaka göster.
@@ -161,6 +165,7 @@ const AdminOrders = ({ navigation, route }: any) => {
         Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.orders.errorLoading') });
       }
       console.log('[AdminOrders] sipariş çekilemedi:', error?.message || error);
+      return false;
     } finally {
       if (!silent) setLoading(false);
       setRefreshing(false);
@@ -200,7 +205,8 @@ const AdminOrders = ({ navigation, route }: any) => {
     onResync: (reason) => {
       // İlk abonelikte liste zaten mount'ta çekiliyor — sorguyu tekrarlamayalım
       if (reason === 'subscribed') return;
-      fetchOrdersRef.current({ silent: true });
+      // Promise'i DÖNDÜR: hook başarıyı buradan ölçüyor
+      return fetchOrdersRef.current({ silent: true });
     },
     pollIntervalMs: 20000,
   });

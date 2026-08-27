@@ -176,8 +176,10 @@ export function useAdminOrderNotifier() {
   // Realtime'ın kaçırdığı siparişleri yakala (Catch up on missed orders)
   // Taban çizgisi olarak cihaz saati değil, veritabanındaki en yeni siparişin
   // created_at'i kullanılıyor — cihaz saati kayıksa eski siparişler bildirilmesin.
-  const catchUp = async (reason: ResyncReason) => {
-    if (catchingUpRef.current) return;
+  // true = sorgu çalıştı, false = başarısız. Dönüş değeri useRealtimeTable'ın
+  // bayat-veri kontrolü için; hatayı başarı olarak bildirmek o mekanizmayı kör eder.
+  const catchUp = async (reason: ResyncReason): Promise<boolean> => {
+    if (catchingUpRef.current) return true;
     catchingUpRef.current = true;
     try {
       if (lastSeenAtRef.current === null) {
@@ -188,7 +190,7 @@ export function useAdminOrderNotifier() {
           .limit(1);
         // Sipariş yoksa taban çizgisi "şimdi" olur
         lastSeenAtRef.current = data?.[0]?.created_at ?? new Date().toISOString();
-        return;
+        return true;
       }
 
       const { data, error } = await supabase
@@ -198,7 +200,8 @@ export function useAdminOrderNotifier() {
         .order('created_at', { ascending: true })
         .limit(MAX_CATCH_UP + 1);
 
-      if (error || !data?.length) return;
+      if (error) return false;
+      if (!data.length) return true;
 
       const rows = data.slice(0, MAX_CATCH_UP);
       if (data.length > MAX_CATCH_UP) {
@@ -208,7 +211,7 @@ export function useAdminOrderNotifier() {
       lastSeenAtRef.current = rows[rows.length - 1].created_at;
 
       const fresh = rows.filter((row) => !notifiedRef.current.has(row.id));
-      if (!fresh.length) return;
+      if (!fresh.length) return true;
 
       console.log(`[admin-notifier] ${reason}: ${fresh.length} kaçan sipariş yakalandı`);
       fresh.forEach((row) => notifiedRef.current.add(row.id));
@@ -226,6 +229,7 @@ export function useAdminOrderNotifier() {
       for (const row of fresh.filter((r) => PRINTABLE_STATUSES.includes(r.status))) {
         await autoPrint(row.id);
       }
+      return true;
     } finally {
       catchingUpRef.current = false;
     }
