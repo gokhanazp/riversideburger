@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { diag } from './diagnosticsLog';
 import { User, UserRole } from '../types/database.types';
 import i18n from '../i18n';
 import * as Linking from 'expo-linking';
@@ -483,92 +484,100 @@ let _isPasswordRecoveryInProgress = false;
 export const setPasswordRecoveryFlag = (value: boolean) => { _isPasswordRecoveryInProgress = value; };
 
 // Session değişikliklerini dinle (Listen to auth changes)
+//
+// KRİTİK: bu callback'in İÇİNDEN Supabase çağrılamaz. auth-js olayları kilidi
+// TUTARKEN yayınlıyor ve callback'i await ediyor:
+//
+//   _autoRefreshTokenTick() → _acquireLock(0)            ← kilidi alır
+//     └ _callRefreshToken()
+//         └ _notifyAllSubscribers('TOKEN_REFRESHED')
+//             └ await x.callback(...)                     ← burayı bekler
+//
+// Buradan `supabase.from(...)` çağırmak sorguyu _getAccessToken() →
+// getSession() → _acquireLock(-1) yoluna sokuyor; yani AYNI kilit isteniyor.
+// Kilit callback'in dönmesini, callback sorgunun bitmesini, sorgu kilidi
+// bekliyor. _acquireLock(-1) süresiz beklediği için bu kilit bir daha ASLA
+// açılmıyor ve o andan sonra uygulamadaki HER Supabase sorgusu, fetch bile
+// oluşturulmadan asılıyor — ağ zaman aşımı da bu yüzden devreye girmiyor.
+// Realtime nabzı ayrı çalıştığı için socket "SUBSCRIBED" kalıyor: gösterge
+// yeşil "Live" derken sipariş listesi hiç güncellenmiyordu ve tek çözüm
+// uygulamayı tamamen kapatıp açmaktı. Restoran tabletinin 15-40 dakikada bir
+// sipariş almayı bırakmasının sebebi buydu.
+//
+// Çözüm iki katmanlı:
+//   1) Callback SENKRON dönüyor; iş setTimeout(0) ile kilit bırakıldıktan
+//      sonraya erteleniyor.
+//   2) TOKEN_REFRESHED'de veritabanına hiç gidilmiyor — kullanıcı satırında
+//      değişen bir şey yok, sadece token yenilendi.
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
-  return supabase.auth.onAuthStateChange(async (event, session) => {
-    // Password recovery sürecindeyken tüm event'leri ignore et
-    if (_isPasswordRecoveryInProgress) {
-      console.log('🔄 Auth event ignored (recovery in progress):', event);
+  return supabase.auth.onAuthStateChange((event, session) => {
+    // Yalnızca token yenilendi: kullanıcı bilgisi aynı, sorgu gereksiz.
+    // Periyodik kilitlenmenin asıl tetikleyicisi tam olarak bu olaydı.
+    if (event === 'TOKEN_REFRESHED') {
+      diag('auth', 'TOKEN_REFRESHED — sorgu yapılmadı (kilitlenme önlemi)');
       return;
     }
+    diag('auth', `olay: ${event}`);
+    // Kilit bırakılana kadar HİÇBİR Supabase çağrısı yapılmamalı.
+    setTimeout(() => {
+      void handleAuthStateChange(event, session, callback);
+    }, 0);
+  });
+};
 
-    if (event === 'PASSWORD_RECOVERY') {
-      console.log('🔄 Auth event ignored:', event);
-      return;
-    }
+// Auth olayının asıl işi — kilit dışında, ertelenmiş olarak çalışır.
+const handleAuthStateChange = async (
+  event: string,
+  session: any,
+  callback: (user: User | null) => void
+) => {
+  // Password recovery sürecindeyken tüm event'leri ignore et
+  if (_isPasswordRecoveryInProgress) {
+    console.log('🔄 Auth event ignored (recovery in progress):', event);
+    return;
+  }
 
-    if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
-      console.log('🔄 Auth event:', event);
-    }
+  if (event === 'PASSWORD_RECOVERY') {
+    console.log('🔄 Auth event ignored:', event);
+    return;
+  }
 
-    if (session?.user) {
-      try {
-        // Kullanıcı bilgilerini users tablosundan al (Get user info from users table)
-        const { data: dbUsers, error: dbError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id);
+  if (session?.user) {
+    try {
+      // Kullanıcı bilgilerini users tablosundan al (Get user info from users table)
+      const { data: dbUsers, error: dbError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id);
 
-        // Hata varsa ama "no rows" hatası değilse logla
-        if (dbError && dbError.code !== 'PGRST116') {
-          console.warn('Database user fetch error:', dbError);
-        }
+      // Hata varsa ama "no rows" hatası değilse logla
+      if (dbError && dbError.code !== 'PGRST116') {
+        console.warn('Database user fetch error:', dbError);
+      }
 
-        const dbUser = dbUsers && dbUsers.length > 0 ? dbUsers[0] : null;
+      const dbUser = dbUsers && dbUsers.length > 0 ? dbUsers[0] : null;
 
-        if (!dbUser) {
-          // Users tablosunda yoksa, şimdi oluştur (Create if not exists)
-          console.warn('⚠️ User not found in database (onAuthStateChange), creating now...');
+      if (!dbUser) {
+        // Users tablosunda yoksa, şimdi oluştur (Create if not exists)
+        console.warn('⚠️ User not found in database (onAuthStateChange), creating now...');
 
-          try {
-            const { data: insertedUser, error: insertError } = await supabase
-              .from('users')
-              .insert({
-                id: session.user.id,
-                email: session.user.email || '',
-                role: (session.user.user_metadata?.role as UserRole) || 'customer',
-                full_name: session.user.user_metadata?.full_name || '',
-                phone: session.user.user_metadata?.phone || '',
-                points: 0,
-                created_at: session.user.created_at,
-                updated_at: new Date().toISOString(),
-              })
-              .select();
+        try {
+          const { data: insertedUser, error: insertError } = await supabase
+            .from('users')
+            .insert({
+              id: session.user.id,
+              email: session.user.email || '',
+              role: (session.user.user_metadata?.role as UserRole) || 'customer',
+              full_name: session.user.user_metadata?.full_name || '',
+              phone: session.user.user_metadata?.phone || '',
+              points: 0,
+              created_at: session.user.created_at,
+              updated_at: new Date().toISOString(),
+            })
+            .select();
 
-            if (insertError || !insertedUser || insertedUser.length === 0) {
-              console.warn('❌ Failed to create user in database (onAuthStateChange):', insertError);
-              // Fallback to metadata
-              const userData: User = {
-                id: session.user.id,
-                email: session.user.email || '',
-                role: (session.user.user_metadata?.role as UserRole) || 'customer',
-                full_name: session.user.user_metadata?.full_name || '',
-                phone: session.user.user_metadata?.phone || '',
-                points: 0,
-                created_at: session.user.created_at,
-              };
-              callback(userData);
-              return;
-            }
-
-            console.log('✅ User created in database (onAuthStateChange)!');
-
-            // Yeni oluşturulan kullanıcıyı kullan (Use newly created user)
-            const userData: User = {
-              id: insertedUser[0].id,
-              email: insertedUser[0].email,
-              role: insertedUser[0].role as UserRole,
-              full_name: insertedUser[0].full_name || '',
-              phone: insertedUser[0].phone || '',
-              points: insertedUser[0].points || 0,
-              created_at: insertedUser[0].created_at,
-              updated_at: insertedUser[0].updated_at,
-            };
-
-            callback(userData);
-            return;
-
-          } catch (err) {
-            console.warn('❌ Exception creating user (onAuthStateChange):', err);
+          if (insertError || !insertedUser || insertedUser.length === 0) {
+            console.warn('❌ Failed to create user in database (onAuthStateChange):', insertError);
             // Fallback to metadata
             const userData: User = {
               id: session.user.id,
@@ -582,30 +591,62 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
             callback(userData);
             return;
           }
+
+          console.log('✅ User created in database (onAuthStateChange)!');
+
+          // Yeni oluşturulan kullanıcıyı kullan (Use newly created user)
+          const userData: User = {
+            id: insertedUser[0].id,
+            email: insertedUser[0].email,
+            role: insertedUser[0].role as UserRole,
+            full_name: insertedUser[0].full_name || '',
+            phone: insertedUser[0].phone || '',
+            points: insertedUser[0].points || 0,
+            created_at: insertedUser[0].created_at,
+            updated_at: insertedUser[0].updated_at,
+          };
+
+          callback(userData);
+          return;
+
+        } catch (err) {
+          console.warn('❌ Exception creating user (onAuthStateChange):', err);
+          // Fallback to metadata
+          const userData: User = {
+            id: session.user.id,
+            email: session.user.email || '',
+            role: (session.user.user_metadata?.role as UserRole) || 'customer',
+            full_name: session.user.user_metadata?.full_name || '',
+            phone: session.user.user_metadata?.phone || '',
+            points: 0,
+            created_at: session.user.created_at,
+          };
+          callback(userData);
+          return;
         }
-
-        // Database'den gelen kullanıcı bilgilerini kullan (Use user info from database)
-        const userData: User = {
-          id: dbUser.id,
-          email: dbUser.email,
-          role: dbUser.role as UserRole,
-          full_name: dbUser.full_name || '',
-          phone: dbUser.phone || '',
-          points: dbUser.points || 0,
-          created_at: dbUser.created_at,
-          updated_at: dbUser.updated_at,
-        };
-
-        callback(userData);
-      } catch (error: any) {
-        console.warn('Auth state change error:', error);
-        // Hata durumunda null döndür (Return null on error)
-        callback(null);
       }
-    } else {
+
+      // Database'den gelen kullanıcı bilgilerini kullan (Use user info from database)
+      const userData: User = {
+        id: dbUser.id,
+        email: dbUser.email,
+        role: dbUser.role as UserRole,
+        full_name: dbUser.full_name || '',
+        phone: dbUser.phone || '',
+        points: dbUser.points || 0,
+        created_at: dbUser.created_at,
+        updated_at: dbUser.updated_at,
+      };
+
+      callback(userData);
+    } catch (error: any) {
+      console.warn('Auth state change error:', error);
+      // Hata durumunda null döndür (Return null on error)
       callback(null);
     }
-  });
+  } else {
+    callback(null);
+  }
 };
 
 // Şifre sıfırlama (Reset password)

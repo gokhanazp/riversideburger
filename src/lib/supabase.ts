@@ -1,5 +1,6 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { diag } from '../services/diagnosticsLog';
 import { createClient, processLock } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
 import { AppState, Platform } from 'react-native';
@@ -55,6 +56,36 @@ const timeoutFetch = (input: any, init?: any): Promise<Response> => {
   );
 };
 
+// Son güvenlik ağı: hiçbir kilit SÜRESİZ beklemesin.
+//
+// auth-js kilidi -1 ile alıyor, yani "sonsuza kadar bekle". Böyle bir kilit bir
+// kez tıkanırsa uygulamadaki HER sorgu — fetch bile oluşturulmadan — sessizce
+// asılıyor ve tek çıkış uygulamayı öldürmek oluyor. Bu tam olarak restoran
+// tabletindeki arızaydı (sebebi authService.ts'teki onAuthStateChange notunda).
+//
+// DİKKAT: bu bir TEDAVİ değil, TEŞHİS ağı. processLock zaman aşımında bile
+// kilit zincirini tıkalı bırakıyor (PROCESS_LOCKS[name] tıkanmış işlemi
+// beklemeye devam ediyor), yani sorgular yine başarısız olur. Kazanç şu:
+// sonsuza kadar asılmak yerine 30 saniyede AÇIK bir hatayla düşüyorlar, hata
+// tanılama kaydına ve kullanıcıya görünüyor. Asıl sebep her zaman kaynağında
+// düzeltilmeli — bu ağ yalnızca bir daha sessizce olmasın diye var.
+const LOCK_MAX_WAIT_MS = 30000;
+const boundedProcessLock = <R>(
+  name: string,
+  acquireTimeout: number,
+  fn: () => Promise<R>
+): Promise<R> => {
+  // acquireTimeout 0 "meşgulse hemen vazgeç" demek (otomatik token yenileme
+  // tikinin bilinçli davranışı); yalnızca sonsuz beklemeyi sınırlıyoruz.
+  const limit = acquireTimeout < 0 ? LOCK_MAX_WAIT_MS : acquireTimeout;
+  return processLock(name, limit, fn).catch((error: any) => {
+    if (error?.isAcquireTimeout) {
+      diag('auth', `KİLİT TIKANDI: "${name}" ${limit}ms içinde alınamadı`);
+    }
+    throw error;
+  });
+};
+
 // Supabase client oluştur (Create Supabase client)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   global: { fetch: timeoutFetch },
@@ -66,7 +97,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     // Web'de varsayılan navigator.locks zaman zaman deadlock'a giriyor (Expo Web'de
     // getSession() sonsuza dek asılı kalıyor). In-memory processLock her platformda
     // güvenli, tek-tab SPA için yeterli.
-    lock: processLock,
+    lock: boundedProcessLock,
   },
   realtime: {
     // Varsayılan 25sn heartbeat, mobil ağlarda ölü bağlantıyı geç fark ediyor.
