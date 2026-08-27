@@ -111,6 +111,12 @@ const AdminOrders = ({ navigation, route }: any) => {
   // bir kez haber ver. Her denemede toast göstermek 20 saniyede bir yağmur
   // olurdu; hiç göstermemek de arızayı 90 saniye görünmez bırakıyordu.
   const silentFailuresRef = useRef(0);
+  // Aynı anda birden çok yenileme tetikleyicisi var: mount, ekran odağı,
+  // resync, polling ve push veriyolu. Tanılama kaydında bunların tek saniyede
+  // ÜÇ özdeş sorgu başlattığı görüldü (36 satır + derin join'ler) ve arıza
+  // sırasında ikisi birlikte zaman aşımına düşüyordu. Uçuşta bir sorgu varsa
+  // yenisini başlatmıyoruz, mevcut olanın sonucunu paylaşıyoruz.
+  const inFlightRef = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
     // Filtre değişince parmak izi geçersiz — listeyi mutlaka yenile
@@ -121,7 +127,29 @@ const AdminOrders = ({ navigation, route }: any) => {
   // true = veri çekildi, false = başarısız. Dönüş değeri useRealtimeTable'ın
   // bayat-veri kontrolü için kullanılıyor; başarısızlığı yutmak o mekanizmayı
   // devre dışı bırakır.
-  const fetchOrders = async (opts?: { silent?: boolean; notifyErrors?: boolean; reason?: string }): Promise<boolean> => {
+  const fetchOrders = (opts?: {
+    silent?: boolean;
+    notifyErrors?: boolean;
+    reason?: string;
+  }): Promise<boolean> => {
+    // Elle yenileme (silent değil) her zaman taze sorgu açar: kullanıcı
+    // açıkça istedi. Otomatik tetikleyiciler uçuştakine katılır.
+    if (opts?.silent === true && inFlightRef.current) {
+      diag('fetch', `sorgu birleştirildi (${opts?.reason ?? '?'})`);
+      return inFlightRef.current;
+    }
+    const pending = fetchOrdersInner(opts).finally(() => {
+      if (inFlightRef.current === pending) inFlightRef.current = null;
+    });
+    inFlightRef.current = pending;
+    return pending;
+  };
+
+  const fetchOrdersInner = async (opts?: {
+    silent?: boolean;
+    notifyErrors?: boolean;
+    reason?: string;
+  }): Promise<boolean> => {
     const silent = opts?.silent === true;
     const reason = opts?.reason ?? 'elle';
     // Hata bildirimi spinner'dan ayrı: kullanıcı elle yenilediğinde (aşağı çekme)
