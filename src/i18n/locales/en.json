@@ -1046,7 +1046,17 @@
         "saved": "Working Hours Saved",
         "savedDesc": "Working hours updated successfully",
         "errorSaving": "Error saving working hours"
-      }
+      },
+      "buildTitle": "Version Info",
+      "buildDesc": "Shows which code is running — for support and testing",
+      "buildAppVersion": "App version",
+      "buildUpdate": "Update",
+      "buildSource": "Source",
+      "buildChannel": "Channel",
+      "buildSourceOta": "OTA update",
+      "buildSourceEmbedded": "Store build (no OTA)",
+      "buildSourceDev": "Dev server",
+      "buildNone": "—"
     },
     "notifications": {
       "title": "Notifications",

@@ -1045,7 +1045,17 @@
         "saved": "Çalışma Saatleri Kaydedildi",
         "savedDesc": "Çalışma saatleri başarıyla güncellendi",
         "errorSaving": "Çalışma saatleri kaydedilirken bir hata oluştu"
-      }
+      },
+      "buildTitle": "Sürüm Bilgisi",
+      "buildDesc": "Hangi kodun çalıştığını gösterir — destek ve test için",
+      "buildAppVersion": "Uygulama sürümü",
+      "buildUpdate": "Güncelleme",
+      "buildSource": "Kaynak",
+      "buildChannel": "Kanal",
+      "buildSourceOta": "OTA güncellemesi",
+      "buildSourceEmbedded": "Mağaza sürümü (OTA yok)",
+      "buildSourceDev": "Geliştirme sunucusu",
+      "buildNone": "—"
     },
     "notifications": {
       "title": "Bildirimler",

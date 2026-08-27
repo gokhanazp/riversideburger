@@ -25,6 +25,8 @@ import {
 } from '../../services/workingHoursService';
 import { getCurrencyInfo } from '../../services/currencyService';
 import { LinearGradient } from 'expo-linear-gradient';
+import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
@@ -377,6 +379,46 @@ const AdminSettings = ({ navigation }: any) => {
            </TouchableOpacity>
         </SettingCard>
 
+        {/* Sürüm bilgisi — "hangi kod çalışıyor?" sorusunu bitirmek için.
+            OTA güncellemeleri, mağaza sürümü ve dev sunucusu birbirinden
+            ayırt edilemediği için testlerde sürekli belirsizlik yaşanıyordu. */}
+        <SettingCard
+          delay={700}
+          icon="information-circle-outline"
+          title={t('admin.settings.buildTitle')}
+          description={t('admin.settings.buildDesc')}
+        >
+          {(() => {
+            const dash = t('admin.settings.buildNone');
+            // Updates.isEnabled dev/web'de false; updateId yalnızca OTA ile çalışırken dolu
+            const source = !Updates.isEnabled
+              ? t('admin.settings.buildSourceDev')
+              : Updates.isEmbeddedLaunch
+              ? t('admin.settings.buildSourceEmbedded')
+              : t('admin.settings.buildSourceOta');
+            const shortId = Updates.updateId ? Updates.updateId.slice(0, 8) : dash;
+            const when = Updates.createdAt
+              ? new Date(Updates.createdAt).toLocaleString()
+              : dash;
+            const rows: [string, string][] = [
+              [t('admin.settings.buildAppVersion'), Constants.expoConfig?.version || dash],
+              [t('admin.settings.buildSource'), source],
+              [t('admin.settings.buildUpdate'), Updates.updateId ? `${shortId} · ${when}` : dash],
+              [t('admin.settings.buildChannel'), Updates.channel || dash],
+            ];
+            return (
+              <View>
+                {rows.map(([label, value]) => (
+                  <View key={label} style={styles.buildRow}>
+                    <Text style={styles.buildLabel}>{label}</Text>
+                    <Text style={styles.buildValue} numberOfLines={2}>{value}</Text>
+                  </View>
+                ))}
+              </View>
+            );
+          })()}
+        </SettingCard>
+
       </ScrollView>
 
       {/* FOOTER ACTION */}
@@ -406,6 +448,9 @@ const AdminSettings = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
+  buildRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 6, gap: 12 },
+  buildLabel: { fontSize: 13, color: '#777' },
+  buildValue: { flex: 1, fontSize: 13, fontWeight: '700', color: '#1A1A1A', textAlign: 'right' },
   container: { flex: 1, backgroundColor: '#F8F9FA' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 10, color: '#888' },
