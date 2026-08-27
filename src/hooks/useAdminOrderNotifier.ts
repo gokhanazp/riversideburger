@@ -9,6 +9,7 @@
 // created_at karşılaştırmasıyla sonradan yakalanıp bildiriliyor ve basılıyor.
 
 import { useEffect, useRef } from 'react';
+import i18n from '../i18n';
 import { Platform } from 'react-native';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
@@ -93,7 +94,7 @@ export function useAdminOrderNotifier() {
         printedRef.current.delete(orderId);
         Toast.show({
           type: 'error',
-          text1: 'Yazıcı hatası',
+          text1: i18n.t('admin.orderAlert.printerError'),
           text2: res.error,
           visibilityTime: 4000,
         });
@@ -113,14 +114,14 @@ export function useAdminOrderNotifier() {
 
     if (!orderData) return;
 
-    const customerName = (orderData as any).user?.full_name || 'Müşteri';
+    const customerName = (orderData as any).user?.full_name || i18n.t('admin.orderAlert.customer');
     const priceText = formatPrice(orderData.total_amount);
 
     if (Platform.OS === 'web') {
       playAdminOrderSound();
     } else {
       await sendLocalNotification(
-        '🔔 YENİ SİPARİŞ!',
+        i18n.t('admin.orderAlert.newOrderTitle'),
         `${customerName} - ${priceText}`,
         { orderId: orderData.id, type: 'new_order_admin' },
         'admin_orders',
@@ -131,7 +132,7 @@ export function useAdminOrderNotifier() {
 
     Toast.show({
       type: 'success',
-      text1: '🔔 Yeni Sipariş!',
+      text1: i18n.t('admin.orderAlert.newOrderToast'),
       text2: `${customerName} - ${priceText}`,
       visibilityTime: 5000,
       onPress: () => {
@@ -150,8 +151,8 @@ export function useAdminOrderNotifier() {
       playAdminOrderSound();
     } else {
       await sendLocalNotification(
-        `🔔 ${count} YENİ SİPARİŞ!`,
-        'Bağlantı kopukken gelen siparişler',
+        i18n.t('admin.orderAlert.newOrdersTitle', { count }),
+        i18n.t('admin.orderAlert.missedOrdersBody'),
         { type: 'new_order_admin' },
         'admin_orders',
         Notifications.AndroidNotificationPriority.MAX,
@@ -161,8 +162,8 @@ export function useAdminOrderNotifier() {
 
     Toast.show({
       type: 'success',
-      text1: `🔔 ${count} Yeni Sipariş!`,
-      text2: 'Listeyi görmek için dokun',
+      text1: i18n.t('admin.orderAlert.newOrdersToast', { count }),
+      text2: i18n.t('admin.orderAlert.tapToView'),
       visibilityTime: 6000,
       onPress: () => {
         if (navigationRef.isReady()) {

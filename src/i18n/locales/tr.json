@@ -48,6 +48,8 @@
     "dontHaveAccount": "Hesabınız yok mu?",
     "loginSuccess": "Giriş başarılı!",
     "registerSuccess": "Kayıt başarılı!",
+    "registerConfirmEmailTitle": "Neredeyse tamam! 📧",
+    "registerConfirmEmailDesc": "Hesap oluşturuldu. Giriş yapabilmek için e-postanızı ({{email}}) onaylayın.",
     "logoutSuccess": "Çıkış yapıldı",
     "welcome": "Hoş Geldiniz!",
     "welcomeBack": "Tekrar Hoş Geldiniz!",
@@ -189,6 +191,7 @@
     "subtotal": "Ara Toplam",
     "deliveryFee": "Teslimat Ücreti",
     "discount": "İndirim",
+    "pointsDiscount": "Puan indirimi",
     "total": "Toplam",
     "checkout": "Siparişi Tamamla",
     "addedToCart": "Sepete Eklendi",
@@ -1334,6 +1337,16 @@
       "descriptionPlaceholder": "Kısa açıklama — ana sayfada gösterilir",
       "groupQty": "Kaç üründe (grup)",
       "buyGetPreview": "Her {{group}} üründe en ucuz {{free}} tanesi bedava (ödenen: {{pay}})."
+    },
+    "orderAlert": {
+      "newOrderTitle": "🔔 YENİ SİPARİŞ!",
+      "newOrderToast": "🔔 Yeni Sipariş!",
+      "newOrdersTitle": "🔔 {{count}} YENİ SİPARİŞ!",
+      "newOrdersToast": "🔔 {{count}} Yeni Sipariş!",
+      "missedOrdersBody": "Bağlantı kopukken gelen siparişler",
+      "tapToView": "Listeyi görmek için dokun",
+      "customer": "Müşteri",
+      "printerError": "Yazıcı hatası"
     }
   },
   "favorites": {

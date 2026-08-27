@@ -191,6 +191,7 @@
     "subtotal": "Subtotal",
     "deliveryFee": "Delivery Fee",
     "discount": "Discount",
+    "pointsDiscount": "Points discount",
     "total": "Total",
     "checkout": "Checkout",
     "addedToCart": "Added to Cart",
@@ -1337,6 +1338,16 @@
       "descriptionPlaceholder": "Short description — shown on home",
       "groupQty": "Items in group",
       "buyGetPreview": "For every {{group}} items, the cheapest {{free}} is free (pay for {{pay}})."
+    },
+    "orderAlert": {
+      "newOrderTitle": "🔔 NEW ORDER!",
+      "newOrderToast": "🔔 New Order!",
+      "newOrdersTitle": "🔔 {{count}} NEW ORDERS!",
+      "newOrdersToast": "🔔 {{count}} New Orders!",
+      "missedOrdersBody": "Orders that arrived while offline",
+      "tapToView": "Tap to view the list",
+      "customer": "Customer",
+      "printerError": "Printer error"
     }
   },
   "favorites": {
