@@ -13,6 +13,7 @@ import {
   Dimensions,
   StatusBar,
   TextInput,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
@@ -328,6 +329,37 @@ const AdminOrders = ({ navigation, route }: any) => {
           </body>
         </html>
       `;
+      // WEB: expo-print'in web implementasyonu html parametresini TAMAMEN yok
+      // sayıp window.print() çağırıyor, yani açık olan sayfayı yazdırıyor —
+      // fiş şablonu hiç görünmüyordu. Fişi gizli bir iframe'e yazıp onu
+      // yazdırıyoruz; yeni sekme açmadığı için popup engelleyicilere de
+      // takılmıyor. Bilgisayardan yöneten admin böylece fiş basabiliyor.
+      if (Platform.OS === 'web') {
+        const doc: any = (globalThis as any).document;
+        if (!doc) throw new Error('WEB_PRINT_UNAVAILABLE');
+
+        const frame = doc.createElement('iframe');
+        frame.setAttribute('aria-hidden', 'true');
+        frame.style.position = 'fixed';
+        frame.style.right = '0';
+        frame.style.bottom = '0';
+        frame.style.width = '0';
+        frame.style.height = '0';
+        frame.style.border = '0';
+        frame.onload = () => {
+          try {
+            frame.contentWindow?.focus();
+            frame.contentWindow?.print();
+          } finally {
+            // Yazdırma diyalogu kapanana kadar dursun, sonra temizle
+            setTimeout(() => frame.remove(), 60000);
+          }
+        };
+        frame.srcdoc = html;
+        doc.body.appendChild(frame);
+        return;
+      }
+
       const { uri } = await Print.printToFileAsync({ html });
       await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
     } catch (error) {
