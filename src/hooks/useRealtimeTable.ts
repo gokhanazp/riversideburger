@@ -68,8 +68,14 @@ export function useRealtimeTable({
   onResync,
   pollIntervalMs = 30000,
   watchdogIntervalMs = 15000,
-}: UseRealtimeTableOptions): { status: RealtimeStatus } {
+}: UseRealtimeTableOptions): { status: RealtimeStatus; isStale: boolean } {
   const [status, setStatus] = useState<RealtimeStatus>('connecting');
+  // Kanal 'SUBSCRIBED' olsa bile veri akmıyor olabilir: WebSocket mevcut
+  // bağlantı üzerinden nabızla ayakta kalırken, her HTTP sorgusu YENİ bağlantı
+  // istiyor ve cihazın ağ yığını bozulduysa asılı kalıyor. O durumda gösterge
+  // 'Canlı' derken liste hiç güncellenmiyordu — yani gösterge yalan söylüyordu.
+  // Artık tazelik ölçütü socket durumu değil, GERÇEKTEN veri gelip gelmediği.
+  const [isStale, setIsStale] = useState(false);
 
   // Callback'leri ref'te tut: parent her render'da yeni fonksiyon üretse bile
   // aboneliği baştan kurmayalım (Keep callbacks in refs to avoid resubscribing)
@@ -99,6 +105,7 @@ export function useRealtimeTable({
 
     const markOk = () => {
       lastOkAt = Date.now();
+      setIsStale(false);
     };
 
     // onResync'i çağır ve başarıyla tamamlanırsa "veri geldi" olarak işaretle
@@ -231,11 +238,15 @@ export function useRealtimeTable({
     // senaryo çok olası. Arka planda çalışmasının maliyeti bir sorgu; sessizce
     // ölmesinin maliyeti kaçan sipariş.
     const watchdog = setInterval(() => {
-      if (disposed || subscribing || retryTimer) return;
+      if (disposed) return;
+      const staleForNow = Date.now() - lastOkAt;
+      // Bayatlık bilgisi yeniden abonelik sürerken de güncellenmeli
+      setIsStale(staleForNow > STALE_LIMIT_MS);
+      if (subscribing || retryTimer) return;
 
       // Sebep ne olursa olsun uzun süre veri gelmediyse zorla toparlan.
       // Son çare olduğu için nadir: en fazla STALE_LIMIT_MS'de bir.
-      const staleFor = Date.now() - lastOkAt;
+      const staleFor = staleForNow;
       if (staleFor > STALE_LIMIT_MS && Date.now() - lastHardResetAt > STALE_LIMIT_MS) {
         lastHardResetAt = Date.now();
         log(`${Math.round(staleFor / 1000)}sn veri yok → zorla toparlanma`);
@@ -310,5 +321,5 @@ export function useRealtimeTable({
     };
   }, [enabled, channelName, table, event, pollIntervalMs, watchdogIntervalMs]);
 
-  return { status };
+  return { status, isStale };
 }

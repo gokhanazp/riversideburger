@@ -164,7 +164,15 @@ const AdminOrders = ({ navigation, route }: any) => {
       // Arka plandaki polling'de hata gösterme — 20 saniyede bir toast yağmasın.
       // Elle yenilemede ise mutlaka göster.
       if (notifyErrors) {
-        Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.orders.errorLoading') });
+        // Gerçek hata metnini göster: genel mesaj hiçbir şey anlatmıyordu ve
+        // teşhis için her seferinde cihazı bilgisayara bağlamak gerekiyordu.
+        const reason = String(error?.message || error || '').slice(0, 90);
+        Toast.show({
+          type: 'error',
+          text1: t('admin.orders.errorLoading'),
+          text2: reason,
+          visibilityTime: 6000,
+        });
       }
       console.log('[AdminOrders] sipariş çekilemedi:', error?.message || error);
       return false;
@@ -199,7 +207,7 @@ const AdminOrders = ({ navigation, route }: any) => {
   // (useAdminOrderNotifier) tarafından yönetilir; burada sadece liste yenilenir.
   // useRealtimeTable kopan bağlantıyı yeniden kurar, uygulama ön plana
   // döndüğünde tazeler ve realtime tamamen ölse bile polling ile liste güncel kalır.
-  const { status: realtimeStatus } = useRealtimeTable({
+  const { status: realtimeStatus, isStale } = useRealtimeTable({
     channel: 'admin-orders-list',
     table: 'orders',
     event: '*',
@@ -495,10 +503,16 @@ const AdminOrders = ({ navigation, route }: any) => {
                 <Text style={styles.headerSubtitle}>{t('admin.dashboard')}</Text>
                 <Text style={styles.headerTitle}>{t('admin.orders.title')}</Text>
                 {/* Canlı bağlantı göstergesi — liste gerçekten güncel mi? */}
+                {/* Gösterge artık socket durumuna DEĞİL verinin tazeliğine bakıyor.
+                    Kanal 'SUBSCRIBED' olsa bile veri akmıyorsa "Canlı" demek
+                    yanlıştı: personel yeşil noktaya bakıp her şeyin yolunda
+                    olduğunu sanıyordu. */}
                 <View style={styles.liveRow}>
-                    <View style={[styles.liveDot, { backgroundColor: realtimeStatus === 'live' ? '#28A745' : realtimeStatus === 'connecting' ? '#FFC107' : '#DC3545' }]} />
+                    <View style={[styles.liveDot, { backgroundColor: isStale ? '#DC3545' : realtimeStatus === 'live' ? '#28A745' : realtimeStatus === 'connecting' ? '#FFC107' : '#DC3545' }]} />
                     <Text style={styles.liveText}>
-                        {realtimeStatus === 'live'
+                        {isStale
+                          ? t('admin.orders.liveOffline')
+                          : realtimeStatus === 'live'
                           ? t('admin.orders.liveConnected')
                           : realtimeStatus === 'connecting'
                           ? t('admin.orders.liveConnecting')
@@ -520,6 +534,18 @@ const AdminOrders = ({ navigation, route }: any) => {
             <FilterItem status="delivering" label={t('admin.orders.filterDelivering')} icon="moped-outline" />
         </ScrollView>
       </LinearGradient>
+
+      {/* Veri bayatladıysa personele ne yapacağını söyle. Sessizce boş liste
+          göstermek en kötüsü: sipariş var sanmıyorlar ve sipariş kaçıyor. */}
+      {isStale && (
+        <View style={styles.staleBanner}>
+          <Ionicons name="warning" size={18} color="#8A2B00" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.staleTitle}>{t('admin.orders.staleTitle')}</Text>
+            <Text style={styles.staleDesc}>{t('admin.orders.staleDesc')}</Text>
+          </View>
+        </View>
+      )}
 
       {loading && !refreshing ? (
           <View style={styles.loadingBox}>
@@ -759,6 +785,13 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
   headerTitle: { fontSize: 24, fontWeight: '900', color: Colors.white },
   refreshCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  staleBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#FFE9D6', borderLeftWidth: 4, borderLeftColor: '#DC3545',
+    marginHorizontal: 16, marginTop: 12, padding: 12, borderRadius: 10,
+  },
+  staleTitle: { fontSize: 13, fontWeight: '900', color: '#8A2B00' },
+  staleDesc: { fontSize: 12, color: '#8A2B00', marginTop: 2, lineHeight: 16 },
   liveRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   liveDot: { width: 7, height: 7, borderRadius: 4 },
   liveText: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },

@@ -697,7 +697,9 @@
       "sumDelivery": "Teslimat ücreti",
       "sumTip": "Bahşiş",
       "sumTotal": "TOPLAM",
-      "sumTax": "HST"
+      "sumTax": "HST",
+      "staleTitle": "Veri güncellenmiyor",
+      "staleDesc": "Bağlantı kurulamıyor. Uygulamayı tamamen kapatıp yeniden açın."
     },
     "products": {
       "title": "Ürün Yönetimi",

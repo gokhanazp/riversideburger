@@ -697,7 +697,9 @@
       "sumDelivery": "Delivery fee",
       "sumTip": "Tip",
       "sumTotal": "TOTAL",
-      "sumTax": "HST"
+      "sumTax": "HST",
+      "staleTitle": "Data is not updating",
+      "staleDesc": "Cannot reach the server. Please fully close and reopen the app."
     },
     "products": {
       "title": "Product Management",
