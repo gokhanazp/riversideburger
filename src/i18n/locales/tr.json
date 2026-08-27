@@ -1055,7 +1055,16 @@
       "buildSourceOta": "OTA güncellemesi",
       "buildSourceEmbedded": "Mağaza sürümü (OTA yok)",
       "buildSourceDev": "Geliştirme sunucusu",
-      "buildNone": "—"
+      "buildNone": "—",
+      "diagTitle": "Tanılama Kaydı",
+      "diagDesc": "Bağlantı ve sorgu olayları — donma teşhisi için",
+      "diagShow": "Göster / Yenile",
+      "diagShare": "Paylaş",
+      "diagClear": "Temizle",
+      "diagEmpty": "Kayıt yok",
+      "diagCount": "{{count}} olay kayıtlı",
+      "diagCleared": "Tanılama kaydı temizlendi",
+      "diagShareTitle": "Riverside tanılama kaydı"
     },
     "notifications": {
       "title": "Bildirimler",

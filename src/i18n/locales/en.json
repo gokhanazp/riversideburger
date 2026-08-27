@@ -1056,7 +1056,16 @@
       "buildSourceOta": "OTA update",
       "buildSourceEmbedded": "Store build (no OTA)",
       "buildSourceDev": "Dev server",
-      "buildNone": "—"
+      "buildNone": "—",
+      "diagTitle": "Diagnostics Log",
+      "diagDesc": "Connection and query events — for diagnosing the freeze",
+      "diagShow": "Show / Refresh",
+      "diagShare": "Share",
+      "diagClear": "Clear",
+      "diagEmpty": "No entries",
+      "diagCount": "{{count}} events recorded",
+      "diagCleared": "Diagnostics log cleared",
+      "diagShareTitle": "Riverside diagnostics log"
     },
     "notifications": {
       "title": "Notifications",

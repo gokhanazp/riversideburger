@@ -19,6 +19,7 @@ import { formatPrice } from '../services/currencyService';
 import { sendLocalNotification, playAdminOrderSound, initAdminOrderSound } from '../services/notificationService';
 import { navigationRef } from '../navigation/navigationRef';
 import { useRealtimeTable } from './useRealtimeTable';
+import { diag } from '../services/diagnosticsLog';
 import type { ResyncReason } from './useRealtimeTable';
 import { resetOrderAlerts } from '../services/orderAlertRegistry';
 import {
@@ -32,6 +33,11 @@ import {
 const MAX_CATCH_UP = 20;
 // Sonradan yakalanan siparişlerden yalnızca hâlâ mutfağı ilgilendirenler basılır
 const PRINTABLE_STATUSES = ['pending', 'confirmed', 'preparing'];
+// Bir catch-up turu bu süreden uzun sürdüyse asılı kabul edilir. catchUp içinde
+// ağ sorgusu, yerel bildirim ve fiş baskısı var; baskı native tarafta asılırsa
+// finally hiç çalışmıyor ve yeniden-giriş koruması KALICI olarak açık kalıyordu.
+// O durumda her tur anında dönüyor, hiç sipariş duyurulmuyordu.
+const CATCH_UP_STUCK_MS = 60000;
 
 export function useAdminOrderNotifier() {
   const user = useAuthStore((s) => s.user);
@@ -44,6 +50,7 @@ export function useAdminOrderNotifier() {
   // Bu tarihten sonrasını "yeni sipariş" say (Baseline for what counts as new)
   const lastSeenAtRef = useRef<string | null>(null);
   const catchingUpRef = useRef(false);
+  const catchUpStartedAtRef = useRef(0);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -180,8 +187,19 @@ export function useAdminOrderNotifier() {
   // true = sorgu çalıştı, false = başarısız. Dönüş değeri useRealtimeTable'ın
   // bayat-veri kontrolü için; hatayı başarı olarak bildirmek o mekanizmayı kör eder.
   const catchUp = async (reason: ResyncReason): Promise<boolean> => {
-    if (catchingUpRef.current) return true;
+    if (catchingUpRef.current) {
+      const runningFor = Date.now() - catchUpStartedAtRef.current;
+      if (runningFor < CATCH_UP_STUCK_MS) {
+        // Gerçekten paralel bir tur var. false dönüyoruz: "veri tazelenmedi".
+        // true dönmek tazeliği taklit ediyordu ve koruma takılı kalırsa bayat
+        // veri kontrolü sonsuza kadar susuyordu.
+        return false;
+      }
+      diag('notifier', `catch-up ${Math.round(runningFor / 1000)}sn asılı kaldı → koruma kırılıyor`);
+      catchingUpRef.current = false;
+    }
     catchingUpRef.current = true;
+    catchUpStartedAtRef.current = Date.now();
     try {
       if (lastSeenAtRef.current === null) {
         const { data } = await supabase
@@ -201,7 +219,10 @@ export function useAdminOrderNotifier() {
         .order('created_at', { ascending: true })
         .limit(MAX_CATCH_UP + 1);
 
-      if (error) return false;
+      if (error) {
+        diag('notifier', `catch-up sorgusu hata: ${String(error.message).slice(0, 60)}`);
+        return false;
+      }
       if (!data.length) return true;
 
       const rows = data.slice(0, MAX_CATCH_UP);
@@ -214,7 +235,7 @@ export function useAdminOrderNotifier() {
       const fresh = rows.filter((row) => !notifiedRef.current.has(row.id));
       if (!fresh.length) return true;
 
-      console.log(`[admin-notifier] ${reason}: ${fresh.length} kaçan sipariş yakalandı`);
+      diag('notifier', `${reason}: ${fresh.length} kaçan sipariş yakalandı`);
       fresh.forEach((row) => notifiedRef.current.add(row.id));
 
       if (fresh.length === 1) {

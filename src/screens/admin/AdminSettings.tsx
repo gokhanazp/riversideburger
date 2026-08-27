@@ -10,6 +10,8 @@ import {
   Switch,
   StatusBar,
   Dimensions,
+  Share,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +29,7 @@ import { getCurrencyInfo } from '../../services/currencyService';
 import { LinearGradient } from 'expo-linear-gradient';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
+import { formatDiagnostics, getDiagnostics, clearDiagnostics } from '../../services/diagnosticsLog';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
@@ -65,6 +68,10 @@ const AdminSettings = ({ navigation }: any) => {
     working_hours: DEFAULT_WORKING_HOURS,
   });
   const [showSaveModal, setShowSaveModal] = useState(false);
+  // Tanılama kaydı ekranda tutulmuyor, istendiğinde okunuyor: halka tampon
+  // sürekli değişiyor ve her olayda render tetiklemek gereksiz.
+  const [diagText, setDiagText] = useState<string | null>(null);
+  const [diagCount, setDiagCount] = useState(0);
   const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false);
 
   // Input değerlerini ref'lerde tut (render tetiklemesin)
@@ -174,6 +181,31 @@ const AdminSettings = ({ navigation }: any) => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const loadDiagText = () => {
+    setDiagCount(getDiagnostics().length);
+    // Ekranda yalnızca son 60 satır: tam kayıt paylaşımda gönderiliyor.
+    const lines = formatDiagnostics().split('\n');
+    setDiagText(lines.slice(-60).join('\n'));
+  };
+
+  const handleShareDiag = async () => {
+    try {
+      await Share.share({
+        title: t('admin.settings.diagShareTitle'),
+        message: formatDiagnostics(),
+      });
+    } catch {
+      // Kullanıcı paylaşım sayfasını kapattıysa sorun değil
+    }
+  };
+
+  const handleClearDiag = async () => {
+    await clearDiagnostics();
+    setDiagText(null);
+    setDiagCount(0);
+    Toast.show({ type: 'success', text1: t('admin.settings.diagCleared') });
   };
 
   const handleSaveWorkingHours = async (workingHours: WorkingHours, autoCloseEnabled: boolean) => {
@@ -419,6 +451,46 @@ const AdminSettings = ({ navigation }: any) => {
           })()}
         </SettingCard>
 
+        {/* Tanılama kaydı — sipariş ekranının uzun süre sonra sipariş almaması
+            yalnızca restorandaki tablette, geliştirici konsolu bağlı değilken
+            oluşuyor. Bağlantı/zamanlayıcı/sorgu olayları cihazda tutulup
+            buradan paylaşılabiliyor; böylece sebep tahmin edilmiyor. */}
+        <SettingCard
+          delay={800}
+          icon="pulse-outline"
+          title={t('admin.settings.diagTitle')}
+          description={t('admin.settings.diagDesc')}
+        >
+          <View style={styles.diagButtons}>
+            <TouchableOpacity style={styles.diagButton} onPress={loadDiagText}>
+              <Ionicons name="refresh-outline" size={16} color={Colors.primary} />
+              <Text style={styles.diagButtonText}>{t('admin.settings.diagShow')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.diagButton} onPress={handleShareDiag}>
+              <Ionicons name="share-outline" size={16} color={Colors.primary} />
+              <Text style={styles.diagButtonText}>{t('admin.settings.diagShare')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.diagButton} onPress={handleClearDiag}>
+              <Ionicons name="trash-outline" size={16} color="#DC3545" />
+              <Text style={[styles.diagButtonText, { color: '#DC3545' }]}>
+                {t('admin.settings.diagClear')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {diagText !== null && (
+            <>
+              <Text style={styles.diagCount}>
+                {t('admin.settings.diagCount', { count: diagCount })}
+              </Text>
+              <ScrollView style={styles.diagBox} nestedScrollEnabled horizontal={false}>
+                <Text style={styles.diagLine} selectable>
+                  {diagText || t('admin.settings.diagEmpty')}
+                </Text>
+              </ScrollView>
+            </>
+          )}
+        </SettingCard>
+
       </ScrollView>
 
       {/* FOOTER ACTION */}
@@ -448,6 +520,16 @@ const AdminSettings = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
+  diagButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  diagButton: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 8, paddingHorizontal: 12,
+    borderRadius: BorderRadius.md, borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FAFAFA',
+  },
+  diagButtonText: { fontSize: 13, fontWeight: '600', color: Colors.primary },
+  diagCount: { fontSize: 12, color: '#777', marginTop: 10 },
+  diagBox: { maxHeight: 260, marginTop: 8, padding: 10, borderRadius: BorderRadius.md, backgroundColor: '#111' },
+  diagLine: { fontSize: 10, lineHeight: 15, color: '#9EF01A', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
   buildRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 6, gap: 12 },
   buildLabel: { fontSize: 13, color: '#777' },
   buildValue: { flex: 1, fontSize: 13, fontWeight: '700', color: '#1A1A1A', textAlign: 'right' },

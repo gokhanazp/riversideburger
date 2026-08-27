@@ -39,6 +39,8 @@ import {
   CancelationReason,
 } from '../../services/uberDeliveryService';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
+import { diag } from '../../services/diagnosticsLog';
+import { onOrdersRefresh } from '../../services/orderRefreshBus';
 import { buildOrderBreakdown } from '../../services/orderBreakdown';
 
 const { width } = Dimensions.get('window');
@@ -116,24 +118,12 @@ const AdminOrders = ({ navigation, route }: any) => {
     fetchOrders();
   }, [filterStatus]);
 
-  // Ekran açıkken tabletin uykuya geçmesini engelle. Ekran kapanınca OS
-  // uygulamayı arka plana alıp realtime bağlantısını kesiyor ve siparişler
-  // düşmüyordu. (Keep the tablet awake while the orders screen is focused.)
-  useFocusEffect(
-    useCallback(() => {
-      activateKeepAwakeAsync('admin-orders').catch(() => {});
-      return () => {
-        // Zaten kapalıysa hata verebilir — sorun değil
-        deactivateKeepAwake('admin-orders').catch(() => {});
-      };
-    }, [])
-  );
-
   // true = veri çekildi, false = başarısız. Dönüş değeri useRealtimeTable'ın
   // bayat-veri kontrolü için kullanılıyor; başarısızlığı yutmak o mekanizmayı
   // devre dışı bırakır.
-  const fetchOrders = async (opts?: { silent?: boolean; notifyErrors?: boolean }): Promise<boolean> => {
+  const fetchOrders = async (opts?: { silent?: boolean; notifyErrors?: boolean; reason?: string }): Promise<boolean> => {
     const silent = opts?.silent === true;
+    const reason = opts?.reason ?? 'elle';
     // Hata bildirimi spinner'dan ayrı: kullanıcı elle yenilediğinde (aşağı çekme)
     // spinner'ı listeyi kaplamasın diye "silent" kullanıyoruz ama sessiz kalmak
     // yanlış olur — hiçbir geri bildirim olmadan dönen spinner tam olarak
@@ -148,13 +138,29 @@ const AdminOrders = ({ navigation, route }: any) => {
       // başlamıyor ve await sonsuza kadar bekliyordu; finally çalışmadığı için
       // yenileme spinner'ı dönüp duruyordu. Artık en kötü durumda hata verip
       // spinner'ı bırakıyor ve bir sonraki denemede toparlanıyor.
-      const { data, error } = (await Promise.race([
-        query,
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('ORDERS_FETCH_TIMEOUT')), FETCH_TIMEOUT_MS)
-        ),
-      ])) as any;
+      const startedAt = Date.now();
+      diag('fetch', `sorgu başladı (${reason}, filtre=${filterStatus})`);
+      // Yarışı kaybeden zamanlayıcı temizlenmeli: aksi halde her sorgu 25 sn
+      // boyunca yaşayan bir timer bırakıyor ve 20 sn'lik polling ile bunlar
+      // üst üste birikiyor.
+      let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+      let raced: any;
+      try {
+        raced = await Promise.race([
+          query,
+          new Promise((_, reject) => {
+            timeoutHandle = setTimeout(
+              () => reject(new Error('ORDERS_FETCH_TIMEOUT')),
+              FETCH_TIMEOUT_MS
+            );
+          }),
+        ]);
+      } finally {
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+      }
+      const { data, error } = raced as any;
       if (error) throw error;
+      diag('fetch', `sorgu tamam ${Date.now() - startedAt}ms, ${(data || []).length} satır`);
 
       // Değişiklik yoksa state'e dokunma. Aksi halde 20 saniyelik polling
       // listeyi her seferinde yeniden render edip kart animasyonlarını
@@ -163,6 +169,7 @@ const AdminOrders = ({ navigation, route }: any) => {
       const signature = ordersSignature(data || []);
       if (signature === signatureRef.current) return true;
       signatureRef.current = signature;
+      diag('fetch', `liste değişti → ekran güncellendi (${(data || []).length} satır)`);
       setOrders(data || []);
       return true;
     } catch (error: any) {
@@ -184,7 +191,7 @@ const AdminOrders = ({ navigation, route }: any) => {
           visibilityTime: 6000,
         });
       }
-      console.log('[AdminOrders] sipariş çekilemedi:', error?.message || error);
+      diag('fetch', `HATA (${reason}): ${String(error?.message || error).slice(0, 80)}`);
       return false;
     } finally {
       if (!silent) setLoading(false);
@@ -196,6 +203,25 @@ const AdminOrders = ({ navigation, route }: any) => {
   // her zaman güncel filtreyle çalışan sürümü çağırması için ref'te tut.
   const fetchOrdersRef = useRef(fetchOrders);
   fetchOrdersRef.current = fetchOrders;
+
+  // Ekran açıkken tabletin uykuya geçmesini engelle. Ekran kapanınca OS
+  // uygulamayı arka plana alıp realtime bağlantısını kesiyor ve siparişler
+  // düşmüyordu. (Keep the tablet awake while the orders screen is focused.)
+  useFocusEffect(
+    useCallback(() => {
+      activateKeepAwakeAsync('admin-orders').catch(() => {});
+      // Ekran odağa her geldiğinde listeyi tazele. Bu yol JS zamanlayıcısına
+      // DEĞİL, navigasyonun native odak olayına bağlı: admin bildirime
+      // dokunup listeye geldiğinde polling tikleri kaçmış olsa bile sipariş
+      // görünür oluyor.
+      fetchOrdersRef.current({ silent: true, reason: 'odak' });
+      return () => {
+        // Zaten kapalıysa hata verebilir — sorun değil
+        deactivateKeepAwake('admin-orders').catch(() => {});
+      };
+    }, [])
+  );
+
 
   // Tek siparişte birden çok event (INSERT + UPDATE) gelebiliyor; art arda
   // gelen event'leri tek sorguya indir. (Debounce burst realtime events.)
@@ -221,22 +247,35 @@ const AdminOrders = ({ navigation, route }: any) => {
     channel: 'admin-orders-list',
     table: 'orders',
     event: '*',
-    onEvent: scheduleSilentRefresh,
-    onResync: () => {
+    onEvent: (payload) => {
+      diag('fetch', `realtime olayı: ${payload?.eventType ?? '?'}`);
+      scheduleSilentRefresh();
+    },
+    onResync: (reason) => {
       // HER resync'te sorgu yapılıyor — 'subscribed' sebebi eskiden atlanıyordu
       // ve yeniden abone olunduğunda (offline'dan dönüşte) bağlantı koptuğu
       // sürede gelen siparişler HİÇ çekilmiyordu. Mount'takiyle çakışması
       // zararsız: parmak izi aynıysa state'e dokunulmuyor, render tetiklenmiyor.
       // Promise'i DÖNDÜR: hook başarıyı buradan ölçüyor.
-      return fetchOrdersRef.current({ silent: true });
+      return fetchOrdersRef.current({ silent: true, reason: `resync:${reason}` });
     },
     pollIntervalMs: 20000,
   });
 
+  // Push bildirimi cihaza ulaştığı anda listeyi yenile. Sunucu push'u tek
+  // %100 çalıştığı kanıtlanmış kanal; realtime ve polling birlikte sussa bile
+  // yeni sipariş bu yolla ekrana düşer.
+  useEffect(() => {
+    return onOrdersRefresh((reason) => {
+      diag('fetch', `veriyolu isteği: ${reason}`);
+      fetchOrdersRef.current({ silent: true, reason: `bus:${reason}` });
+    });
+  }, []);
+
   const onRefresh = () => {
     setRefreshing(true);
     // Kullanıcı elle çekti: spinner listeyi kaplamasın ama hata olursa görsün
-    fetchOrders({ silent: true, notifyErrors: true });
+    fetchOrders({ silent: true, notifyErrors: true, reason: 'aşağı-çekme' });
   };
 
   const handlePrintOrder = async (order: Order) => {

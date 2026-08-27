@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider } from 'react-native-paper';
-import { View, ActivityIndicator, Platform } from 'react-native';
+import { View, ActivityIndicator, Platform, AppState } from 'react-native';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
@@ -31,6 +31,8 @@ import { getAppSettings } from './src/services/appSettingsService';
 import { loadCurrency } from './src/services/currencyService';
 import { loadTaxRate } from './src/services/taxService';
 import { navigationRef } from './src/navigation/navigationRef';
+import { diag, loadDiagnostics, flushDiagnostics } from './src/services/diagnosticsLog';
+import { requestOrdersRefresh } from './src/services/orderRefreshBus';
 import i18n from './src/i18n';
 
 // Stripe Publishable Key (Test Mode)
@@ -49,6 +51,12 @@ export default function App() {
   // (Check auth state on app start and load admin settings)
   useEffect(() => {
     const initializeApp = async () => {
+      // Önceki oturumun tanılama kaydını geri yükle. Sipariş ekranı donması
+      // yalnızca restorandaki tablette oluşuyor ve tanı için uygulama kapatılıp
+      // açılıyor; kayıt bunu atlatamazsa donma anına dair kanıt kalmıyor.
+      await loadDiagnostics();
+      diag('app', 'uygulama başlatılıyor');
+
       // Auth'u başlat (Initialize auth)
       await initialize();
 
@@ -91,11 +99,14 @@ export default function App() {
 
     // Bildirim geldiğinde (When notification is received)
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-      console.log('📬 Bildirim alındı:', {
-        title: notification.request.content.title,
-        body: notification.request.content.body,
-        data: notification.request.content.data,
-      });
+      const data = notification.request.content.data as any;
+      diag('push', `bildirim alındı: ${notification.request.content.title} (tip=${data?.type ?? '?'})`);
+      // Sunucu push'u tek %100 çalıştığı kanıtlanmış kanal. Bildirim cihaza
+      // ulaştıysa yeni sipariş VAR: realtime ve polling birlikte sussa bile
+      // listeye buradan "yenile" diyoruz.
+      if (user.role === 'admin') {
+        requestOrdersRefresh('push');
+      }
     });
 
     // Bildirime dokunulunca admin'i sipariş listesine götür.
@@ -146,6 +157,16 @@ export default function App() {
       }
     };
   }, [user]);
+
+  // Uygulama arka plana giderken tanılama kaydını hemen diske yaz: iOS JS
+  // thread'ini donduruyor, geciktirilmiş yazma o noktada hiç çalışmıyor.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      diag('app', `appState → ${next}`);
+      if (next !== 'active') void flushDiagnostics();
+    });
+    return () => sub.remove();
+  }, []);
 
   // Loading ekranı (Loading screen)
   if (isLoading) {

@@ -17,6 +17,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { diag } from '../services/diagnosticsLog';
 
 export type RealtimeStatus = 'connecting' | 'live' | 'offline';
 
@@ -58,6 +59,13 @@ const SESSION_WAIT_MS = 10000;
 // kontroller (socket açık mı, kanal joined mı, appState ne) yanlış olabiliyor;
 // "veri bayat" ölçütü arıza türünden bağımsız ve yanılmıyor.
 const STALE_LIMIT_MS = 90000;
+// Socket TÜM kanallar arasında paylaşılıyor: supabase.realtime.disconnect()
+// çağıran hook yalnızca kendi kanalını değil, diğer hook'un kanalını da
+// düşürüyor. İki hook (sipariş listesi + global bildirimci) aynı tabloyu
+// dinlediği için birbirlerinin yeni kurduğu socket'i sırayla kapatıp
+// bağlantının hiç oturmadığı bir salınım üretebiliyorlar. Bu yüzden zorla
+// sıfırlama modül düzeyinde kısıtlanıyor: tüm örnekler için tek pencere.
+let lastGlobalHardResetAt = 0;
 
 export function useRealtimeTable({
   channel: channelName,
@@ -102,6 +110,11 @@ export function useRealtimeTable({
     // Son kez ne zaman GERÇEKTEN veri aldık (realtime event veya başarılı fetch)
     let lastOkAt = Date.now();
     let lastHardResetAt = 0;
+    // Watchdog nabzını her tikte değil, dakikada bir kaydet. Amaç
+    // zamanlayıcının yaşadığını kanıtlamak; her 15 sn'de bir satır tamponu
+    // gereksiz doldurup donma anını taşırıyordu. Bir şey ANORMALSE (bayatlama
+    // başladı, socket kapalı, kanal joined değil) tik atlanmaz.
+    let watchdogTick = 0;
 
     const markOk = () => {
       lastOkAt = Date.now();
@@ -118,9 +131,16 @@ export function useRealtimeTable({
           // bayat-veri kontrolü hiç tetiklenmez ve tek kurtarma yolumuz ölür.
           (maybePromise as Promise<any>)
             .then((ok) => {
-              if (ok !== false) markOk();
+              // YALNIZCA açıkça true tazelik damgalar. Eskiden `ok !== false`
+              // yeterliydi ve undefined dönen (yani hiç veri çekmeyen) bir
+              // callback veriyi taze gösteriyordu. catchUp yeniden-giriş
+              // korumasında olduğu gibi "şu an atlıyorum" durumları da böylece
+              // yanlışlıkla başarı sayılıyordu — tek kurtarma mekanizmamız kör
+              // kalıyordu. Her iki çağıran da boolean döndürüyor.
+              if (ok === true) markOk();
+              else log(`resync(${reason}) veri tazelemedi (dönüş=${String(ok)})`);
             })
-            .catch(() => {});
+            .catch((e) => log(`resync(${reason}) hata: ${String(e?.message || e).slice(0, 60)}`));
         }
         // DİKKAT: burada eskiden markOk() vardı. Callback senkron olarak
         // undefined döndüğünde (yani hiç veri çekmediğinde) bile veriyi "taze"
@@ -130,10 +150,11 @@ export function useRealtimeTable({
         // yenilenir: promise başarıyla çözülürse ya da realtime event gelirse.
       } catch {
         // onResync hatası kurtarma döngüsünü bozmasın
+        log(`resync(${reason}) senkron hata`);
       }
     };
 
-    const log = (msg: string) => console.log(`[realtime:${channelName}] ${msg}`);
+    const log = (msg: string) => diag(`rt:${channelName}`, msg);
 
     const clearRetry = () => {
       if (retryTimer) {
@@ -246,13 +267,43 @@ export function useRealtimeTable({
       const staleForNow = Date.now() - lastOkAt;
       // Bayatlık bilgisi yeniden abonelik sürerken de güncellenmeli
       setIsStale(staleForNow > STALE_LIMIT_MS);
+      // Watchdog'un HER tiki kaydedilir. Amaç yalnızca arızayı değil,
+      // zamanlayıcının çalışıp çalışmadığını da kanıtlamak: kayıtta 15 sn'lik
+      // aralıklar kesiliyorsa sorun bağlantıda değil, JS zamanlayıcısındadır.
+      let socketUp: boolean | string;
+      try {
+        socketUp = supabase.realtime.isConnected();
+      } catch (e) {
+        socketUp = `hata:${String((e as any)?.message || e).slice(0, 30)}`;
+      }
+      watchdogTick += 1;
+      const abnormal =
+        socketUp !== true ||
+        channel?.state !== 'joined' ||
+        staleForNow > STALE_LIMIT_MS / 2 ||
+        subscribing ||
+        !!retryTimer;
+      const everyMinute =
+        watchdogTick % Math.max(1, Math.round(60000 / watchdogIntervalMs)) === 0;
+      if (abnormal || everyMinute) {
+        log(
+          `nabız bayat=${Math.round(staleForNow / 1000)}sn socket=${socketUp} kanal=${channel?.state ?? 'yok'} appState=${appState} abone=${subscribing} bekleyen=${!!retryTimer}`
+        );
+      }
       if (subscribing || retryTimer) return;
 
       // Sebep ne olursa olsun uzun süre veri gelmediyse zorla toparlan.
       // Son çare olduğu için nadir: en fazla STALE_LIMIT_MS'de bir.
       const staleFor = staleForNow;
-      if (staleFor > STALE_LIMIT_MS && Date.now() - lastHardResetAt > STALE_LIMIT_MS) {
+      if (
+        staleFor > STALE_LIMIT_MS &&
+        Date.now() - lastHardResetAt > STALE_LIMIT_MS &&
+        // Diğer hook örneği az önce socket'i sıfırladıysa bekle: yeni socket'i
+        // hemen tekrar kapatmak bağlantının hiç oturmamasına yol açıyor.
+        Date.now() - lastGlobalHardResetAt > STALE_LIMIT_MS / 2
+      ) {
         lastHardResetAt = Date.now();
+        lastGlobalHardResetAt = Date.now();
         log(`${Math.round(staleFor / 1000)}sn veri yok → zorla toparlanma`);
         setStatus('offline');
         attempt = 0;
@@ -273,7 +324,12 @@ export function useRealtimeTable({
         return;
       }
 
-      if (!supabase.realtime.isConnected()) {
+      // socketUp yukarıda try/catch ile hesaplandı; burada tekrar çağırmıyoruz.
+      // isConnected() bazı ara durumlarda throw edebiliyor ve o hata doğrudan
+      // setInterval callback'inden çıkarsa watchdog'un o turu hiç tamamlanmıyor.
+      // Hata durumunu "bağlı değil" sayıyoruz: yanlış alarmın maliyeti bir
+      // yeniden bağlanma, sessiz kalmanın maliyeti kaçan sipariş.
+      if (socketUp !== true) {
         log('socket kapalı görünüyor → yeniden bağlanılıyor');
         // realtime-js'in kendi reconnect timer'ı arka planda donmuş olabilir;
         // socket'i elle ayağa kaldır, aboneliği de yeniden kur.
@@ -296,6 +352,7 @@ export function useRealtimeTable({
       pollIntervalMs > 0
         ? setInterval(() => {
             if (disposed) return;
+            log('polling tiki');
             resync('poll');
           }, pollIntervalMs)
         : null;
@@ -303,6 +360,7 @@ export function useRealtimeTable({
     // Uygulama ön plana döndüğünde: oturumu + aboneliği anında yenile
     const appStateSub = AppState.addEventListener('change', (next) => {
       const cameBack = appState !== 'active' && next === 'active';
+      log(`appState ${appState} → ${next}`);
       appState = next;
       if (!cameBack || disposed) return;
 
