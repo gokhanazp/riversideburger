@@ -292,6 +292,17 @@ const OrderHistoryScreen = () => {
           </TouchableOpacity>
         )}
 
+        {/* Sipariş özeti — tutar dökümü, ek malzemeler ve indirim burada görünür.
+            Müşteri siparişin detayına sonradan da bakabilsin. */}
+        <TouchableOpacity
+          style={styles.outlineAction}
+          onPress={() => (navigation as any).navigate('OrderConfirmation', { orderId: item.id })}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="receipt-outline" size={18} color={Colors.primary} />
+          <Text style={styles.outlineActionText}>{t('orderConfirmation.viewSummary')}</Text>
+        </TouchableOpacity>
+
         {isReviewed && (
           <View style={styles.reviewedRow}>
             <Ionicons name="checkmark-circle" size={16} color="#28A745" />

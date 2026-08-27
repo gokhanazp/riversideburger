@@ -1492,6 +1492,8 @@
     "trackOrder": "Siparişi Takip Et",
     "myOrders": "Siparişlerim",
     "backHome": "Ana Sayfaya Dön",
-    "loadError": "Sipariş bilgileri yüklenemedi"
+    "loadError": "Sipariş bilgileri yüklenemedi",
+    "viewSummary": "Sipariş Özetini Gör",
+    "summaryHeading": "Sipariş özeti"
   }
 }

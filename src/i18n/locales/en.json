@@ -1493,6 +1493,8 @@
     "trackOrder": "Track Order",
     "myOrders": "My Orders",
     "backHome": "Back to Home",
-    "loadError": "Could not load order details"
+    "loadError": "Could not load order details",
+    "viewSummary": "View Order Summary",
+    "summaryHeading": "Order summary"
   }
 }

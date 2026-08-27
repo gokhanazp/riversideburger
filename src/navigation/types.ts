@@ -15,7 +15,9 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>;
   ProductDetail: { item: MenuItem };
   MenuDetail: { itemId: string };
-  OrderConfirmation: { orderId: string };
+  // justPlaced: ödemeden hemen sonra kutlama başlığı gösterilsin mi.
+  // Sipariş geçmişinden açıldığında sadece özet olarak gösteriliyor.
+  OrderConfirmation: { orderId: string; justPlaced?: boolean };
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;

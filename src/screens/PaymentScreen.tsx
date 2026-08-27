@@ -432,7 +432,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       // durumunda doğrudan anasayfaya atılıyordu; müşterinin elinde sipariş
       // numarası bile kalmıyordu. Onay ekranı teslimat takibi varsa "Siparişi
       // Takip Et" butonunu kendisi gösteriyor.
-      navigation.replace('OrderConfirmation', { orderId: order.id });
+      navigation.replace('OrderConfirmation', { orderId: order.id, justPlaced: true });
     }, 1200);
   };
 

@@ -36,6 +36,9 @@ const OrderConfirmationScreen = ({ navigation, route }: any) => {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const orderId: string = route?.params?.orderId;
+  // Ödemeden hemen sonra kutlama başlığı; sipariş geçmişinden açıldığında
+  // sadece "Sipariş özeti" — eski bir sipariş için "Siparişiniz alındı!" demek yanlış olur.
+  const justPlaced: boolean = route?.params?.justPlaced === true;
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,7 +83,9 @@ const OrderConfirmationScreen = ({ navigation, route }: any) => {
     return (
       <View style={styles.center}>
         <Ionicons name="checkmark-circle" size={72} color="#28A745" />
-        <Text style={styles.heading}>{t('orderConfirmation.heading')}</Text>
+        <Text style={[styles.heading, { color: '#1A1A1A' }]}>
+          {justPlaced ? t('orderConfirmation.heading') : t('orderConfirmation.summaryHeading')}
+        </Text>
         <Text style={styles.failedText}>{t('orderConfirmation.loadError')}</Text>
         <TouchableOpacity style={styles.secondaryBtn} onPress={goHome}>
           <Text style={styles.secondaryBtnText}>{t('orderConfirmation.backHome')}</Text>
@@ -118,8 +123,12 @@ const OrderConfirmationScreen = ({ navigation, route }: any) => {
           <View style={styles.checkCircle}>
             <Ionicons name="checkmark" size={38} color="#1F8A46" />
           </View>
-          <Text style={styles.heading}>{t('orderConfirmation.heading')}</Text>
-          <Text style={styles.subheading}>{t('orderConfirmation.subheading')}</Text>
+          <Text style={styles.heading}>
+            {justPlaced ? t('orderConfirmation.heading') : t('orderConfirmation.summaryHeading')}
+          </Text>
+          {justPlaced && (
+            <Text style={styles.subheading}>{t('orderConfirmation.subheading')}</Text>
+          )}
           <View style={styles.orderNoBox}>
             <Text style={styles.orderNoLabel}>{t('orderConfirmation.orderNumber')}</Text>
             <Text style={styles.orderNoValue}>#{order.order_number}</Text>
