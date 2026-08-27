@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, Platform, StyleSheet, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -302,15 +303,80 @@ const MainTabs = () => {
   );
 };
 
+
+// ── Navigasyon durumunun kalıcılığı ────────────────────────────────────────
+// iOS/Android arka plandaki uygulamayı bellek baskısıyla öldürebiliyor; tekrar
+// açıldığında SOĞUK başlangıç oluyor ve navigasyon sıfırlanıp anasayfaya
+// düşüyordu. Restoran tableti sipariş ekranında durması gerekirken anasayfada
+// kalıyor — o ekran mount edilmediği için realtime abonelik, keep-awake ve
+// otomatik yenileme hiç çalışmıyor. Durumu saklayıp geri yüklüyoruz.
+const NAV_STATE_KEY = 'nav_state_v1';
+// Bayat durumu geri yüklemek kafa karıştırır (dün kaldığı ekran). Bu süreden
+// eskisi görmezden gelinir.
+const NAV_STATE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+// Geçici/tek kullanımlık ekranlar: ödeme akışının ortasına geri dönmek yanlış olur.
+const NON_RESTORABLE = ['Payment', 'OrderConfirmation', 'ReviewOrder', 'ResetPassword'];
+
+/** State ağacının en derindeki aktif rota adını bulur */
+const activeRouteName = (state: any): string | undefined => {
+  if (!state?.routes?.length) return undefined;
+  const route = state.routes[state.index ?? state.routes.length - 1];
+  return route?.state ? activeRouteName(route.state) : route?.name;
+};
+
 // Root stack navigator (Root stack navigator)
 const AppNavigator = () => {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
 
   // Admin ise: her ekranda yeni sipariş ses + bildirim (global realtime abonesi)
   useAdminOrderNotifier();
 
+  const [navReady, setNavReady] = useState(false);
+  const [initialState, setInitialState] = useState<any>(undefined);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(NAV_STATE_KEY);
+        if (raw) {
+          const { state, savedAt } = JSON.parse(raw);
+          const fresh = Date.now() - (savedAt ?? 0) < NAV_STATE_MAX_AGE_MS;
+          const routeName = activeRouteName(state);
+          const restorable = !!routeName && !NON_RESTORABLE.includes(routeName);
+          // Admin ekranını yalnızca hâlâ admin olan kullanıcıya geri yükle;
+          // çıkış yapıldıysa yönetim ekranına dönmek yanlış olur.
+          const adminOk = !routeName?.startsWith('Admin') || user?.role === 'admin';
+          if (fresh && restorable && adminOk) setInitialState(state);
+        }
+      } catch (e) {
+        console.log('[nav] durum geri yüklenemedi:', e);
+      } finally {
+        setNavReady(true);
+      }
+    })();
+    // user değişince yeniden okumuyoruz: yalnızca ilk açılışta geri yükleme yapılır
+  }, []);
+
+  if (!navReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer
+      ref={navigationRef}
+      initialState={initialState}
+      onStateChange={(state) => {
+        AsyncStorage.setItem(
+          NAV_STATE_KEY,
+          JSON.stringify({ state, savedAt: Date.now() })
+        ).catch(() => {});
+      }}
+    >
       <Stack.Navigator
         screenOptions={{
           headerShown: false,

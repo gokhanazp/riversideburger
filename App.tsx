@@ -98,25 +98,41 @@ export default function App() {
       });
     });
 
+    // Bildirime dokunulunca admin'i sipariş listesine götür.
+    // navigationRef SOĞUK başlangıçta henüz hazır olmuyor; hazır olana kadar
+    // kısa aralıklarla deniyoruz. Eskiden tek seferlik isReady() kontrolü vardı
+    // ve uygulama bildirimle sıfırdan açıldığında yönlendirme sessizce kayboluyordu.
+    const goToOrdersWhenReady = (attempt = 0) => {
+      if (navigationRef.isReady()) {
+        navigationRef.navigate('AdminOrders' as never);
+        return;
+      }
+      if (attempt < 20) setTimeout(() => goToOrdersWhenReady(attempt + 1), 250);
+    };
+
+    const handleNotificationTap = (response: any) => {
+      const data = response?.notification?.request?.content?.data as any;
+      clearBadgeCount();
+      if (data?.type === 'new_order_admin' && user.role === 'admin') {
+        goToOrdersWhenReady();
+      }
+    };
+
+    // Uygulama bildirime dokunularak SIFIRDAN açıldıysa o dokunuşu burada yakala;
+    // addNotificationResponseReceivedListener bu durumu kaçırabiliyor.
+    Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (response) handleNotificationTap(response);
+      })
+      .catch(() => {});
+
     // Bildirime tıklandığında (When notification is tapped)
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as any;
       console.log('👆 Bildirime tıklandı:', {
         title: response.notification.request.content.title,
-        data,
+        data: response.notification.request.content.data,
       });
-      // Badge sayısını temizle (Clear badge count)
-      clearBadgeCount();
-
-      // Yeni sipariş bildirimine dokunan admin'i doğrudan sipariş listesine götür.
-      // Tablet uyurken push geldiğinde tek dokunuşla siparişi görebilsin.
-      if (
-        data?.type === 'new_order_admin' &&
-        user.role === 'admin' &&
-        navigationRef.isReady()
-      ) {
-        navigationRef.navigate('AdminOrders' as never);
-      }
+      handleNotificationTap(response);
     });
 
     // Cleanup - sadece mobilde ve removeNotificationSubscription varsa çalışır
