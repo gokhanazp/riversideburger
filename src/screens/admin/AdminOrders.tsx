@@ -105,6 +105,10 @@ const AdminOrders = ({ navigation, route }: any) => {
   const [cancelling, setCancelling] = useState(false);
   // Son çekilen listenin parmak izi — gereksiz render'ları engellemek için
   const signatureRef = useRef<string | null>(null);
+  // Arka plandaki sessiz yenilemeler üst üste başarısız olursa kullanıcıya
+  // bir kez haber ver. Her denemede toast göstermek 20 saniyede bir yağmur
+  // olurdu; hiç göstermemek de arızayı 90 saniye görünmez bırakıyordu.
+  const silentFailuresRef = useRef(0);
 
   useEffect(() => {
     // Filtre değişince parmak izi geçersiz — listeyi mutlaka yenile
@@ -155,6 +159,7 @@ const AdminOrders = ({ navigation, route }: any) => {
       // Değişiklik yoksa state'e dokunma. Aksi halde 20 saniyelik polling
       // listeyi her seferinde yeniden render edip kart animasyonlarını
       // baştan oynatıyor. (Skip the state update when nothing actually changed.)
+      silentFailuresRef.current = 0;
       const signature = ordersSignature(data || []);
       if (signature === signatureRef.current) return true;
       signatureRef.current = signature;
@@ -163,7 +168,12 @@ const AdminOrders = ({ navigation, route }: any) => {
     } catch (error: any) {
       // Arka plandaki polling'de hata gösterme — 20 saniyede bir toast yağmasın.
       // Elle yenilemede ise mutlaka göster.
-      if (notifyErrors) {
+      silentFailuresRef.current += 1;
+      // Elle yenilemede her zaman göster; sessiz yenilemede ikinci üst üste
+      // başarısızlıkta bir kez göster (tek seferlik ağ hıçkırığı için toast
+      // yağdırmamak, ama süregelen arızayı da 90 saniye saklamamak için).
+      const shouldNotify = notifyErrors || silentFailuresRef.current === 2;
+      if (shouldNotify) {
         // Gerçek hata metnini göster: genel mesaj hiçbir şey anlatmıyordu ve
         // teşhis için her seferinde cihazı bilgisayara bağlamak gerekiyordu.
         const reason = String(error?.message || error || '').slice(0, 90);
@@ -212,10 +222,12 @@ const AdminOrders = ({ navigation, route }: any) => {
     table: 'orders',
     event: '*',
     onEvent: scheduleSilentRefresh,
-    onResync: (reason) => {
-      // İlk abonelikte liste zaten mount'ta çekiliyor — sorguyu tekrarlamayalım
-      if (reason === 'subscribed') return;
-      // Promise'i DÖNDÜR: hook başarıyı buradan ölçüyor
+    onResync: () => {
+      // HER resync'te sorgu yapılıyor — 'subscribed' sebebi eskiden atlanıyordu
+      // ve yeniden abone olunduğunda (offline'dan dönüşte) bağlantı koptuğu
+      // sürede gelen siparişler HİÇ çekilmiyordu. Mount'takiyle çakışması
+      // zararsız: parmak izi aynıysa state'e dokunulmuyor, render tetiklenmiyor.
+      // Promise'i DÖNDÜR: hook başarıyı buradan ölçüyor.
       return fetchOrdersRef.current({ silent: true });
     },
     pollIntervalMs: 20000,

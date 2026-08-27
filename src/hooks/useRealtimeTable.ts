@@ -121,9 +121,13 @@ export function useRealtimeTable({
               if (ok !== false) markOk();
             })
             .catch(() => {});
-        } else {
-          markOk();
         }
+        // DİKKAT: burada eskiden markOk() vardı. Callback senkron olarak
+        // undefined döndüğünde (yani hiç veri çekmediğinde) bile veriyi "taze"
+        // damgalıyordu. Sonuç: yeniden abone olunca gösterge yeşile dönüyor,
+        // uyarı şeridi çıkmıyor, ama liste hiç güncellenmiyordu — arıza tamamen
+        // görünmez oluyordu. Artık tazelik yalnızca GERÇEKTEN veri geldiğinde
+        // yenilenir: promise başarıyla çözülürse ya da realtime event gelirse.
       } catch {
         // onResync hatası kurtarma döngüsünü bozmasın
       }
