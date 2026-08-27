@@ -428,13 +428,12 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     });
 
     setTimeout(() => {
-      // Sadece delivery + Uber dispatch başarılı → tracking; pickup veya başarısız → home
-      if (deliveryMethod === 'delivery' && quoteId && !uberDispatchFailed) {
-        navigation.replace('OrderTracking', { orderId: order.id });
-      } else {
-        navigation.navigate('Main', { screen: 'HomeTab' });
-      }
-    }, 2000);
+      // Her durumda sipariş onay ekranına git. Eskiden pickup ve Uber hatası
+      // durumunda doğrudan anasayfaya atılıyordu; müşterinin elinde sipariş
+      // numarası bile kalmıyordu. Onay ekranı teslimat takibi varsa "Siparişi
+      // Takip Et" butonunu kendisi gösteriyor.
+      navigation.replace('OrderConfirmation', { orderId: order.id });
+    }, 1200);
   };
 
   return (

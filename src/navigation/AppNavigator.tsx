@@ -39,6 +39,8 @@ import PaymentScreen from '../screens/PaymentScreen';
 
 // Sipariş takip ekranı (Order tracking screen — Uber Direct live tracking)
 import OrderTrackingScreen from '../screens/OrderTrackingScreen';
+// Sipariş onay ekranı (Order confirmation — sipariş sonrası özet)
+import OrderConfirmationScreen from '../screens/OrderConfirmationScreen';
 
 // Admin ekranları (Admin screens)
 import AdminDashboard from '../screens/admin/AdminDashboard';
@@ -378,6 +380,17 @@ const AppNavigator = () => {
           name="OrderTracking"
           component={OrderTrackingScreen}
           options={{ headerShown: false }}
+        />
+
+        {/* Sipariş onay ekranı — sipariş sonrası özet. Rota tipi types.ts'te
+            tanımlıydı ama ekran hiç yazılmamıştı; pickup siparişlerinde müşteri
+            yalnızca bir toast görüp anasayfaya düşüyordu.
+            gestureEnabled kapalı: ödeme sonrası geri kaydırmayla ödeme ekranına
+            dönülmesin. */}
+        <Stack.Screen
+          name="OrderConfirmation"
+          component={OrderConfirmationScreen}
+          options={{ headerShown: false, gestureEnabled: false }}
         />
 
         {/* Sipariş ve Puan ekranları (Order and Points screens) */}

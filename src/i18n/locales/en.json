@@ -1462,5 +1462,26 @@
       "dropoff": "Arriving",
       "delivered": "Delivered"
     }
+  },
+  "orderConfirmation": {
+    "title": "Order Received",
+    "heading": "Your order is in! 🎉",
+    "subheading": "We sent it to the kitchen and it is being prepared.",
+    "orderNumber": "Order No",
+    "methodPickup": "Pickup",
+    "methodDelivery": "Delivery",
+    "pickupInfo": "We will let you know when it is ready for pickup at the restaurant.",
+    "deliveryTo": "Delivery address",
+    "contactPhone": "Contact",
+    "items": "Order Items",
+    "notes": "Order note",
+    "paymentStatus": "Payment",
+    "paid": "Paid",
+    "unpaid": "Awaiting payment",
+    "pointsEarned": "Points earned from this order",
+    "trackOrder": "Track Order",
+    "myOrders": "My Orders",
+    "backHome": "Back to Home",
+    "loadError": "Could not load order details"
   }
 }

@@ -1459,5 +1459,26 @@
       "dropoff": "Yaklaşıyor",
       "delivered": "Teslim edildi"
     }
+  },
+  "orderConfirmation": {
+    "title": "Siparişiniz Alındı",
+    "heading": "Siparişiniz alındı! 🎉",
+    "subheading": "Siparişiniz mutfağa iletildi, hazırlanmaya başlıyor.",
+    "orderNumber": "Sipariş No",
+    "methodPickup": "Restorandan Teslim Alma",
+    "methodDelivery": "Adrese Teslimat",
+    "pickupInfo": "Siparişiniz hazır olduğunda haber vereceğiz. Restorandan teslim alabilirsiniz.",
+    "deliveryTo": "Teslimat adresi",
+    "contactPhone": "İletişim",
+    "items": "Sipariş İçeriği",
+    "notes": "Sipariş notu",
+    "paymentStatus": "Ödeme",
+    "paid": "Ödendi",
+    "unpaid": "Ödeme bekliyor",
+    "pointsEarned": "Bu siparişten kazandığınız puan",
+    "trackOrder": "Siparişi Takip Et",
+    "myOrders": "Siparişlerim",
+    "backHome": "Ana Sayfaya Dön",
+    "loadError": "Sipariş bilgileri yüklenemedi"
   }
 }
