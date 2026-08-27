@@ -109,6 +109,7 @@ const OrderConfirmationScreen = ({ navigation, route }: any) => {
       case 'discount': return t('admin.orders.sumDiscount');
       case 'pointsUsed': return t('admin.orders.sumPoints');
       case 'deliveryFee': return t('admin.orders.sumDelivery');
+      case 'tax': return t('admin.orders.sumTax');
       case 'tip': return t('admin.orders.sumTip');
       default: return key;
     }

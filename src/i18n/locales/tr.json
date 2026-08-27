@@ -190,6 +190,7 @@
     "emptyDescription": "Menüden ürün ekleyerek başlayın",
     "subtotal": "Ara Toplam",
     "deliveryFee": "Teslimat Ücreti",
+    "tax": "HST (%{{rate}})",
     "discount": "İndirim",
     "pointsDiscount": "Puan indirimi",
     "total": "Toplam",
@@ -695,7 +696,8 @@
       "sumPoints": "Puan kullanımı",
       "sumDelivery": "Teslimat ücreti",
       "sumTip": "Bahşiş",
-      "sumTotal": "TOPLAM"
+      "sumTotal": "TOPLAM",
+      "sumTax": "HST"
     },
     "products": {
       "title": "Ürün Yönetimi",
@@ -1290,7 +1292,8 @@
         "subtotal": "Ara Toplam",
         "extras": "Ek Malzeme",
         "points": "Puan Kullanimi",
-        "deliveryFee": "Teslimat"
+        "deliveryFee": "Teslimat",
+        "tax": "HST"
       }
     },
     "campaigns": {

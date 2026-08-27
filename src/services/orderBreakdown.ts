@@ -37,6 +37,7 @@ export interface OrderBreakdown {
   discount: number;
   pointsUsed: number;
   deliveryCharged: number;
+  tax: number;
   tip: number;
   total: number;
   lines: OrderBreakdownLine[];
@@ -67,14 +68,19 @@ export function buildOrderBreakdown(
   const discount = num(order.discount_amount);
   const pointsUsed = num(order.points_used);
   const tip = num(order.tip_amount);
+  // Vergi öncesi dönemde verilen siparişlerde 0 → o siparişlerin dökümü aynen
+  // tutmaya devam eder, geriye dönük bir bozulma olmaz.
+  const tax = num((order as any).tax_amount);
   const total = num(order.total_amount);
 
   const afterDiscount = Math.max(0, itemsTotal - discount - pointsUsed);
   // Pickup'ta teslimat ücreti yok; teslimatta ödeme anındaki formülden türetilir.
+  // Vergi de toplamın içinde olduğu için türetmeden düşülmeli; yoksa teslimat
+  // ücreti verginin kadar şişmiş görünür.
   const deliveryCharged =
     order.delivery_method === 'pickup'
       ? 0
-      : Math.max(0, Number((total - afterDiscount - tip).toFixed(2)));
+      : Math.max(0, Number((total - afterDiscount - tax - tip).toFixed(2)));
 
   const lines: OrderBreakdownLine[] = [];
   lines.push({ key: 'subtotal', amount: itemsTotal });
@@ -90,6 +96,9 @@ export function buildOrderBreakdown(
   if (deliveryCharged > 0) {
     lines.push({ key: 'deliveryFee', amount: deliveryCharged });
   }
+  if (tax > 0) {
+    lines.push({ key: 'tax', amount: tax });
+  }
   if (tip > 0) {
     lines.push({ key: 'tip', amount: tip });
   }
@@ -100,6 +109,7 @@ export function buildOrderBreakdown(
     discount,
     pointsUsed,
     deliveryCharged,
+    tax,
     tip,
     total,
     lines,

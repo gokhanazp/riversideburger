@@ -22,6 +22,7 @@ import { Colors, Shadows } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 import { createPaymentIntent, confirmPayment, attachOrderToPayment } from '../services/stripeService';
 import { createOrder } from '../services/orderService';
+import { getTaxRate } from '../services/taxService';
 import { createUberDelivery } from '../services/uberDeliveryService';
 import { Address } from '../types/database.types';
 import { useCartStore } from '../store/cartStore';
@@ -68,6 +69,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     pointsUsed,
     addressId,
     deliveryFee,
+    taxAmount = 0,
     quoteId,
     address,
     deliveryMethod = 'delivery',
@@ -82,6 +84,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     pointsUsed: number;
     addressId: string | null;
     deliveryFee?: number;
+    taxAmount?: number;
     quoteId?: string | null;
     address?: Address | null;
     deliveryMethod?: 'pickup' | 'delivery';
@@ -119,7 +122,9 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     : selectedTipPercent != null
       ? Number((tipBase * (selectedTipPercent / 100)).toFixed(2))
       : 0;
-  const finalTotal = Number((totalAmount + tipAmount).toFixed(2));
+  // totalAmount vergi HARİÇ geliyor; bahşiş de onun üzerinden hesaplanıyor
+  // (Kanada'da gratuity HST'ye tabi değil ve vergi öncesi tutardan verilir).
+  const finalTotal = Number((totalAmount + taxAmount + tipAmount).toFixed(2));
 
   const handleSelectTipPercent = (pct: number) => {
     if (selectedTipPercent === pct && !isCustomTipActive) {
@@ -286,6 +291,9 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     if (!isPickup && deliveryFee && deliveryFee > 0) {
       cart.push({ label: t('cart.deliveryFee'), amount: deliveryFee.toFixed(2), paymentType: immediate });
     }
+    if (taxAmount > 0) {
+      cart.push({ label: t('cart.tax', { rate: getTaxRate() }), amount: taxAmount.toFixed(2), paymentType: immediate });
+    }
     if (tipAmount > 0) {
       cart.push({ label: isPickup ? t('payment.tipLabelPickup') : t('payment.tipLabel'), amount: tipAmount.toFixed(2), paymentType: immediate });
     }
@@ -370,6 +378,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       user_id: user!.id,
       total_amount: finalTotal,
       tip_amount: tipAmount,
+      taxAmount,
       delivery_address: deliveryAddress,
       phone,
       notes,

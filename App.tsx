@@ -29,6 +29,7 @@ import {
 } from './src/services/notificationService';
 import { getAppSettings } from './src/services/appSettingsService';
 import { loadCurrency } from './src/services/currencyService';
+import { loadTaxRate } from './src/services/taxService';
 import { navigationRef } from './src/navigation/navigationRef';
 import i18n from './src/i18n';
 
@@ -59,6 +60,9 @@ export default function App() {
 
       // Para birimini yükle (Load currency)
       await loadCurrency();
+
+      // Vergi oranını yükle (ayarlardan; okunamazsa Ontario HST %13'e düşer)
+      await loadTaxRate();
 
       console.log('🌍 Uygulama ayarları yüklendi:', settings);
     };

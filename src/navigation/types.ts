@@ -31,6 +31,9 @@ export type RootStackParamList = {
     pointsUsed: number;
     addressId: string | null;
     deliveryFee?: number;
+    // Vergi HARİÇ totalAmount üzerinden hesaplanan vergi. Bahşiş vergiye tabi
+    // olmadığı için ayrı taşınıyor.
+    taxAmount?: number;
     quoteId?: string | null;
     address?: Address | null;
     deliveryMethod?: 'pickup' | 'delivery';

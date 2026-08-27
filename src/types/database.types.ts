@@ -98,6 +98,7 @@ export interface Order {
   points_earned: number; // Bu siparişten kazanılan puan (Points earned from this order)
   points_used: number; // Bu siparişte kullanılan puan (Points used in this order)
   tip_amount?: number; // Kuryeye giden bahşiş (Driver tip on delivery orders)
+  tax_amount?: number; // Sipariş anında tahsil edilen vergi (0 = vergi öncesi sipariş)
   delivery_method: 'pickup' | 'delivery'; // Teslimat şekli (default 'delivery')
   payment_status?: 'pending' | 'paid' | 'failed' | 'refunded'; // Ödeme durumu (Payment status)
   paid_at?: string; // Ödemenin onaylandığı an (When payment succeeded)

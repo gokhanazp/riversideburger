@@ -31,6 +31,8 @@ interface CreateOrderParams {
     specialInstructions?: string;
   }[];
   points_used?: number;
+  /** Sipariş anında tahsil edilen vergi tutarı */
+  taxAmount?: number;
   address_id?: string;
   delivery_method?: 'pickup' | 'delivery';
   // Uber Direct için yapılandırılmış teslimat snapshot'ı (sipariş anındaki adres)
@@ -60,7 +62,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
       delivery_province, delivery_postal_code, delivery_country,
       delivery_lat, delivery_lng, delivery_instructions, delivery_fee,
       tip_amount = 0, payment_status = 'pending',
-      campaign_id = null, discount_amount = 0,
+      campaign_id = null, discount_amount = 0, taxAmount = 0,
     } = params;
 
     // Sipariş oluştur (Create order)
@@ -95,6 +97,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
         paid_at: payment_status === 'paid' ? new Date().toISOString() : null,
         campaign_id,
         discount_amount,
+        tax_amount: taxAmount,
       })
       .select()
       .single();

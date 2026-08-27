@@ -305,6 +305,7 @@ const AdminOrders = ({ navigation, route }: any) => {
                 discount: t('admin.orders.sumDiscount'),
                 pointsUsed: t('admin.orders.sumPoints'),
                 deliveryFee: t('admin.orders.sumDelivery'),
+                tax: t('admin.orders.sumTax'),
                 tip: t('admin.orders.sumTip'),
               };
               const rows = bd.lines.map((row) => {
@@ -667,6 +668,7 @@ const AdminOrders = ({ navigation, route }: any) => {
                             {row.key === 'discount' && t('admin.orders.sumDiscount')}
                             {row.key === 'pointsUsed' && t('admin.orders.sumPoints')}
                             {row.key === 'deliveryFee' && t('admin.orders.sumDelivery')}
+                            {row.key === 'tax' && t('admin.orders.sumTax')}
                             {row.key === 'tip' && t('admin.orders.sumTip')}
                             {row.key === 'discount' && row.note ? ` (${row.note})` : ''}
                           </Text>

@@ -27,6 +27,7 @@ import { formatPrice, getCurrentCurrency } from '../services/currencyService';
 import { getDeliveryQuote, UberQuote } from '../services/uberDeliveryService';
 import { resolveCartCampaigns, getCampaignName, getCampaignSummary, AppliedCampaign, CampaignNudge } from '../services/campaignService';
 import { supabase } from '../lib/supabase';
+import { calculateTax, getTaxRate } from '../services/taxService';
 
 const CartScreen = ({ navigation }: any) => {
   const { t, i18n } = useTranslation();
@@ -210,9 +211,17 @@ const CartScreen = ({ navigation }: any) => {
 
   const campaignDiscount = appliedCampaign?.discount ?? 0;
   const deliveryFee = deliveryMethod === 'pickup' ? 0 : (deliveryQuote?.fee ?? 0);
-  // İndirim sırası: ürün ara toplamı - kampanya - puan, sonra + teslimat ücreti
-  const getFinalPrice = () =>
+  // İndirim sırası: ürün ara toplamı - kampanya - puan, sonra + teslimat ücreti.
+  // Bu tutar VERGİ HARİÇ ve aynı zamanda verginin tabanı; PaymentScreen'e de
+  // vergisiz gidiyor çünkü bahşiş vergi öncesi tutardan hesaplanıyor.
+  const getPreTaxTotal = () =>
     Math.max(0, getTotalPrice() - campaignDiscount - pointsToUse) + deliveryFee;
+
+  // Vergi = taban × oran. Bahşiş tabana dahil değil (Kanada'da gratuity HST'den muaf).
+  const taxAmount = calculateTax(getPreTaxTotal());
+
+  // Müşteriye gösterilen ve tahsil edilecek tutar (bahşiş ödeme ekranında ekleniyor)
+  const getFinalPrice = () => Number((getPreTaxTotal() + taxAmount).toFixed(2));
 
   // Sepetteki ürünlerin hâlâ stokta olup olmadığını sipariş anında doğrula.
   // Menüde tükenen ürünün butonu pasif ama sepete girmenin başka yolları var:
@@ -314,7 +323,9 @@ const CartScreen = ({ navigation }: any) => {
         : t('cart.addressNotSpecified');
 
     navigation.navigate('Payment', {
-      totalAmount: getFinalPrice(),
+      // Vergi HARİÇ tutar: PaymentScreen bahşişi bunun üzerinden hesaplıyor
+      totalAmount: getPreTaxTotal(),
+      taxAmount,
       currency: getCurrentCurrency(),
       deliveryAddress: fullAddress,
       phone: deliveryMethod === 'pickup' ? trimmedPickupPhone : (selectedAddress?.phone || t('cart.phoneNotSpecified')),
@@ -584,6 +595,13 @@ const CartScreen = ({ navigation }: any) => {
                     ? formatPrice(deliveryQuote.fee)
                     : t('cart.free')}
           </Text>
+        </View>
+
+        {/* Vergi — müşteri toplamın neden arttığını sepette görsün */}
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>{t('cart.tax', { rate: getTaxRate() })}</Text>
+          <Text style={styles.summaryValue}>{formatPrice(taxAmount)}</Text>
         </View>
       </View>
     </View>

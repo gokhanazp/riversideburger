@@ -190,6 +190,7 @@
     "emptyDescription": "Start by adding items from the menu",
     "subtotal": "Subtotal",
     "deliveryFee": "Delivery Fee",
+    "tax": "HST ({{rate}}%)",
     "discount": "Discount",
     "pointsDiscount": "Points discount",
     "total": "Total",
@@ -695,7 +696,8 @@
       "sumPoints": "Points used",
       "sumDelivery": "Delivery fee",
       "sumTip": "Tip",
-      "sumTotal": "TOTAL"
+      "sumTotal": "TOTAL",
+      "sumTax": "HST"
     },
     "products": {
       "title": "Product Management",
@@ -1291,7 +1293,8 @@
         "subtotal": "Subtotal",
         "extras": "Extras",
         "points": "Points Used",
-        "deliveryFee": "Delivery"
+        "deliveryFee": "Delivery",
+        "tax": "HST"
       }
     },
     "campaigns": {
