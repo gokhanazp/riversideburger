@@ -686,7 +686,15 @@
       "guest": "Guest",
       "product": "Product",
       "pointsUsed": "points used",
-      "enjoyYourMeal": "Enjoy Your Meal! 🍔"
+      "enjoyYourMeal": "Enjoy Your Meal! 🍔",
+      "sumTitle": "Price Breakdown",
+      "sumSubtotal": "Subtotal",
+      "sumExtras": "Extras (included)",
+      "sumDiscount": "Discount",
+      "sumPoints": "Points used",
+      "sumDelivery": "Delivery fee",
+      "sumTip": "Tip",
+      "sumTotal": "TOTAL"
     },
     "products": {
       "title": "Product Management",
@@ -1278,7 +1286,11 @@
         "payFailed": "FAILED",
         "payRefunded": "REFUNDED",
         "payWarning": "!!! PAYMENT NOT CONFIRMED !!!",
-        "discount": "Discount"
+        "discount": "Discount",
+        "subtotal": "Subtotal",
+        "extras": "Extras",
+        "points": "Points Used",
+        "deliveryFee": "Delivery"
       }
     },
     "campaigns": {

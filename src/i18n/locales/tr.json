@@ -684,7 +684,15 @@
       "guest": "Misafir",
       "product": "Ürün",
       "pointsUsed": "puan kullanıldı",
-      "enjoyYourMeal": "Afiyet Olsun! 🍔"
+      "enjoyYourMeal": "Afiyet Olsun! 🍔",
+      "sumTitle": "Tutar Dökümü",
+      "sumSubtotal": "Ara toplam",
+      "sumExtras": "Ek malzeme (dahil)",
+      "sumDiscount": "İndirim",
+      "sumPoints": "Puan kullanımı",
+      "sumDelivery": "Teslimat ücreti",
+      "sumTip": "Bahşiş",
+      "sumTotal": "TOPLAM"
     },
     "products": {
       "title": "Ürün Yönetimi",
@@ -1275,7 +1283,11 @@
         "payFailed": "BASARISIZ",
         "payRefunded": "IADE",
         "payWarning": "!!! ODEME ONAYLANMADI !!!",
-        "discount": "Indirim"
+        "discount": "Indirim",
+        "subtotal": "Ara Toplam",
+        "extras": "Ek Malzeme",
+        "points": "Puan Kullanimi",
+        "deliveryFee": "Teslimat"
       }
     },
     "campaigns": {

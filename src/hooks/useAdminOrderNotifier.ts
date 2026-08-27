@@ -78,7 +78,7 @@ export function useAdminOrderNotifier() {
         .from('orders')
         // Özelleştirmeler de çekilmeli: fişte "Domates Çıkar" gibi satırlar
         // bunlardan basılıyor, eksik select yüzünden fişe hiç düşmüyordu.
-        .select('*, user:users(full_name, phone), order_items(*, product:products(name)), order_item_customizations(*)')
+        .select('*, user:users(full_name, phone), order_items(*, product:products(name)), order_item_customizations(*), campaign:campaigns(name_tr, name_en)')
         .eq('id', orderId)
         .single();
 

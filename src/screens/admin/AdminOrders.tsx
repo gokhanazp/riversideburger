@@ -38,6 +38,7 @@ import {
   CancelationReason,
 } from '../../services/uberDeliveryService';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
+import { buildOrderBreakdown } from '../../services/orderBreakdown';
 
 const { width } = Dimensions.get('window');
 
@@ -135,7 +136,7 @@ const AdminOrders = ({ navigation, route }: any) => {
     const notifyErrors = opts?.notifyErrors ?? !silent;
     try {
       if (!silent) setLoading(true);
-      let query = supabase.from('orders').select('*, user:users(email, full_name, phone), order_items(*, product:products(name, image_url)), order_item_customizations(*)').order('created_at', { ascending: false });
+      let query = supabase.from('orders').select('*, user:users(email, full_name, phone), order_items(*, product:products(name, image_url)), order_item_customizations(*), campaign:campaigns(name_tr, name_en)').order('created_at', { ascending: false });
       if (filterStatus !== 'all') query = query.eq('status', filterStatus);
 
       // Sorguya üst sınır koy. Supabase auth kilidi tıkanırsa sorgu hiç
@@ -292,6 +293,30 @@ const AdminOrders = ({ navigation, route }: any) => {
               `;
               }).join('')}
             </div>
+            ${(() => {
+              // Tutar dökümü — termal yazıcıdaki ile aynı hesaplama (orderBreakdown)
+              const c: any = (order as any).campaign;
+              const campaignName = c ? (i18n.language === 'tr' ? c.name_tr : c.name_en) || c.name_en : null;
+              const bd = buildOrderBreakdown(order, campaignName);
+              if (!bd.hasDetail) return '';
+              const labels: Record<string, string> = {
+                subtotal: t('admin.orders.sumSubtotal'),
+                extras: t('admin.orders.sumExtras'),
+                discount: t('admin.orders.sumDiscount'),
+                pointsUsed: t('admin.orders.sumPoints'),
+                deliveryFee: t('admin.orders.sumDelivery'),
+                tip: t('admin.orders.sumTip'),
+              };
+              const rows = bd.lines.map((row) => {
+                const label = labels[row.key] + (row.key === 'discount' && row.note ? ` (${row.note})` : '');
+                const value = row.informational
+                  ? `(${currencySymbol}${row.amount.toFixed(2)})`
+                  : `${row.negative ? '-' : ''}${currencySymbol}${row.amount.toFixed(2)}`;
+                const style = row.informational ? 'padding-left:12px; color:#666; font-style:italic;' : '';
+                return `<div class="info-row" style="${style}"><span>${label}</span> <span>${value}</span></div>`;
+              }).join('');
+              return `<div class="section">${rows}</div>`;
+            })()}
             <div class="total-row"><span>TOTAL:</span> <span>${currencySymbol}${order.total_amount.toFixed(2)}</span></div>
           </body>
         </html>
@@ -624,6 +649,43 @@ const AdminOrders = ({ navigation, route }: any) => {
                     </View>
                 )}
 
+                {/* Tutar dökümü — eskiden yalnızca TOPLAM vardı, indirimin ya da ek
+                    malzemenin tutarı nasıl etkilediği görünmüyordu. */}
+                {(() => {
+                  const c: any = (selectedOrder as any).campaign;
+                  const campaignName = c ? (i18n.language === 'tr' ? c.name_tr : c.name_en) || c.name_en : null;
+                  const bd = buildOrderBreakdown(selectedOrder, campaignName);
+                  if (!bd.hasDetail) return null;
+                  return (
+                    <View style={styles.detailsSection}>
+                      <Text style={styles.detailsLabel}>{t('admin.orders.sumTitle')}</Text>
+                      {bd.lines.map((row, i) => (
+                        <View key={i} style={styles.sumRow}>
+                          <Text style={[styles.sumLabel, row.informational && styles.sumLabelInfo]}>
+                            {row.key === 'subtotal' && t('admin.orders.sumSubtotal')}
+                            {row.key === 'extras' && t('admin.orders.sumExtras')}
+                            {row.key === 'discount' && t('admin.orders.sumDiscount')}
+                            {row.key === 'pointsUsed' && t('admin.orders.sumPoints')}
+                            {row.key === 'deliveryFee' && t('admin.orders.sumDelivery')}
+                            {row.key === 'tip' && t('admin.orders.sumTip')}
+                            {row.key === 'discount' && row.note ? ` (${row.note})` : ''}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.sumVal,
+                              row.informational && styles.sumLabelInfo,
+                              row.negative && styles.sumValNegative,
+                            ]}
+                          >
+                            {row.informational ? '' : row.negative ? '-' : ''}
+                            {formatPrice(row.amount)}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  );
+                })()}
+
                 <View style={styles.detailsTotalRow}>
                     <Text style={styles.totalLabel}>{t('admin.orders.total')}</Text>
                     <Text style={styles.totalVal}>{formatPrice(selectedOrder.total_amount)}</Text>
@@ -722,6 +784,11 @@ const styles = StyleSheet.create({
   itPrice: { fontSize: 15, fontWeight: '800', color: Colors.text },
   notesBox: { backgroundColor: '#F8F9FA', padding: 16, borderRadius: 16 },
   notesText: { fontSize: 14, color: '#666', lineHeight: 20 },
+  sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
+  sumLabel: { flex: 1, fontSize: 13, color: '#444', marginRight: 8 },
+  sumLabelInfo: { fontSize: 12, color: '#999', fontStyle: 'italic', paddingLeft: 12 },
+  sumVal: { fontSize: 13, fontWeight: '700', color: '#1A1A1A' },
+  sumValNegative: { color: '#28A745' },
   detailsTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, paddingVertical: 24, borderTopWidth: 2, borderTopColor: '#f1f1f1' },
   totalLabel: { fontSize: 18, fontWeight: '900', color: Colors.text },
   totalVal: { fontSize: 28, fontWeight: '900', color: Colors.primary },

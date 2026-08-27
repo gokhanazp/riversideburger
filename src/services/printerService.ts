@@ -10,6 +10,7 @@ import { Platform, PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Order } from '../types/database.types';
 import { getCurrencyInfo } from './currencyService';
+import { buildOrderBreakdown } from './orderBreakdown';
 import i18n from '../i18n';
 
 // Fiş metinleri uygulamanın seçili diline göre gelir (tr/en).
@@ -272,9 +273,31 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
   }
   await printer.addText(line() + '\n');
 
-  // Kampanya indirimi (Campaign discount) — uygulandıysa göster
-  if (order.discount_amount && order.discount_amount > 0) {
-    await printer.addText(twoColumns(rt('discount'), `-${money(order.discount_amount)}`) + '\n');
+  // Tutar dökümü — eskiden fişte yalnızca TOPLAM vardı; ilk sipariş indirimi ya
+  // da eklenen ek malzemeler görünmediği için tutarın neden arttığı/azaldığı
+  // anlaşılmıyordu. Bahşiş de TOPLAM'dan sonra basılıyordu, artık dökümün içinde.
+  const campaignName =
+    (order as any).campaign?.[i18n.language === 'tr' ? 'name_tr' : 'name_en'] ||
+    (order as any).campaign?.name_en ||
+    null;
+  const breakdown = buildOrderBreakdown(order, campaignName);
+
+  if (breakdown.hasDetail) {
+    // Değişken adı bilerek `row`: modül seviyesindeki line() ayraç fonksiyonunu
+    // gölgelememesi için.
+    for (const row of breakdown.lines) {
+      const label = ascii(row.key === 'pointsUsed' ? rt('points') : rt(row.key));
+      // Bilgi satırı (ek malzeme) toplama dahil değil — girintili ve parantezli
+      const text = row.informational
+        ? twoColumns(`  ${label}`, `(${money(row.amount)})`)
+        : twoColumns(label, `${row.negative ? '-' : ''}${money(row.amount)}`);
+      await printer.addText(text + '\n');
+      // Kampanya adını indirimin altına yaz (mutfak hangi kampanya olduğunu görsün)
+      if (row.key === 'discount' && row.note) {
+        await printer.addText(`  ${ascii(row.note)}\n`);
+      }
+    }
+    await printer.addText(line('-') + '\n');
   }
 
   // Toplam (büyük)
@@ -283,10 +306,6 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
   await printer.addText(twoColumns(rt('total'), money(order.total_amount), CHARS_PER_LINE / 2) + '\n');
   await printer.addTextStyle({ em: C.FALSE });
   await printer.addTextSize({ width: 1, height: 1 });
-
-  if (order.tip_amount && order.tip_amount > 0) {
-    await printer.addText(twoColumns(rt('tip'), money(order.tip_amount)) + '\n');
-  }
 
   // Ödeme durumu — normalde PAID olmalı. Değilse (pending/failed) bir hata
   // olduğunu fişten anlayabilmek için belirgin şekilde basılır.
