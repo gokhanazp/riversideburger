@@ -964,7 +964,8 @@
       "successTitle": "Success",
       "successMessage": "Contact information updated successfully",
       "errorTitle": "Error",
-      "errorMessage": "An error occurred while saving contact information"
+      "errorMessage": "An error occurred while saving contact information",
+      "businessNumber": "Business No (HST)"
     },
     "notificationsSubtitle": "Send notifications to users",
     "languageSettingsMenu": "Language & Currency",
@@ -1294,7 +1295,9 @@
         "extras": "Extras",
         "points": "Points Used",
         "deliveryFee": "Delivery",
-        "tax": "HST"
+        "tax": "HST",
+        "orderDateTime": "Order Date & Time",
+        "businessNumber": "Business No"
       }
     },
     "campaigns": {

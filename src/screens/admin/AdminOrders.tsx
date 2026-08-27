@@ -243,6 +243,9 @@ const AdminOrders = ({ navigation, route }: any) => {
     try {
       const { getCurrencyInfo } = await import('../../services/currencyService');
       const currencySymbol = getCurrencyInfo().symbol;
+      // İşletme künyesi ayarlardan (app_settings) — termal fişle aynı kaynak
+      const { getContactInfo } = await import('../../services/contactService');
+      const contact = await getContactInfo().catch(() => null);
 
       const html = `
         <!DOCTYPE html>
@@ -260,8 +263,11 @@ const AdminOrders = ({ navigation, route }: any) => {
           <body>
             <div class="header">
               <div style="font-size: 20px; font-weight: bold;">🍔 RIVERSIDE BURGERS</div>
+              ${contact?.address1 ? contact.address1.split('\n').map((l: string) => `<div>${l.trim()}</div>`).join('') : ''}
+              ${contact?.phone1 ? `<div>${contact.phone1}</div>` : ''}
+              ${contact?.businessNumber ? `<div>${contact.businessNumber}</div>` : ''}
               <div class="order-number">ORDER #${order.order_number}</div>
-              <div>${new Date(order.created_at).toLocaleString()}</div>
+              <div>${t('admin.printer.receipt.orderDateTime')}: ${new Date(order.created_at).toLocaleString()}</div>
             </div>
             <div class="section">
               <div class="info-row"><b>Customer:</b> <span>${order.user?.full_name || 'Guest'}</span></div>

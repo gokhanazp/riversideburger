@@ -29,6 +29,7 @@ interface ContactSettings {
   email: string;
   address1: string;
   address2: string;
+  businessNumber: string;
   facebook: string;
   instagram: string;
   whatsapp: string;
@@ -108,6 +109,7 @@ const AdminContactSettings = ({ navigation }: any) => {
     email: '',
     address1: '',
     address2: '',
+    businessNumber: '',
     facebook: '',
     instagram: '',
     whatsapp: '',
@@ -163,7 +165,7 @@ const AdminContactSettings = ({ navigation }: any) => {
         .select('setting_key, setting_value')
         .in('setting_key', [
           'contact_phone1', 'contact_phone2', 'contact_email',
-          'contact_address1', 'contact_address2',
+          'contact_address1', 'contact_address2', 'contact_business_number',
           'social_facebook', 'social_instagram', 'social_whatsapp',
           'footer_about', 'footer_copyright',
           'home_about_title_tr', 'home_about_title_en',
@@ -187,6 +189,7 @@ const AdminContactSettings = ({ navigation }: any) => {
         email: settingsObj['contact_email'] || '',
         address1: settingsObj['contact_address1'] || '',
         address2: settingsObj['contact_address2'] || '',
+        businessNumber: settingsObj['contact_business_number'] || '',
         facebook: settingsObj['social_facebook'] || '',
         instagram: settingsObj['social_instagram'] || '',
         whatsapp: settingsObj['social_whatsapp'] || '',
@@ -233,6 +236,7 @@ const AdminContactSettings = ({ navigation }: any) => {
         { key: 'contact_email', value: currentSettings.email },
         { key: 'contact_address1', value: currentSettings.address1 },
         { key: 'contact_address2', value: currentSettings.address2 },
+        { key: 'contact_business_number', value: currentSettings.businessNumber },
         { key: 'social_facebook', value: currentSettings.facebook },
         { key: 'social_instagram', value: currentSettings.instagram },
         { key: 'social_whatsapp', value: currentSettings.whatsapp },
@@ -338,6 +342,8 @@ const AdminContactSettings = ({ navigation }: any) => {
         >
           <InputField label={t('admin.contactSettings.address1')} defaultValue={settings.address1} onChangeText={(t: string) => handleInputChange('address1', t)} placeholder="688 Queen Street East, Toronto" multiline />
           <InputField label={t('admin.contactSettings.address2')} defaultValue={settings.address2} onChangeText={(t: string) => handleInputChange('address2', t)} placeholder="1228 King St W, Toronto" multiline />
+          {/* Fişte yasal olarak gösterilmesi gereken HST/CRA işletme numarası */}
+          <InputField label={t('admin.contactSettings.businessNumber')} defaultValue={settings.businessNumber} onChangeText={(t: string) => handleInputChange('businessNumber', t)} placeholder="772068078RT0001" />
         </SettingCard>
 
         {/* SOCIAL */}

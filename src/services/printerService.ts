@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Order } from '../types/database.types';
 import { getCurrencyInfo } from './currencyService';
 import { buildOrderBreakdown } from './orderBreakdown';
+import { getContactInfo } from './contactService';
 import i18n from '../i18n';
 
 // Fiş metinleri uygulamanın seçili diline göre gelir (tr/en).
@@ -200,7 +201,16 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
   const symbol = getCurrencyInfo().symbol;
   const money = (n: number) => `${symbol}${(n ?? 0).toFixed(2)}`;
 
-  // Başlık (ortalı, büyük)
+  // Başlık: işletme künyesi. Adres/telefon/işletme numarası ayarlardan geliyor
+  // (app_settings) ki değiştiğinde yeni sürüm gerekmesin. Kanada'da HST mükellefi
+  // işletmelerin fişte işletme numarasını göstermesi gerekiyor.
+  let contact: Awaited<ReturnType<typeof getContactInfo>> | null = null;
+  try {
+    contact = await getContactInfo();
+  } catch {
+    // İletişim bilgisi çekilemezse fişi basmaktan vazgeçmiyoruz — künye eksik basılır
+  }
+
   await printer.addTextAlign(C.ALIGN_CENTER);
   await printer.addTextSize({ width: 2, height: 2 });
   await printer.addTextStyle({ em: C.TRUE });
@@ -208,13 +218,28 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
   await printer.addTextStyle({ em: C.FALSE });
   await printer.addTextSize({ width: 1, height: 1 });
 
+  if (contact?.address1) {
+    // Adres ayarlarda satır satır tutuluyor; fişte de öyle basılıyor
+    for (const addrLine of contact.address1.split('\n')) {
+      if (addrLine.trim()) await printer.addText(`${ascii(addrLine.trim())}\n`);
+    }
+  }
+  if (contact?.phone1) {
+    await printer.addText(`${ascii(contact.phone1)}\n`);
+  }
+  if (contact?.businessNumber) {
+    await printer.addText(`${ascii(contact.businessNumber)}\n`);
+  }
+
+  await printer.addText(line() + '\n');
+
   // Sipariş no (büyük)
   await printer.addTextSize({ width: 2, height: 2 });
   await printer.addText(`${rt('orderPrefix')}${order.order_number}\n`);
   await printer.addTextSize({ width: 1, height: 1 });
 
   const dateStr = new Date(order.created_at).toLocaleString();
-  await printer.addText(`${dateStr}\n`);
+  await printer.addText(`${rt('orderDateTime')}: ${dateStr}\n`);
 
   const methodLabel =
     order.delivery_method === 'pickup' ? rt('pickup') : rt('delivery');

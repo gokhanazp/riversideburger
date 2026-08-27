@@ -7,6 +7,7 @@ export interface ContactInfo {
   email: string;
   address1: string;
   address2: string;
+  businessNumber: string; // HST/CRA işletme numarası — fişte yasal olarak gerekli
   facebook: string;
   instagram: string;
   whatsapp: string;
@@ -45,6 +46,7 @@ const DEFAULT_CONTACT_INFO: ContactInfo = {
   email: 'riversideburgerss@gmail.com',
   address1: '688 Queen Street East\nToronto, Ontario',
   address2: '1228 King St W\nToronto, Ontario',
+  businessNumber: '772068078RT0001',
   facebook: 'https://www.facebook.com/riversideburgers',
   instagram: 'https://www.instagram.com/riversideburgers',
   whatsapp: '+14168507026',
@@ -108,6 +110,7 @@ export const getContactInfo = async (): Promise<ContactInfo> => {
         'contact_email',
         'contact_address1',
         'contact_address2',
+        'contact_business_number',
         'social_facebook',
         'social_instagram',
         'social_whatsapp',
@@ -146,7 +149,9 @@ export const getContactInfo = async (): Promise<ContactInfo> => {
     data?.forEach((item) => {
       let key = item.setting_key;
       
-      if (key.startsWith('contact_')) {
+      if (key === 'contact_business_number') {
+        key = 'businessNumber';
+      } else if (key.startsWith('contact_')) {
         key = key.replace('contact_', '');
       } else if (key.startsWith('social_')) {
         key = key.replace('social_', '');

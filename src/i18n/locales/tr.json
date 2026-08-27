@@ -963,7 +963,8 @@
       "successTitle": "Başarılı",
       "successMessage": "İletişim bilgileri başarıyla güncellendi",
       "errorTitle": "Hata",
-      "errorMessage": "İletişim bilgileri kaydedilirken hata oluştu"
+      "errorMessage": "İletişim bilgileri kaydedilirken hata oluştu",
+      "businessNumber": "İşletme No (HST)"
     },
     "notificationsSubtitle": "Kullanıcılara bildirim gönder",
     "languageSettingsMenu": "Dil ve Para Birimi",
@@ -1293,7 +1294,9 @@
         "extras": "Ek Malzeme",
         "points": "Puan Kullanimi",
         "deliveryFee": "Teslimat",
-        "tax": "HST"
+        "tax": "HST",
+        "orderDateTime": "Siparis Tarihi Saati",
+        "businessNumber": "Isletme No"
       }
     },
     "campaigns": {
