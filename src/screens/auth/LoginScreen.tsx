@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { useTranslation } from 'react-i18next';
+import BrandLockup from '../../components/BrandLockup';
 
 export default function LoginScreen({ navigation }: any) {
   const { t } = useTranslation();
@@ -70,10 +71,9 @@ export default function LoginScreen({ navigation }: any) {
       >
         {/* Logo ve Başlık (Logo and Title) */}
         <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Ionicons name="fast-food" size={60} color="#E63946" />
-          </View>
-          <Text style={styles.title}>Riverside Burgers</Text>
+          {/* Jenerik "fast-food" ikonu duruyordu. Dikey kilit: logo üstte,
+              isim ve künye ortalanmış altında. */}
+          <BrandLockup size="lg" stacked />
           <Text style={styles.subtitle}>{t('auth.welcomeBack')}</Text>
         </View>
 
@@ -186,22 +186,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#FFF5F5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#000000',
-    marginBottom: 8,
-  },
   subtitle: {
+    // Künye satırı ('TORONTO · EST. 2019') ile arası çok sıkışıktı;
+    // marka kilidi ile ekranın metni birbirine yapışıyordu.
+    marginTop: 14,
     fontSize: 16,
     color: '#6C757D',
   },

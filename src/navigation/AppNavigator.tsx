@@ -80,6 +80,7 @@ export { navigationRef } from './navigationRef';
 import { navigationRef } from './navigationRef';
 
 // Global admin sipariş bildirimcisi (her ekranda ses + toast)
+import BrandLockup from '../components/BrandLockup';
 import { useAdminOrderNotifier } from '../hooks/useAdminOrderNotifier';
 
 // Custom Tab Bar Component for "Floating Island" Style
@@ -192,19 +193,9 @@ const MainTabs = () => {
         name="HomeTab"
         component={HomeScreen}
         options={{
-          headerTitle: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Ionicons name="restaurant" size={28} color={Colors.primary} />
-              <View>
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: Colors.text }}>
-                  Riverside Burgers
-                </Text>
-                <Text style={{ fontSize: 12, color: Colors.textSecondary }}>
-                  Toronto, Canada 🇨🇦
-                </Text>
-              </View>
-            </View>
-          ),
+          // Başlıkta jenerik bir Ionicons "restaurant" ikonu duruyordu —
+          // markanın kendi logosu varken çatal-kaşık simgesi gösteriyordu.
+          headerTitle: () => <BrandLockup size="sm" />,
           headerRight: () => (
             <View style={{ flexDirection: 'row', gap: 12, marginRight: 16 }}>
               <TouchableOpacity

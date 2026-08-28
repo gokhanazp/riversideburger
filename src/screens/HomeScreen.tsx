@@ -324,9 +324,16 @@ const HomeScreen = ({ navigation }: any) => {
       >
         {/* Simple Branded Header - Internal */}
         <View style={styles.brandedHeader}>
-          <View>
-            <Text style={styles.greetingText}>{t('home.welcome') || 'Hello,'}</Text>
-            <Text style={styles.brandNameText}>Riverside Burgers 🍔</Text>
+          {/* Marka kilidi GEZİNME BAŞLIĞINDA duruyor; burada tekrarlayınca iki
+              özdeş kilit üst üste geliyordu. Eskiden burada "Riverside Burgers
+              🍔" yazıyordu, yani tekrar zaten vardı — sadece iki farklı
+              biçimde olduğu için göze batmıyordu.
+              Bu satır artık selamlama: giriş yapılmışsa kullanıcının adı. */}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.greetingText}>{t('home.welcome')}</Text>
+            <Text style={styles.brandNameText} numberOfLines={1}>
+              {user?.full_name?.trim() || t('home.guest')}
+            </Text>
           </View>
           <TouchableOpacity 
             style={styles.profileCircle}

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp, FadeInLeft, ZoomIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
+import BrandLockup from '../components/BrandLockup';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { useCartStore } from '../store/cartStore';
 import { useAuthStore } from '../store/authStore';
@@ -296,7 +297,8 @@ const ProfileScreen = ({ navigation }: any) => {
 
           {/* Footer */}
           <View style={styles.eliteFooter}>
-              <Text style={styles.footerBrand}>Riverside Burgers</Text>
+              {/* Yalnız metin yazıyordu; footer markayı akılda bırakan yer. */}
+              <BrandLockup size="md" stacked style={{ marginBottom: 12 }} />
               <Text style={styles.footerTagline}>{contactInfo?.footerAbout || t('profile.aboutUsText')}</Text>
               
               <View style={styles.footerSocials}>
@@ -532,12 +534,6 @@ const styles = StyleSheet.create({
     marginTop: 60,
     alignItems: 'center',
     paddingBottom: 40,
-  },
-  footerBrand: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: Colors.black,
-    letterSpacing: 1,
   },
   footerTagline: {
     fontSize: 13,
