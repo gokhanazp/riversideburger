@@ -267,13 +267,23 @@ serve(async (req) => {
       .eq('is_active', true)
       .order('priority', { ascending: true });
 
-    // İlk-sipariş kampanyası için gerçek sipariş geçmişine bakılır; istemcinin
-    // "ben ilk siparişimi veriyorum" demesine güvenilmez.
-    const { count: previousOrders } = await admin
+    // İlk-sipariş kampanyası ve müşteri başına kullanım limiti için gerçek
+    // sipariş geçmişine bakılır; istemcinin "ben ilk siparişimi veriyorum"
+    // demesine güvenilmez. Sayım uygulamadakiyle aynı: iptal edilmiş
+    // siparişler sayılmıyor (campaignService.ts:125).
+    const { data: history } = await admin
       .from('orders')
-      .select('id', { count: 'exact', head: true })
+      .select('campaign_id, status')
       .eq('user_id', userId)
       .neq('status', 'cancelled');
+
+    const previousOrders = (history ?? []).length;
+    const usageByCampaign: Record<string, number> = {};
+    for (const row of history ?? []) {
+      if (row.campaign_id) {
+        usageByCampaign[row.campaign_id] = (usageByCampaign[row.campaign_id] ?? 0) + 1;
+      }
+    }
 
     const nowMs = Date.now();
     let campaignId: string | null = null;
@@ -285,7 +295,13 @@ serve(async (req) => {
       const endsOk = !c.ends_at || new Date(c.ends_at).getTime() >= nowMs;
       if (!startsOk || !endsOk) continue;
       if (subtotal < Number(c.min_order_amount ?? 0)) continue;
-      if (c.type === 'first_order' && (previousOrders ?? 0) > 0) continue;
+      if (c.type === 'first_order' && previousOrders > 0) continue;
+
+      // Müşteri başına kullanım limiti. Uygulamanın isEligible'ı bunu zaten
+      // denetliyor (campaignEngine.ts) ama benim aktarımım atlamıştı: limiti
+      // dolmuş bir kampanya web'de tekrar uygulanabiliyordu.
+      const limit = c.per_customer_limit;
+      if (limit != null && (usageByCampaign[c.id] ?? 0) >= Number(limit)) continue;
 
       // HEDEFLEME — uygulamadaki eligibleLines'ın karşılığı
       // (src/services/campaignEngine.ts). İlk sürümde bu filtre yoktu ve
