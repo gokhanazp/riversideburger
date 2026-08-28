@@ -289,6 +289,7 @@ serve(async (req) => {
     let campaignId: string | null = null;
     let discount = 0;
     let campaignName: string | null = null;
+    let chosenPriority = -Infinity;
 
     for (const c of campaigns ?? []) {
       const startsOk = !c.starts_at || new Date(c.starts_at).getTime() <= nowMs;
@@ -345,10 +346,20 @@ serve(async (req) => {
         }
       }
 
-      if (candidate > discount) {
+      // Eşitlik kuralı uygulamayla aynı olmalı: aynı tutarda daha YÜKSEK
+      // priority kazanır (campaignEngine.computeBestCampaign). Yalnızca
+      // "candidate > discount" yazmak, iki kampanya aynı indirimi verdiğinde
+      // web'in mobilden FARKLI kampanya adı yazmasına yol açıyordu — indirim
+      // tutarı aynı olduğu için de gözden kaçıyordu.
+      const better =
+        campaignId === null ||
+        candidate > discount ||
+        (candidate === discount && Number(c.priority ?? 0) > Number(chosenPriority));
+      if (candidate > 0 && better) {
         discount = candidate;
         campaignId = c.id;
         campaignName = c.name_en ?? c.name_tr ?? null;
+        chosenPriority = Number(c.priority ?? 0);
       }
     }
 
