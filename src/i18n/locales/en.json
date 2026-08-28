@@ -700,7 +700,8 @@
       "sumTotal": "TOTAL",
       "sumTax": "HST",
       "staleTitle": "Data is not updating",
-      "staleDesc": "Cannot reach the server. Please fully close and reopen the app."
+      "staleDesc": "Cannot reach the server. Please fully close and reopen the app.",
+      "filterUnpaid": "Unpaid"
     },
     "products": {
       "title": "Product Management",

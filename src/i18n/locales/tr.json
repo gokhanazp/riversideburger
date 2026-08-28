@@ -700,7 +700,8 @@
       "sumTotal": "TOPLAM",
       "sumTax": "HST",
       "staleTitle": "Veri güncellenmiyor",
-      "staleDesc": "Bağlantı kurulamıyor. Uygulamayı tamamen kapatıp yeniden açın."
+      "staleDesc": "Bağlantı kurulamıyor. Uygulamayı tamamen kapatıp yeniden açın.",
+      "filterUnpaid": "Ödenmedi"
     },
     "products": {
       "title": "Ürün Yönetimi",

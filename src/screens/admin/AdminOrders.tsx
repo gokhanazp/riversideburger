@@ -99,7 +99,11 @@ const AdminOrders = ({ navigation, route }: any) => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>(filterParam || 'all');
+  // 'unpaid' bir sipariş DURUMU değil, ödeme filtresi. Aynı şeride koymak
+  // bilinçli: personelin ödenmemişleri görebileceği tek bir yer olmalı.
+  const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all' | 'unpaid'>(
+    filterParam || 'all'
+  );
   // İptal (Uber cancel) akışı
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState<CancelationReason | null>(null);
@@ -160,7 +164,20 @@ const AdminOrders = ({ navigation, route }: any) => {
     try {
       if (!silent) setLoading(true);
       let query = supabase.from('orders').select('*, user:users(email, full_name, phone), order_items(*, product:products(name, image_url)), order_item_customizations(*), campaign:campaigns(name_tr, name_en)').order('created_at', { ascending: false });
-      if (filterStatus !== 'all') query = query.eq('status', filterStatus);
+      // Ödenmemiş siparişler normal listede GÖRÜNMÜYOR: web sitesi siparişi
+      // ödemeden önce oluşturuyor ve müşteri ödeme sayfasını kapatırsa mutfak
+      // ödenmemiş bir siparişe başlamamalı.
+      //
+      // Ama tamamen erişilemez de değiller. Ödeme Stripe'ta alınıp bizim
+      // tarafta işaretlenemediği bir durumda (webhook arızası) sipariş
+      // görünmez kalırsa müşteri parasını ödemiş ama restoran siparişi hiç
+      // görmemiş olur. "Ödenmedi" filtresi o siparişlerin tek görünme yolu.
+      if (filterStatus === 'unpaid') {
+        query = query.neq('payment_status', 'paid');
+      } else {
+        query = query.eq('payment_status', 'paid');
+        if (filterStatus !== 'all') query = query.eq('status', filterStatus);
+      }
 
       // Sorguya üst sınır koy. Supabase auth kilidi tıkanırsa sorgu hiç
       // başlamıyor ve await sonsuza kadar bekliyordu; finally çalışmadığı için
@@ -556,7 +573,7 @@ const AdminOrders = ({ navigation, route }: any) => {
     );
   };
 
-  const FilterItem = ({ status, label, icon }: { status: OrderStatus | 'all', label: string, icon: string }) => (
+  const FilterItem = ({ status, label, icon }: { status: OrderStatus | 'all' | 'unpaid', label: string, icon: string }) => (
     <TouchableOpacity
       style={[styles.filterItem, filterStatus === status && styles.filterItemActive]}
       onPress={() => setFilterStatus(status)}
@@ -611,6 +628,7 @@ const AdminOrders = ({ navigation, route }: any) => {
             <FilterItem status="preparing" label={t('admin.orders.filterPreparing')} icon="restaurant-outline" />
             <FilterItem status="ready" label={t('admin.orders.filterReady')} icon="bag-check-outline" />
             <FilterItem status="delivering" label={t('admin.orders.filterDelivering')} icon="moped-outline" />
+            <FilterItem status="unpaid" label={t('admin.orders.filterUnpaid')} icon="card-outline" />
         </ScrollView>
       </LinearGradient>
 
