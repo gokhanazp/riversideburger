@@ -525,6 +525,9 @@ serve(async (req) => {
       JSON.stringify({
         order_id: order.id,
         order_number: order.order_number,
+        // Onay sayfası siparişi bununla okuyor; RLS misafire okuma izni
+        // vermiyor ve sipariş numarası tahmin edilebilir.
+        public_token: order.public_token,
         breakdown: {
           subtotal,
           discount,
