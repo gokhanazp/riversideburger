@@ -149,7 +149,7 @@ serve(async (req) => {
     const productIds = [...new Set(body.items.map((i) => i.product_id))];
     const { data: products, error: productError } = await admin
       .from('products')
-      .select('id, name, price, is_active, stock_status')
+      .select('id, name, price, category_id, is_active, stock_status')
       .in('id', productIds);
     if (productError) return bad('could not load products', 500);
 
@@ -194,6 +194,7 @@ serve(async (req) => {
       return {
         product_id: product.id,
         product_name: product.name,
+        category_id: product.category_id as string | null,
         quantity: item.quantity,
         unit_price: unitPrice,
         subtotal: round2(unitPrice * item.quantity),
@@ -286,19 +287,42 @@ serve(async (req) => {
       if (subtotal < Number(c.min_order_amount ?? 0)) continue;
       if (c.type === 'first_order' && (previousOrders ?? 0) > 0) continue;
 
+      // HEDEFLEME — uygulamadaki eligibleLines'ın karşılığı
+      // (src/services/campaignEngine.ts). İlk sürümde bu filtre yoktu ve
+      // yalnızca üç ürünü hedefleyen "Buy one get one free" kampanyası
+      // sepetteki HER ürüne uygulanıyordu; test siparişinde Ginger Ale
+      // hak etmediği bir indirim aldı.
+      let targeted = lines;
+      if (c.target_type === 'category') {
+        const set = new Set<string>(c.target_category_ids ?? []);
+        targeted = lines.filter((l) => l.category_id != null && set.has(l.category_id));
+      } else if (c.target_type === 'product') {
+        const set = new Set<string>(c.target_product_ids ?? []);
+        targeted = lines.filter((l) => set.has(l.product_id));
+      } else if (c.target_type !== 'all') {
+        targeted = [];
+      }
+      if (targeted.length === 0 && c.target_type !== 'all') continue;
+
+      const targetedAmount = round2(targeted.reduce((sum, l) => sum + l.unit_price * l.quantity, 0));
+
       let candidate = 0;
       if (c.type === 'first_order' || c.type === 'percentage') {
         const percent = Number(c.discount_percent) || 0;
-        if (percent > 0) candidate = round2(Math.min((subtotal * percent) / 100, subtotal));
+        // first_order her zaman TÜM sepete, percentage yalnızca hedefe —
+        // uygulamadaki ayrımın aynısı.
+        const base = c.type === 'first_order' ? subtotal : targetedAmount;
+        if (percent > 0) candidate = round2(Math.min((base * percent) / 100, base));
       } else if (c.type === 'buy_x_get_y') {
         const buy = Math.max(0, Math.floor(Number(c.buy_quantity ?? 0)));
         const free = Math.max(0, Math.floor(Number(c.free_quantity ?? 0)));
         const group = buy + free;
         if (group > 0 && free > 0) {
           const units: number[] = [];
-          for (const l of lines) for (let i = 0; i < l.quantity; i++) units.push(l.unit_price);
+          for (const l of targeted) for (let i = 0; i < l.quantity; i++) units.push(l.unit_price);
           const freeUnits = Math.floor(units.length / group) * free;
           if (freeUnits > 0) {
+            // En ucuz birimler bedava — uygulamadaki davranış.
             units.sort((a, b) => a - b);
             candidate = round2(units.slice(0, freeUnits).reduce((s, u) => s + u, 0));
           }
