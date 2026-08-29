@@ -153,9 +153,15 @@ serve(async (req) => {
       title,
       body,
       // iOS mp3 bildirim sesini desteklemiyor; Android'de özel ses zaten
-      // 'admin_orders' kanalından (order_sound.mp3) geliyor.
+      // kanaldan (order_sound.mp3) geliyor.
+      //
+      // DİKKAT — sıralama önemli: bu değer yalnızca uygulama tarafındaki OTA
+      // yayına girdikten SONRA geçerli olur. Eski 'admin_orders' kanalının sesi
+      // Android tarafında donmuş durumdaydı (tire/alt çizgi hatası), bu yüzden
+      // uygulama _v2 kanalını kuruyor. Henüz güncellememiş bir istemciye _v2
+      // push'u giderse kanal bulunamaz ve expo fallback kanalına düşer.
       sound: 'default',
-      channelId: 'admin_orders',
+      channelId: 'admin_orders_v2',
       priority: 'high',
       badge: 1,
       // Yeni sipariş 30 dakika sonra anlamsız — teslim edilemezse düşsün

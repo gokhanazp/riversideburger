@@ -6,6 +6,23 @@ import Constants from 'expo-constants';
 import { Asset } from 'expo-asset';
 import { markOrderAlerted } from './orderAlertRegistry';
 
+// ── Admin sipariş bildirim kanalı (Admin order notification channel) ──
+//
+// Neden 'admin_orders' değil de '_v2'? Android'de bir bildirim kanalının sesi
+// OLUŞTURULDUKTAN SONRA DEĞİŞTİRİLEMEZ. Eski 'admin_orders' kanalı ilk kez
+// `sound: 'order-sound.mp3'` (TİRE) ile kuruluyordu; bundle'daki dosya ise
+// `order_sound.mp3` (ALT ÇİZGİ). SoundResolver uzantıyı atıp res/raw içinde
+// 'order-sound' arıyor, bulamıyor ve sessizce sistemin varsayılan bildirim
+// sesine düşüyor. Ad 2026-07-01'de düzeltildi ama o tarihten önce kurulmuş
+// cihazlarda kanal varsayılan sesle DONMUŞ durumda — restorandaki Android
+// tablette zilin çalmamasının sebebi bu.
+//
+// setNotificationChannelAsync mevcut bir kanalın sesini güncelleyemez, o yüzden
+// tek çözüm yeni bir kanal kimliği. Eski kanal, henüz güncellenmemiş
+// istemcilere giden push'lar boşa düşmesin diye şimdilik tanımlı bırakılıyor.
+export const ADMIN_ORDER_CHANNEL_ID = 'admin_orders_v2';
+const LEGACY_ADMIN_ORDER_CHANNEL_ID = 'admin_orders';
+
 // ── Web'de admin sipariş sesi (Web admin order alert sound) ──
 // Native'de ses bildirim üzerinden çalar. Web'de tarayıcı autoplay politikası
 // HTMLAudioElement'i sık engellediği için Web Audio API kullanılır: context bir
@@ -257,12 +274,25 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
 
     // Admin sipariş bildirimleri kanalı - Daha yüksek öncelik, uzun titreşim ve özel ses
     // (Admin order notifications channel - Higher priority, longer vibration and custom sound)
-    await Notifications.setNotificationChannelAsync('admin_orders', {
+    // Kimliğin neden _v2 olduğu için ADMIN_ORDER_CHANNEL_ID tanımına bakın.
+    await Notifications.setNotificationChannelAsync(ADMIN_ORDER_CHANNEL_ID, {
       name: 'Admin Sipariş Bildirimleri',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 500, 200, 500, 200, 500], // Üç kez titreşim (Triple vibration)
       lightColor: '#E63946',
-      sound: 'order_sound.mp3', // Özel sipariş sesi — app.json'da bundle edilen dosya adıyla eşleşmeli
+      sound: 'order_sound.mp3', // app.json'daki sounds[] ile birebir aynı olmalı
+      enableLights: true,
+      enableVibrate: true,
+    });
+
+    // Eski kanal: sesi donmuş durumda ve artık hedeflenmiyor. notify-admin-new-order
+    // henüz eski kimliğe push atıyor olabilir; kanal silinirse o push'lar expo'nun
+    // fallback kanalına düşer. Sunucu _v2'ye geçtikten sonra bu blok silinecek.
+    await Notifications.setNotificationChannelAsync(LEGACY_ADMIN_ORDER_CHANNEL_ID, {
+      name: 'Admin Sipariş Bildirimleri (eski)',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 500, 200, 500, 200, 500],
+      lightColor: '#E63946',
       enableLights: true,
       enableVibrate: true,
     });
@@ -315,6 +345,18 @@ export async function sendLocalNotification(
       }
     }
 
+    // Android'de bildirimin hangi kanala düşeceğini TRIGGER belirler, content değil.
+    //
+    // Burada uzun süre `trigger: null` vardı: expo'nun BaseNotificationBuilder'ı
+    // trigger null olduğunda kanal kimliğini hiç okumadan
+    // 'expo_notifications_fallback_notification_channel'a düşüyor
+    // ("Couldn't get channel for the notifications - trigger is 'null'"). Yani
+    // aşağıdaki channelId argümanı yalnızca titreşim desenini ve logu etkiliyordu;
+    // özenle kurulan admin_orders kanalı yerel bildirimlerde HİÇ kullanılmadı.
+    // Android 8+ içerikteki `sound` alanını da yok sayıyor (sesi kanal belirler),
+    // bu yüzden zil hiç çalmadı — fiş basılmasına rağmen.
+    //
+    // iOS'ta kanal kavramı yok; davranışı değiştirmemek için orada null kalıyor.
     await Notifications.scheduleNotificationAsync({
       content: {
         title,
@@ -322,10 +364,10 @@ export async function sendLocalNotification(
         data,
         sound: soundConfig,
         priority: priority,
-        vibrate: channelId === 'admin_orders' ? [0, 500, 200, 500, 200, 500] : [0, 250, 250, 250],
+        vibrate: channelId === ADMIN_ORDER_CHANNEL_ID ? [0, 500, 200, 500, 200, 500] : [0, 250, 250, 250],
         ...iosConfig,
       },
-      trigger: null, // Hemen gönder (Send immediately)
+      trigger: Platform.OS === 'android' ? { channelId } : null,
     });
 
     console.log('✅ Yerel bildirim gönderildi:', {
@@ -412,7 +454,7 @@ export async function sendNewOrderNotificationToAdmin(orderId: string, customerN
     '🔔 YENİ SİPARİŞ!',
     `${customerName} - ${formattedPrice}`,
     { orderId, type: 'new_order_admin' },
-    'admin_orders', // Özel admin kanalı (Special admin channel)
+    ADMIN_ORDER_CHANNEL_ID, // Özel admin kanalı (Special admin channel)
     Notifications.AndroidNotificationPriority.MAX, // Maksimum öncelik (Maximum priority)
     'order_sound.mp3' // Özel sipariş sesi (Custom order sound)
   );
@@ -509,7 +551,7 @@ export async function sendPushNotificationToAdmins(title: string, body: string, 
       body: body,
       data: data || {},
       priority: 'high',
-      channelId: data?.type === 'new_order_admin' ? 'admin_orders' : 'orders',
+      channelId: data?.type === 'new_order_admin' ? ADMIN_ORDER_CHANNEL_ID : 'orders',
       badge: 1, // Badge sayısını artır (Increment badge count)
     }));
 

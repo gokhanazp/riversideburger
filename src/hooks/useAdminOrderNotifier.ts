@@ -16,7 +16,7 @@ import * as Notifications from 'expo-notifications';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { formatPrice } from '../services/currencyService';
-import { sendLocalNotification, playAdminOrderSound, initAdminOrderSound } from '../services/notificationService';
+import { sendLocalNotification, playAdminOrderSound, initAdminOrderSound, ADMIN_ORDER_CHANNEL_ID } from '../services/notificationService';
 import { navigationRef } from '../navigation/navigationRef';
 import { useRealtimeTable } from './useRealtimeTable';
 import { diag } from '../services/diagnosticsLog';
@@ -131,7 +131,7 @@ export function useAdminOrderNotifier() {
         i18n.t('admin.orderAlert.newOrderTitle'),
         `${customerName} - ${priceText}`,
         { orderId: orderData.id, type: 'new_order_admin' },
-        'admin_orders',
+        ADMIN_ORDER_CHANNEL_ID,
         Notifications.AndroidNotificationPriority.MAX,
         'order_sound.mp3'
       );
@@ -161,7 +161,7 @@ export function useAdminOrderNotifier() {
         i18n.t('admin.orderAlert.newOrdersTitle', { count }),
         i18n.t('admin.orderAlert.missedOrdersBody'),
         { type: 'new_order_admin' },
-        'admin_orders',
+        ADMIN_ORDER_CHANNEL_ID,
         Notifications.AndroidNotificationPriority.MAX,
         'order_sound.mp3'
       );
