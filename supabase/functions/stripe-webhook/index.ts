@@ -18,7 +18,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno';
-import { markOrderPaid } from '../_shared/mark-paid.ts';
+import { settleSession } from '../_shared/place-order.ts';
 
 serve(async (req) => {
   if (req.method !== 'POST') return new Response('POST required', { status: 405 });
@@ -60,18 +60,6 @@ serve(async (req) => {
       event.type === 'checkout.session.async_payment_succeeded'
     ) {
       const session = event.data.object as Stripe.Checkout.Session;
-      const orderId = session.metadata?.order_id;
-
-      if (!orderId) {
-        console.warn('[stripe-webhook] session without order_id', session.id);
-        // 200 dönüyoruz: Stripe aksi halde saatlerce yeniden denemeye devam eder
-        // ve bu olay bizim siparişimize ait değil.
-        return new Response('ignored', { status: 200 });
-      }
-
-      if (session.payment_status !== 'paid') {
-        return new Response('not paid yet', { status: 200 });
-      }
 
       const admin = createClient(
         Deno.env.get('SUPABASE_URL')!,
@@ -79,19 +67,24 @@ serve(async (req) => {
         { auth: { persistSession: false } }
       );
 
-      const paymentIntentId =
-        typeof session.payment_intent === 'string'
-          ? session.payment_intent
-          : (session.payment_intent?.id ?? null);
+      // Sipariş satırı burada doğuyor. Müşteri ödeme sonrası sekmeyi kapatsa
+      // bile bu yol siparişi oluşturur — kalıcı yol bu, tarayıcı dönüşü değil.
+      const result = await settleSession(admin, session);
 
-      const result = await markOrderPaid(admin, {
-        orderId,
-        sessionId: session.id,
-        paymentIntentId,
-        amount: (session.amount_total ?? 0) / 100,
-      });
+      if (result.status === 'unknown_session') {
+        // Bizim taslağımıza ait değil (ya da süresi dolmuş). 200 dönüyoruz:
+        // aksi halde Stripe saatlerce yeniden dener.
+        console.warn('[stripe-webhook] unmatched session', session.id);
+        return new Response('ignored', { status: 200 });
+      }
+      if (result.status === 'unpaid') {
+        return new Response('not paid yet', { status: 200 });
+      }
 
-      console.log('[stripe-webhook]', event.type, orderId, 'changed:', result.changed);
+      console.log(
+        '[stripe-webhook]', event.type, session.id,
+        'order:', result.order.order_number, 'created:', result.order.created
+      );
     }
 
     return new Response('ok', { status: 200 });
