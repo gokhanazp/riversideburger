@@ -142,6 +142,8 @@ export async function placeOrder(
         user_id: userId,
         order_number: generateOrderNumber(),
         stripe_session_id: sessionId,
+        // Admin paneli bu siparişin web'den geldiğini bundan anlıyor.
+        source: 'web',
         payment_status: 'paid',
         paid_at: paidAt,
       })

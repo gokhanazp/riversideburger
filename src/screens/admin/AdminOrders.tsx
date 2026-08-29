@@ -531,6 +531,15 @@ const AdminOrders = ({ navigation, route }: any) => {
                 <Ionicons name="receipt" size={16} color={statusColor} />
               </View>
               <Text style={styles.cardOrderNo}>#{order.order_number}</Text>
+              {/* Siparişin web sitesinden geldiğini restoranın hemen görmesi için.
+                  Mobil uygulama siparişlerinde source 'app' (varsayılan) olduğu
+                  için rozet çıkmıyor. */}
+              {order.source === 'web' && (
+                <View style={styles.sourceTag}>
+                  <Ionicons name="globe-outline" size={11} color="#0B7285" />
+                  <Text style={styles.sourceTagText}>WEB</Text>
+                </View>
+              )}
             </View>
             <View style={[styles.statusTag, { backgroundColor: statusColor + '10' }]}>
                 <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
@@ -755,6 +764,12 @@ const AdminOrders = ({ navigation, route }: any) => {
               <View style={styles.detailsHeader}>
                 <View style={styles.detailsHeaderTitle}>
                     <Text style={styles.detailsNo}>#{selectedOrder.order_number}</Text>
+                    {selectedOrder.source === 'web' && (
+                      <View style={styles.sourceTag}>
+                        <Ionicons name="globe-outline" size={11} color="#0B7285" />
+                        <Text style={styles.sourceTagText}>WEB</Text>
+                      </View>
+                    )}
                     <View style={[styles.detailsBadge, { backgroundColor: STATUS_COLORS[selectedOrder.status] + '10' }]}>
                         <Text style={{ color: STATUS_COLORS[selectedOrder.status], fontWeight: '800', fontSize: 10 }}>{STATUS_NAMES[selectedOrder.status]}</Text>
                     </View>
@@ -937,6 +952,9 @@ const styles = StyleSheet.create({
   detailsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: '#f1f1f1' },
   detailsHeaderTitle: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   detailsNo: { fontSize: 22, fontWeight: '900', color: Colors.text },
+  sourceTag: { flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 8,
+    paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: '#0B728512' },
+  sourceTagText: { fontSize: 10, fontWeight: '800', color: '#0B7285', letterSpacing: 0.5 },
   detailsBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   sheetCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' },
   detailsScroll: { padding: 24 },
