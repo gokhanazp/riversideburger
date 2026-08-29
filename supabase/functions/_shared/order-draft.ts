@@ -38,6 +38,8 @@ export interface RequestBody {
   delivery_method: 'pickup' | 'delivery';
   /** Girişsiz sipariş için; oturum varsa yok sayılır */
   guest?: { full_name: string; phone: string; email: string };
+  /** Doluysa müşteri hesap açmak istiyor. Taslağa ASLA yazılmaz. */
+  account_password?: string;
   address?: {
     full_name?: string;
     phone?: string;

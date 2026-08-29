@@ -55,6 +55,67 @@ serve(async (req) => {
     if (!result.ok) return json({ error: result.error }, result.status);
     const { draft } = result;
 
+    // ── İsteğe bağlı üyelik ────────────────────────────────────────────────
+    // Müşteri sepette şifre girdiyse hesabı BURADA açıyoruz, ödemeden önce.
+    // Gerekçe: hesap açılmasını müşteri açıkça istedi; ödeme yarıda kalsa bile
+    // istediği hesaba sahip olmalı. Şifre taslağa YAZILMIYOR — web_checkouts'ta
+    // açık şifre beklemesi kabul edilemez.
+    //
+    // Zaten hesabı olan bir e-postaya şifre atamıyoruz: kimliği doğrulanmamış
+    // bir istekle mevcut hesabın şifresini değiştirmek hesap ele geçirme olurdu.
+    const password = body.account_password?.trim();
+    if (password && !signedInUserId) {
+      if (password.length < 6) {
+        return json({ error: 'Password must be at least 6 characters.' }, 400);
+      }
+      if (draft.user_id) {
+        return json(
+          {
+            error: 'An account already exists for this email. Sign in first, or leave the password blank to order as a guest.',
+            code: 'account_exists',
+          },
+          409
+        );
+      }
+
+      const guest = draft.guest!;
+      const { data: authUser, error: authError } = await admin.auth.admin.createUser({
+        email: guest.email,
+        password,
+        email_confirm: true, // projede mailer_autoconfirm açık; doğrulama e-postası yok
+        user_metadata: { full_name: guest.full_name, phone: guest.phone },
+      });
+
+      if (authError || !authUser?.user) {
+        // public.users satırı olmayan bir auth hesabı olabilir.
+        console.error('[start-checkout] account create failed', authError);
+        return json(
+          {
+            error: 'An account already exists for this email. Please sign in to continue.',
+            code: 'account_exists',
+          },
+          409
+        );
+      }
+
+      const { error: rowError } = await admin.from('users').insert({
+        id: authUser.user.id,
+        email: guest.email,
+        full_name: guest.full_name,
+        phone: guest.phone,
+        role: 'customer',
+        points: 0,
+      });
+      if (rowError) {
+        // Yarım hesap bırakma.
+        await admin.auth.admin.deleteUser(authUser.user.id).catch(() => {});
+        console.error('[start-checkout] users insert failed', rowError);
+        return json({ error: 'could not create your account' }, 500);
+      }
+
+      draft.user_id = authUser.user.id;
+    }
+
     const amountCents = Math.round(draft.breakdown.total * 100);
     if (!Number.isFinite(amountCents) || amountCents <= 0) {
       return json({ error: 'order total is not payable' }, 422);
