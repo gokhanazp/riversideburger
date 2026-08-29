@@ -82,15 +82,34 @@ export function useAdminOrderNotifier() {
       }
       printedRef.current.add(orderId);
 
-      const { data: fullOrder } = await supabase
-        .from('orders')
-        // Özelleştirmeler de çekilmeli: fişte "Domates Çıkar" gibi satırlar
-        // bunlardan basılıyor, eksik select yüzünden fişe hiç düşmüyordu.
-        .select('*, user:users(full_name, phone), order_items(*, product:products(name)), order_item_customizations(*), campaign:campaigns(name_tr, name_en)')
-        .eq('id', orderId)
-        .single();
+      // Sipariş satırı ile kalemleri AYRI insert'ler: sipariş commit olduğu anda
+      // realtime bizi uyandırıyor ve kalemler daha yazılmamış olabiliyor. Böyle
+      // bir anda okursak mutfağa kalemsiz fiş çıkar. Kalem gelmediyse kısa bir
+      // süre bekleyip tekrar bakıyoruz.
+      let fullOrder: any = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data } = await supabase
+          .from('orders')
+          // Özelleştirmeler de çekilmeli: fişte "Domates Çıkar" gibi satırlar
+          // bunlardan basılıyor, eksik select yüzünden fişe hiç düşmüyordu.
+          .select('*, user:users(full_name, phone), order_items(*, product:products(name)), order_item_customizations(*), campaign:campaigns(name_tr, name_en)')
+          .eq('id', orderId)
+          .single();
+        fullOrder = data;
+        if (!fullOrder) break;
+        if ((fullOrder.order_items?.length ?? 0) > 0) break;
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 400));
+      }
 
       if (!fullOrder) {
+        printedRef.current.delete(orderId);
+        return;
+      }
+
+      if ((fullOrder.order_items?.length ?? 0) === 0) {
+        // Hâlâ kalem yok. Kalemsiz fiş basmak mutfağı yanıltır; bir sonraki
+        // turda tekrar denenebilsin diye dedupe kaydını geri alıyoruz.
+        diag('notifier', `sipariş ${orderId} kalemsiz geldi — fiş ertelendi`);
         printedRef.current.delete(orderId);
         return;
       }
