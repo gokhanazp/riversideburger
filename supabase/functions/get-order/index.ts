@@ -48,7 +48,7 @@ serve(async (req) => {
     const { data, error } = await admin
       .from('orders')
       .select(
-        'order_number, status, payment_status, delivery_method, total_amount, tax_amount, discount_amount, tip_amount, delivery_fee, points_used, created_at, campaign:campaigns(name_en), order_items(quantity, price, subtotal, product:products(name))'
+        'order_number, status, payment_status, source, delivery_method, total_amount, tax_amount, discount_amount, tip_amount, delivery_fee, points_used, created_at, campaign:campaigns(name_en), order_items(quantity, price, subtotal, product:products(name))'
       )
       .eq('order_number', order_number)
       .eq('public_token', token)
