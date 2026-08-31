@@ -40,7 +40,7 @@ serve(async (req) => {
   );
 
   try {
-    const body = (await req.json()) as RequestBody & { return_origin?: string };
+    const body = (await req.json()) as RequestBody & { return_origin?: string; quote_only?: boolean };
 
     // Oturumu service_role ile değil, gelen token'la çözüyoruz; aksi halde
     // istemci başka birinin user_id'sini gönderip onun puanını harcayabilirdi.
@@ -54,6 +54,15 @@ serve(async (req) => {
     const result = await buildOrderDraft(admin, body, signedInUserId);
     if (!result.ok) return json({ error: result.error }, result.status);
     const { draft } = result;
+
+    // ── Yalnızca fiyat teklifi ─────────────────────────────────────────────
+    // Teslimat ücreti adrese bağlı ve müşteri onu ÖDEME SAYFASINA GİTMEDEN
+    // görmeli. Bu mod sepete dökümü verir: hesap açmaz, Stripe oturumu
+    // açmaz, taslak saklamaz. Hesap açma bloğundan ÖNCE dönüyor ki bir
+    // fiyat sorgusu yanlışlıkla hesap oluşturmasın.
+    if (body.quote_only) {
+      return json({ quote: true, breakdown: draft.breakdown });
+    }
 
     // ── İsteğe bağlı üyelik ────────────────────────────────────────────────
     // Müşteri sepette şifre girdiyse hesabı BURADA açıyoruz, ödemeden önce.

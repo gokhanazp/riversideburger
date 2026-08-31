@@ -18,6 +18,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getRestaurantPickup } from './uber.ts';
+import { geocodeAddress } from './geocode.ts';
 
 const TAX_RATE_FALLBACK = 13; // Ontario HST
 const MAX_ITEMS = 50;
@@ -176,7 +177,14 @@ export async function buildOrderDraft(
       .from('product_options')
       .select('id, name, name_en, price, is_active')
       .in('id', optionIds);
-    if (optionError) return fail('could not load options', 500);
+    if (optionError) {
+      // 22P02 = geçersiz girdi sözdizimi: gelen kimlik UUID değil. Bu bozuk
+      // bir sepet (ör. eski localStorage içeriği), sunucu hatası değil —
+      // 500 "could not load options" demek müşteriye de bize de yardım etmiyor.
+      if (optionError.code === '22P02') return fail('your cart contains an invalid item — please clear it and add again', 400);
+      console.error('[order-draft] options load failed', optionError);
+      return fail('could not load options', 500);
+    }
     for (const o of options ?? []) {
       if (!o.is_active) return fail(`option is not available: ${o.name}`);
       optionById.set(o.id, { id: o.id, name: o.name, name_en: o.name_en, price: Number(o.price ?? 0) });
@@ -354,18 +362,39 @@ export async function buildOrderDraft(
 
   let deliveryFee = 0;
   let distanceKm: number | null = null;
+  let resolvedLat: number | null = null;
+  let resolvedLng: number | null = null;
 
   if (body.delivery_method === 'delivery') {
     const address = body.address;
-    if (!address?.street_name || !address?.city || !address?.postal_code) {
-      return fail('address is required for delivery');
+    if (!address?.street_number || !address?.street_name || !address?.city || !address?.postal_code) {
+      return fail('street number, street name, city and postal code are required for delivery');
     }
-    if (address.latitude == null || address.longitude == null) {
-      // Koordinat yoksa mesafe bilinemez, mesafe bilinmezse ücret uydurulamaz.
-      return fail('address latitude and longitude are required for delivery');
+
+    // Koordinat yoksa mesafe bilinemez, mesafe bilinmezse ücret uydurulamaz.
+    // Web istemcisi koordinat göndermiyor — adresi BURADA çeviriyoruz. Mobil
+    // uygulama koordinatı kendi geocode adımından gönderdiği için o yol
+    // olduğu gibi çalışmaya devam ediyor.
+    let lat = address.latitude == null ? null : Number(address.latitude);
+    let lng = address.longitude == null ? null : Number(address.longitude);
+
+    if (lat == null || lng == null || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+      const located = await geocodeAddress(address);
+      if (!located) {
+        return fail(
+          'We could not find that address. Please check the street number, name and postal code.',
+          422
+        );
+      }
+      lat = located.lat;
+      lng = located.lng;
     }
+
+    resolvedLat = lat;
+    resolvedLng = lng;
+
     const pickup = getRestaurantPickup();
-    distanceKm = haversineKm(pickup.lat, pickup.lng, Number(address.latitude), Number(address.longitude));
+    distanceKm = haversineKm(pickup.lat, pickup.lng, lat, lng);
 
     const tier1Km = Number(settings?.delivery_tier1_max_km ?? 5);
     const tier1Fee = Number(settings?.delivery_tier1_fee ?? 4.99);
@@ -427,8 +456,10 @@ export async function buildOrderDraft(
         delivery_province: isDelivery ? address!.province : null,
         delivery_postal_code: isDelivery ? address!.postal_code : null,
         delivery_country: 'CA',
-        delivery_lat: isDelivery ? address!.latitude : null,
-        delivery_lng: isDelivery ? address!.longitude : null,
+        // Çözümlenen koordinatlar: Uber Direct kuryeyi bunlarla çağırıyor,
+        // istemcinin gönderdiği (belki hiç göndermediği) değerle değil.
+        delivery_lat: isDelivery ? resolvedLat : null,
+        delivery_lng: isDelivery ? resolvedLng : null,
         delivery_instructions: isDelivery ? (address?.delivery_instructions ?? null) : null,
         delivery_fee: deliveryFee,
         tip_amount: tip,
