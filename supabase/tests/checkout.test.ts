@@ -118,5 +118,40 @@ const orphan = await settleSession(asClient(db3), session('cs_orphan', true, 21.
 check('ödeme alındıysa sipariş HER ZAMAN oluşur', orphan.status, 'placed');
 check('mevcut auth kimliğinin altına yazıldı', db3.tables.users[0]?.id, 'orphan-auth-id');
 
+// ── 6. Teslimat: Uber çağrısı başarısız olsa bile sipariş DURMALI ───────────
+console.log('\n═══ 6) Teslimat siparişi, Uber ulaşılamıyor ═══');
+const db4 = seed();
+// Teslimat taslağını elle kuruyoruz: buildOrderDraft teslimat için geocode
+// istiyor ve testte LocationIQ anahtarı yok. Ölçmek istediğimiz şey zaten
+// place-order'ın Uber hatası karşısındaki davranışı.
+const deliveryDraft = {
+  user_id: null,
+  guest: { full_name: 'Teslimat Testi', phone: '4165550000', email: 'teslimat@example.com' },
+  lines: [{
+    product_id: BURGER, product_name: 'Riverside Classic', category_id: 'cat-burgers',
+    quantity: 1, unit_price: 16.99, subtotal: 16.99, option_ids: [], special_instructions: null,
+  }],
+  options: [],
+  order: {
+    status: 'pending', total_amount: 24.15, delivery_address: '250 Broadview Avenue, Toronto, ON, M4M 2G6',
+    phone: '4165550000', notes: null, points_earned: 0, points_used: 0,
+    delivery_method: 'delivery', delivery_full_name: 'Teslimat Testi',
+    delivery_street: '250 Broadview Avenue', delivery_unit: null, delivery_city: 'Toronto',
+    delivery_province: 'ON', delivery_postal_code: 'M4M 2G6', delivery_country: 'CA',
+    delivery_lat: 43.6655, delivery_lng: -79.3505, delivery_instructions: null,
+    delivery_fee: 4.99, tip_amount: 0, campaign_id: null, discount_amount: 0, tax_amount: 2.17,
+  },
+  breakdown: { subtotal: 16.99, discount: 0, campaign_name: null, points_used: 0,
+    delivery_fee: 4.99, distance_km: 0.45, tax: 2.17, tax_rate: 13, tip: 0, total: 24.15 },
+};
+db4.tables.web_checkouts = [{ stripe_session_id: 'cs_delivery', draft: deliveryDraft, created_at: '2026-09-01T00:00:00Z' }];
+const delivered = await settleSession(asClient(db4), session('cs_delivery', true, 24.15));
+check('Uber ulaşılamasa da sipariş oluştu', delivered.status, 'placed');
+check('tek sipariş', db4.tables.orders.length, 1);
+check("payment_status 'paid'", db4.tables.orders[0]?.payment_status, 'paid');
+check('kalemler yazıldı', db4.tables.order_items.length, 1);
+// Kurye çağrılamadığı için bu alanlar boş kalmalı — panelden elle gönderilecek.
+check('uber_delivery_id boş', db4.tables.orders[0]?.uber_delivery_id ?? null, null);
+
 console.log(failures === 0 ? '\n✅ TÜM KONTROLLER GEÇTİ' : `\n❌ ${failures} KONTROL BAŞARISIZ`);
 Deno.exit(failures ? 1 : 0);

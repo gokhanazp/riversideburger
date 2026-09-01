@@ -14,6 +14,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import type { OrderDraft } from './order-draft.ts';
+import { dispatchUberDelivery } from './dispatch-uber.ts';
 
 export interface PlaceOrderInput {
   draft: OrderDraft;
@@ -226,6 +227,28 @@ export async function placeOrder(
     metadata: { checkout_session_id: sessionId },
   });
   if (paymentError) console.error('[place-order] payment insert failed', paymentError);
+
+  // ── Kurye ──────────────────────────────────────────────────────────────
+  // Mobil uygulama bunu ödeme ekranında kendisi yapıyor (PaymentScreen →
+  // createUberDelivery). Web'de o kod hiç çalışmıyordu: teslimat siparişleri
+  // ödendiği halde Uber'e düşmüyor, kurye atanmıyordu.
+  //
+  // Kalemler yazıldıktan SONRA çağrılıyor, çünkü Uber manifest'i sipariş
+  // kalemlerinden kuruluyor. Hata sipariş oluşumunu ASLA bozmuyor: para
+  // alındı, sipariş durmalı — kurye çağrılamazsa restoran panelden elle
+  // gönderebiliyor (AdminOrders bunu destekliyor).
+  if (draft.order.delivery_method === 'delivery') {
+    const dispatch = await dispatchUberDelivery(admin, order.id);
+    if (dispatch.status === 'failed') {
+      console.error('[place-order] Uber dispatch failed — order kept', {
+        order_id: order.id,
+        order_number: order.order_number,
+        reason: dispatch.reason,
+      });
+    } else {
+      console.log('[place-order] Uber dispatch', dispatch.status, order.order_number);
+    }
+  }
 
   // Taslak işini bitirdi.
   await admin.from('web_checkouts').delete().eq('stripe_session_id', sessionId);
