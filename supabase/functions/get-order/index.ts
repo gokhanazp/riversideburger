@@ -48,7 +48,14 @@ serve(async (req) => {
     const { data, error } = await admin
       .from('orders')
       .select(
-        'order_number, status, payment_status, source, delivery_method, total_amount, tax_amount, discount_amount, tip_amount, delivery_fee, points_used, created_at, campaign:campaigns(name_en), order_items(quantity, price, subtotal, product:products(name))'
+        // Kurye alanları da dönüyor: müşteri siparişini sitede takip edebiliyor.
+        // Belirteç sahibi zaten siparişin sahibi; kurye adı ve telefonu ona
+        // gösterilmesi GEREKEN bilgi (Uber'in kendi takip sayfası da gösteriyor).
+        // Adres, e-posta ve müşteri adı hâlâ dönmüyor.
+        'order_number, status, payment_status, source, delivery_method, total_amount, tax_amount, discount_amount, tip_amount, delivery_fee, points_used, created_at, ' +
+          'uber_status, uber_tracking_url, pickup_eta, dropoff_eta, ' +
+          'courier_name, courier_phone, courier_image_url, courier_vehicle_make, courier_vehicle_model, courier_vehicle_color, courier_license_plate, courier_location_updated_at, ' +
+          'campaign:campaigns(name_en), order_items(quantity, price, subtotal, product:products(name))'
       )
       .eq('order_number', order_number)
       .eq('public_token', token)
