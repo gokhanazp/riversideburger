@@ -109,16 +109,38 @@ export const isOpenAtTime = (workingHours: WorkingHours, date: Date): boolean =>
   const dayName = dayNames[dayIndex];
   const daySchedule = workingHours[dayName];
 
-  // Gün kapalıysa (If day is closed)
-  if (!daySchedule || !daySchedule.enabled) {
-    return false;
-  }
-
   // Şu anki saati al (Get current time)
   const currentTime = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 
-  // Saat karşılaştırması (Time comparison)
-  return currentTime >= daySchedule.open && currentTime <= daySchedule.close;
+  // GECE YARISINI GEÇEN SAATLER (ör. 11:00 → 01:00).
+  // Kapanış açılıştan küçük ya da eşitse gün ertesi güne sarkıyor demektir.
+  // İki pencereye birden bakılıyor:
+  //   1) bugünün açılışından gece yarısına kadar
+  //   2) DÜNÜN sarkan oturumu, dünkü kapanış saatine kadar
+  // İkincisi olmadan gece 00:30'da mağaza kapalı görünüyor, oysa dün akşam
+  // başlayan servis sürüyor. Web tarafında aynı düzeltme var
+  // (riverside-web/lib/hours.ts) — iki yüzey aynı cevabı vermeli.
+  if (daySchedule && daySchedule.enabled) {
+    if (daySchedule.close > daySchedule.open) {
+      if (currentTime >= daySchedule.open && currentTime <= daySchedule.close) {
+        return true;
+      }
+    } else if (currentTime >= daySchedule.open) {
+      return true;
+    }
+  }
+
+  const yesterday = workingHours[dayNames[(dayIndex + 6) % 7]];
+  if (
+    yesterday &&
+    yesterday.enabled &&
+    yesterday.close <= yesterday.open &&
+    currentTime <= yesterday.close
+  ) {
+    return true;
+  }
+
+  return false;
 };
 
 /**
