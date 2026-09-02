@@ -8,7 +8,8 @@ import { mapUberStatusToOrderStatus } from '../_shared/uber.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-uber-signature',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-uber-signature, x-postmates-signature',
 };
 
 interface UberWebhookEvent {
@@ -75,11 +76,26 @@ serve(async (req) => {
 
   try {
     const rawBody = await req.text();
-    const signature = req.headers.get('x-uber-signature');
+    // Uber Direct imzayı iki farklı başlıkla gönderebiliyor: hesabın yaşına
+    // göre `x-uber-signature` ya da Postmates'ten miras `x-postmates-signature`.
+    // Hangisinin geldiğini varsaymak, imza doğrulamasının sessizce hep
+    // başarısız olması demek — ikisi de kabul ediliyor.
+    const signature =
+      req.headers.get('x-uber-signature') ?? req.headers.get('x-postmates-signature');
 
     const valid = await verifySignature(rawBody, signature);
     if (!valid) {
-      console.warn('Invalid Uber webhook signature');
+      // Hangi başlıkların GELDİĞİ loglanıyor, DEĞERLERİ değil: imza reddi
+      // ayıklanırken ilk sorulan soru bu ve değeri loglamak sırrı loga yazmak
+      // olurdu.
+      console.warn(
+        'Invalid Uber webhook signature. İmza başlıkları:',
+        JSON.stringify({
+          'x-uber-signature': req.headers.has('x-uber-signature'),
+          'x-postmates-signature': req.headers.has('x-postmates-signature'),
+          secret_configured: Boolean(Deno.env.get('UBER_WEBHOOK_SIGNING_SECRET')),
+        })
+      );
       return new Response(JSON.stringify({ error: 'invalid signature' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
