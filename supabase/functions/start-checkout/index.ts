@@ -13,6 +13,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno';
 import { buildOrderDraft, type RequestBody } from '../_shared/order-draft.ts';
+import { isOpenNow, type OpenSettings } from '../_shared/hours.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,6 +63,31 @@ serve(async (req) => {
     // fiyat sorgusu yanlışlıkla hesap oluşturmasın.
     if (body.quote_only) {
       return json({ quote: true, breakdown: draft.breakdown });
+    }
+
+    // ── Mutfak kapalıysa sipariş alınmıyor ─────────────────────────────────
+    // Fiyat teklifinden SONRA, hesap açmadan ÖNCE: kapalıyken de müşteri
+    // dökümü görebilsin, ama reddedilecek bir sipariş için hesap açılmasın.
+    //
+    // Sepetteki düğme de kapalı (riverside-web CartView) — burası eski bir
+    // sekmenin ya da doğrudan atılan bir isteğin geçmemesi için.
+    const { data: openSettings, error: openError } = await admin
+      .from('settings')
+      .select('is_open, auto_close_enabled, working_hours')
+      .limit(1)
+      .maybeSingle();
+
+    // Ayar okunamazsa AÇIK kabul ediliyor — uygulamanın ve web'in davranışı da
+    // bu. Bir okuma hatası yüzünden bütün siparişleri reddetmek, açık bir
+    // restoranı kapatmak demek olurdu.
+    if (!openError && openSettings && !isOpenNow(openSettings as OpenSettings)) {
+      return json(
+        {
+          error: 'We are closed right now, so we cannot take this order.',
+          code: 'restaurant_closed',
+        },
+        409
+      );
     }
 
     // ── İsteğe bağlı üyelik ────────────────────────────────────────────────
