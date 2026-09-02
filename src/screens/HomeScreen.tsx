@@ -10,6 +10,7 @@ import { CategoryType } from '../types';
 import BannerSlider from '../components/BannerSlider';
 import { supabase } from '../lib/supabase';
 import { useCartStore } from '../store/cartStore';
+import { useStoreOpen } from '../hooks/useStoreOpen';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { useAuthStore } from '../store/authStore';
 import {
@@ -46,6 +47,8 @@ interface Product {
 // Ana sayfa ekranı (Home screen)
 const HomeScreen = ({ navigation }: any) => {
   const { t, i18n } = useTranslation();
+  // Kapalıyken müşteri sepeti doldurmadan önce görsün.
+  const { isOpen, todayHours } = useStoreOpen();
 
   // State'ler (States)
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -322,6 +325,22 @@ const HomeScreen = ({ navigation }: any) => {
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={{ paddingTop: 16 }}
       >
+        {/* Kapalıyız bandı. isOpen === false şart: veri gelmeden (null)
+            göstermek açık restoranı bir anlığına kapalı ilan etmek olurdu. */}
+        {isOpen === false && (
+          <View style={styles.closedBanner}>
+            <Ionicons name="time-outline" size={18} color="#8A5A00" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.closedBannerTitle}>{t('home.closedBanner')}</Text>
+              <Text style={styles.closedBannerText}>
+                {todayHours
+                  ? t('home.closedBannerHours', { hours: todayHours })
+                  : t('home.closedBannerNoHours')}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Simple Branded Header - Internal */}
         <View style={styles.brandedHeader}>
           {/* Marka kilidi GEZİNME BAŞLIĞINDA duruyor; burada tekrarlayınca iki
@@ -828,6 +847,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.surface,
   },
+  // Kapalıyız bandı — uyarı tonunda, marka kırmızısı değil: kırmızı bu
+  // uygulamada eylem rengi (sipariş, ekle) ve bu bir eylem değil, durum.
+  closedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: '#FFF4D6',
+    borderWidth: 1,
+    borderColor: '#F0C36D',
+  },
+  closedBannerTitle: {
+    fontSize: FontSizes.md,
+    fontWeight: '700',
+    color: '#6B4600',
+  },
+  closedBannerText: {
+    marginTop: 2,
+    fontSize: FontSizes.sm,
+    color: '#8A5A00',
+  },
+
   brandedHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

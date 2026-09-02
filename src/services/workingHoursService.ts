@@ -222,3 +222,30 @@ export const updateWorkingHours = async (
   }
 };
 
+/**
+ * Bugünün saat aralığı, gösterime hazır ("11:00 – 02:00").
+ * Gün kapalıysa ya da veri yoksa null döner.
+ *
+ * 24 saat biçiminde bırakıldı: kapanış gece yarısını geçtiği için AM/PM'e
+ * çevirmek ("11 AM – 2 AM") hangi güne ait olduğunu belirsizleştiriyor.
+ */
+export const getTodayHoursLabel = async (): Promise<string | null> => {
+  try {
+    const workingHours = await getWorkingHours();
+    if (!workingHours) return null;
+    const dayNames: (keyof WorkingHours)[] = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ];
+    const today = workingHours[dayNames[new Date().getDay()]];
+    if (!today || !today.enabled) return null;
+    return `${today.open} – ${today.close}`;
+  } catch {
+    return null;
+  }
+};

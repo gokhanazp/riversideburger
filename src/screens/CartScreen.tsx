@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, Shadows, BorderRadius } from '../constants/theme';
 import { useCartStore } from '../store/cartStore';
+import { isStoreOpenNow } from '../services/workingHoursService';
 import { useAuthStore } from '../store/authStore';
 import { CartItem } from '../types';
 import Toast from 'react-native-toast-message';
@@ -282,6 +283,23 @@ const CartScreen = ({ navigation }: any) => {
         });
         return;
       }
+    }
+
+    // Mutfak kapalıysa sipariş alınmıyor. Sepet korunuyor: müşteri açılışta
+    // aynı sepetle devam ediyor.
+    //
+    // Kontrol tam bu anda, taze okunuyor — uygulamayı akşam açık bırakıp gece
+    // sipariş vermeye çalışan müşteri, ekrandaki eski duruma göre geçmesin.
+    if (!(await isStoreOpenNow())) {
+      Toast.show({
+        type: 'error',
+        text1: t('cart.closedTitle'),
+        text2: t('cart.closedDesc'),
+        position: 'top',
+        topOffset: 60,
+        visibilityTime: 5000,
+      });
+      return;
     }
 
     // Son kontrol: sepette tükenen ürün varsa siparişi başlatma

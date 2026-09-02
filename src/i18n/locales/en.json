@@ -110,6 +110,9 @@
   },
   "home": {
     "welcome": "Welcome",
+    "closedBanner": "We're closed right now",
+    "closedBannerHours": "Today: {{hours}}",
+    "closedBannerNoHours": "Closed today",
     "searchPlaceholder": "Search products...",
     "ourMenu": "Our Menu",
     "featuredProducts": "Featured Products",
@@ -187,6 +190,8 @@
   },
   "cart": {
     "title": "My Cart",
+    "closedTitle": "We're closed right now",
+    "closedDesc": "We cannot take the order yet — your cart is saved until we open.",
     "empty": "Your cart is empty",
     "emptyDescription": "Start by adding items from the menu",
     "subtotal": "Subtotal",

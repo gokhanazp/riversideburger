@@ -110,6 +110,9 @@
   },
   "home": {
     "welcome": "Hoş Geldiniz",
+    "closedBanner": "Şu anda kapalıyız",
+    "closedBannerHours": "Bugün: {{hours}}",
+    "closedBannerNoHours": "Bugün kapalıyız",
     "searchPlaceholder": "Ürün ara...",
     "ourMenu": "Menümüz",
     "featuredProducts": "Önerilen Ürünler",
@@ -187,6 +190,8 @@
   },
   "cart": {
     "title": "Sepetim",
+    "closedTitle": "Şu anda kapalıyız",
+    "closedDesc": "Siparişi henüz alamıyoruz — sepetiniz açılana kadar duruyor.",
     "empty": "Sepetiniz boş",
     "emptyDescription": "Menüden ürün ekleyerek başlayın",
     "subtotal": "Ara Toplam",
