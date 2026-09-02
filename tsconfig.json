@@ -2,5 +2,10 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true
-  }
+  },
+  // Test dosyaları uygulama derlemesine girmiyor ve kendi çalışma ortamlarının
+  // global'lerini kullanıyor (node / Deno). Uygulamanın tsconfig'iyle taranınca
+  // gerçek olmayan hatalar üretiyorlar: `.ts` uzantılı import (node bunu
+  // istiyor) ve `Deno` global'i gibi.
+  "exclude": ["**/*.test.ts"]
 }

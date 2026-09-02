@@ -2,6 +2,7 @@
 // Çalışma saatleri servisi
 
 import { supabase } from '../lib/supabase';
+import { restaurantNow, isOpenAtRestaurantTime } from './restaurantTime';
 
 // Çalışma saatleri tipi (Working hours type)
 export interface DaySchedule {
@@ -91,57 +92,10 @@ export const isStoreOpenNow = async (): Promise<boolean> => {
  * Belirli bir zamanda mağazanın açık olup olmadığını kontrol et
  * (Check if store is open at specific time)
  */
-export const isOpenAtTime = (workingHours: WorkingHours, date: Date): boolean => {
-  // Günü al (Get day of week) - 0: Sunday, 1: Monday, ..., 6: Saturday
-  const dayIndex = date.getDay();
-  
-  // Day index'i day name'e çevir (Convert day index to day name)
-  const dayNames: (keyof WorkingHours)[] = [
-    'sunday',
-    'monday',
-    'tuesday',
-    'wednesday',
-    'thursday',
-    'friday',
-    'saturday',
-  ];
-  
-  const dayName = dayNames[dayIndex];
-  const daySchedule = workingHours[dayName];
-
-  // Şu anki saati al (Get current time)
-  const currentTime = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-
-  // GECE YARISINI GEÇEN SAATLER (ör. 11:00 → 01:00).
-  // Kapanış açılıştan küçük ya da eşitse gün ertesi güne sarkıyor demektir.
-  // İki pencereye birden bakılıyor:
-  //   1) bugünün açılışından gece yarısına kadar
-  //   2) DÜNÜN sarkan oturumu, dünkü kapanış saatine kadar
-  // İkincisi olmadan gece 00:30'da mağaza kapalı görünüyor, oysa dün akşam
-  // başlayan servis sürüyor. Web tarafında aynı düzeltme var
-  // (riverside-web/lib/hours.ts) — iki yüzey aynı cevabı vermeli.
-  if (daySchedule && daySchedule.enabled) {
-    if (daySchedule.close > daySchedule.open) {
-      if (currentTime >= daySchedule.open && currentTime <= daySchedule.close) {
-        return true;
-      }
-    } else if (currentTime >= daySchedule.open) {
-      return true;
-    }
-  }
-
-  const yesterday = workingHours[dayNames[(dayIndex + 6) % 7]];
-  if (
-    yesterday &&
-    yesterday.enabled &&
-    yesterday.close <= yesterday.open &&
-    currentTime <= yesterday.close
-  ) {
-    return true;
-  }
-
-  return false;
-};
+export const isOpenAtTime = (workingHours: WorkingHours, date: Date): boolean =>
+  // Karar restaurantTime.ts'de: hem cihazın saatinden bağımsız hem test
+  // edilebilir olsun diye (bkz. restaurantTime.test.ts).
+  isOpenAtRestaurantTime(workingHours, date);
 
 /**
  * Çalışma saatlerini getir (Get working hours)
@@ -233,16 +187,8 @@ export const getTodayHoursLabel = async (): Promise<string | null> => {
   try {
     const workingHours = await getWorkingHours();
     if (!workingHours) return null;
-    const dayNames: (keyof WorkingHours)[] = [
-      'sunday',
-      'monday',
-      'tuesday',
-      'wednesday',
-      'thursday',
-      'friday',
-      'saturday',
-    ];
-    const today = workingHours[dayNames[new Date().getDay()]];
+    // Restoranın günü — gece yarısı civarında cihazın günü farklı olabilir.
+    const today = workingHours[restaurantNow().day];
     if (!today || !today.enabled) return null;
     return `${today.open} – ${today.close}`;
   } catch {
