@@ -3,9 +3,15 @@
   "compilerOptions": {
     "strict": true
   },
-  // Test dosyaları uygulama derlemesine girmiyor ve kendi çalışma ortamlarının
-  // global'lerini kullanıyor (node / Deno). Uygulamanın tsconfig'iyle taranınca
-  // gerçek olmayan hatalar üretiyorlar: `.ts` uzantılı import (node bunu
-  // istiyor) ve `Deno` global'i gibi.
-  "exclude": ["**/*.test.ts"]
+  // Bu iki ağaç uygulama derlemesine girmiyor ve kendi çalışma ortamlarının
+  // global'lerini kullanıyor:
+  //
+  //   supabase/  → Deno. Bu dosyaları Supabase CLI kendi tipleriyle
+  //     denetliyor. Buradan taranınca 119 sahte hata üretiyorlardı ("Cannot
+  //     find name 'Deno'") ve `tsc` çıktısı okunamaz hale geliyordu —
+  //     gerçekten yeni bir hata ekleyip eklemediğini anlamak için her
+  //     seferinde diff almak gerekiyordu.
+  //   *.test.ts → node / Deno. `.ts` uzantılı import node'un istediği şey
+  //     ama uygulamanın ayarında hata.
+  "exclude": ["supabase", "**/*.test.ts"]
 }
