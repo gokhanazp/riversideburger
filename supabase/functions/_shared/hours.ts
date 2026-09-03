@@ -14,6 +14,34 @@
 
 const RESTAURANT_TZ = 'America/Toronto';
 
+/**
+ * "1:00" → "01:00". Panel saati serbest metin olarak alıyor ve veritabanında
+ * tek haneli kapanış saatleri var ("1:00", "2:00").
+ *
+ * Karşılaştırma düz metin olduğu için bu sessizce yanlış cevap üretiyordu:
+ * "23:30" <= "1:00" YANLIŞ ('2' > '1'), yani akşam saatlerinde restoran
+ * kapalı sayılıyor ve BU FONKSİYON SİPARİŞİ REDDEDİYORDU. Aynı sebeple
+ * "1:00" > "11:00" doğru çıkıp gece yarısı penceresi hiç tanınmıyordu.
+ *
+ * Veriyi düzeltmek yetmez — panel yarın yine tek haneli yazabilir.
+ */
+function normalizeTime(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const match = /^\s*(\d{1,2}):(\d{2})\s*$/.exec(value);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  if (hour > 24) return null;
+  return `${String(hour % 24).padStart(2, '0')}:${match[2]}`;
+}
+
+function normalizedDay(day: DayHours | undefined): { open: string; close: string } | null {
+  if (!day || !day.enabled) return null;
+  const open = normalizeTime(day.open);
+  const close = normalizeTime(day.close);
+  if (!open || !close) return null;
+  return { open, close };
+}
+
 export interface DayHours {
   open: string;
   close: string;
@@ -60,8 +88,8 @@ export function isOpenNow(settings: OpenSettings, at: Date = new Date()): boolea
   const { weekday, time } = restaurantNow(at);
   const hours = settings.working_hours;
 
-  const today = hours[weekday];
-  if (today?.enabled) {
+  const today = normalizedDay(hours[weekday]);
+  if (today) {
     if (today.close > today.open) {
       if (time >= today.open && time <= today.close) return true;
     } else if (time >= today.open) {
@@ -72,8 +100,8 @@ export function isOpenNow(settings: OpenSettings, at: Date = new Date()): boolea
 
   // Dün gece başlayan servis bu güne sarkmış olabilir.
   const index = DAY_ORDER.indexOf(weekday);
-  const yesterday = index < 0 ? undefined : hours[DAY_ORDER[(index + 6) % 7]];
-  if (yesterday?.enabled && yesterday.close <= yesterday.open && time <= yesterday.close) {
+  const yesterday = normalizedDay(index < 0 ? undefined : hours[DAY_ORDER[(index + 6) % 7]]);
+  if (yesterday && yesterday.close <= yesterday.open && time <= yesterday.close) {
     return true;
   }
 

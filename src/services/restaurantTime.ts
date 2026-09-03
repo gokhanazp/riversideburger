@@ -100,6 +100,31 @@ export interface DayHoursLike {
  * olmadan gece 00:30'da mağaza kapalı görünüyor, oysa dün akşam başlayan
  * servis sürüyor.
  */
+/**
+ * "1:00" → "01:00". Panel saati serbest metin alıyor; veritabanında tek
+ * haneli kapanış saatleri var. Karşılaştırma düz metin olduğu için
+ * "23:30" <= "1:00" YANLIŞ çıkıyor ('2' > '1') ve mağaza akşam kapalı
+ * görünüyordu. Veriyi düzeltmek yetmez, panel yine yazabilir.
+ */
+const normalizeTime = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+  const match = /^\s*(\d{1,2}):(\d{2})\s*$/.exec(value);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  if (hour > 24) return null;
+  return `${String(hour % 24).padStart(2, '0')}:${match[2]}`;
+};
+
+const normalizedDay = (
+  day: DayHoursLike | undefined
+): { open: string; close: string } | null => {
+  if (!day || !day.enabled) return null;
+  const open = normalizeTime(day.open);
+  const close = normalizeTime(day.close);
+  if (!open || !close) return null;
+  return { open, close };
+};
+
 export const isOpenAtRestaurantTime = (
   // Gün adlarına göre eşlenmiş, hepsi isteğe bağlı: hem uygulamanın
   // WorkingHours arayüzü hem de eksik günlü bir nesne buraya geçebiliyor.
@@ -108,8 +133,8 @@ export const isOpenAtRestaurantTime = (
 ): boolean => {
   const { day, time } = restaurantNow(date);
 
-  const today = workingHours[day];
-  if (today?.enabled) {
+  const today = normalizedDay(workingHours[day]);
+  if (today) {
     if (today.close > today.open) {
       if (time >= today.open && time <= today.close) return true;
     } else if (time >= today.open) {
@@ -118,8 +143,10 @@ export const isOpenAtRestaurantTime = (
   }
 
   const index = DAY_BY_INDEX.indexOf(day);
-  const yesterday = index < 0 ? undefined : workingHours[DAY_BY_INDEX[(index + 6) % 7]];
-  if (yesterday?.enabled && yesterday.close <= yesterday.open && time <= yesterday.close) {
+  const yesterday = normalizedDay(
+    index < 0 ? undefined : workingHours[DAY_BY_INDEX[(index + 6) % 7]]
+  );
+  if (yesterday && yesterday.close <= yesterday.open && time <= yesterday.close) {
     return true;
   }
 

@@ -78,5 +78,33 @@ check('Toronto Cum 01:59 → açık (Perşembe 02:00 kapanış)', isOpenAtRestau
 check('Toronto Cum 02:01 → kapalı', isOpenAtRestaurantTime(HOURS, new Date('2026-09-04T06:01:00Z')), false);
 check('Kış saatinde Çar 06:13 → kapalı', isOpenAtRestaurantTime(HOURS, new Date('2026-01-14T11:13:00Z')), false);
 
+console.log('\n═══ 6) Veritabanındaki TEK HANELİ saat formatı ═══');
+// Panel saati serbest metin alıyor ve veritabanında "1:00" / "2:00" yazıyor.
+// Düz metin karşılaştırması yüzünden bu, akşam saatlerinde mağazayı kapalı
+// gösteriyordu ("23:30" <= "1:00" yanlış çıkıyor, '2' > '1').
+const RAW = {
+  monday: { enabled: true, open: '11:00', close: '1:00' },
+  tuesday: { enabled: true, open: '11:00', close: '1:00' },
+  wednesday: { enabled: true, open: '11:00', close: '1:00' },
+  thursday: { enabled: true, open: '11:00', close: '2:00' },
+  friday: { enabled: true, open: '11:00', close: '2:00' },
+  saturday: { enabled: true, open: '11:00', close: '1:00' },
+  sunday: { enabled: true, open: '11:00', close: '1:00' },
+};
+check('Çar 15:00 açık (tek haneli)', isOpenAtRestaurantTime(RAW, new Date('2026-09-02T19:00:00Z')), true);
+check('Çar 23:30 açık — hatanın en pahalı hali', isOpenAtRestaurantTime(RAW, new Date('2026-09-03T03:30:00Z')), true);
+check('Per 00:30 açık (tek haneli)', isOpenAtRestaurantTime(RAW, new Date('2026-09-03T04:30:00Z')), true);
+check('Per 06:00 kapalı (tek haneli)', isOpenAtRestaurantTime(RAW, new Date('2026-09-03T10:00:00Z')), false);
+check('Cum 01:30 açık — Perşembe 2:00 kapanış', isOpenAtRestaurantTime(RAW, new Date('2026-09-04T05:30:00Z')), true);
+check('Cum 02:30 kapalı (tek haneli)', isOpenAtRestaurantTime(RAW, new Date('2026-09-04T06:30:00Z')), false);
+// İki biçim aynı cevabı vermeli
+const PADDED = JSON.parse(JSON.stringify(RAW));
+for (const d of Object.keys(PADDED)) PADDED[d].close = '0' + PADDED[d].close;
+for (const iso of ['2026-09-02T19:00:00Z','2026-09-03T03:30:00Z','2026-09-03T04:30:00Z','2026-09-04T05:30:00Z']) {
+  check(`${iso} — "1:00" ve "01:00" aynı`, isOpenAtRestaurantTime(RAW, new Date(iso)), isOpenAtRestaurantTime(PADDED, new Date(iso)));
+}
+// Bozuk değer sessizce "açık" saymamalı
+check('geçersiz saat → o gün kapalı', isOpenAtRestaurantTime({ ...RAW, wednesday: { enabled: true, open: 'akşam', close: '1:00' } }, new Date('2026-09-02T19:00:00Z')), false);
+
 console.log(failures === 0 ? '\n✅ TÜM KONTROLLER GEÇTİ' : `\n❌ ${failures} KONTROL BAŞARISIZ`);
 process.exit(failures ? 1 : 0);

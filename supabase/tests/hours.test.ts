@@ -73,5 +73,27 @@ check(
   false
 );
 
+console.log('\n═══ 4) Veritabanındaki TEK HANELİ saat ═══');
+// Panel saati serbest metin alıyor; veritabanında "1:00" / "2:00" yazıyor.
+// Bu, düz metin karşılaştırmasında akşam saatlerinde mağazayı kapalı
+// gösteriyordu ve BU FONKSİYON SİPARİŞİ REDDEDİYORDU.
+const RAW: WorkingHours = {
+  monday: { enabled: true, open: '11:00', close: '1:00' },
+  tuesday: { enabled: true, open: '11:00', close: '1:00' },
+  wednesday: { enabled: true, open: '11:00', close: '1:00' },
+  thursday: { enabled: true, open: '11:00', close: '2:00' },
+  friday: { enabled: true, open: '11:00', close: '2:00' },
+  saturday: { enabled: true, open: '11:00', close: '1:00' },
+  sunday: { enabled: true, open: '11:00', close: '1:00' },
+};
+const rawSettings: OpenSettings = { is_open: true, auto_close_enabled: true, working_hours: RAW };
+check('Çar 23:30 açık — sipariş reddedilmemeli', isOpenNow(rawSettings, new Date('2026-09-03T03:30:00Z')), true);
+check('Per 00:30 açık', isOpenNow(rawSettings, new Date('2026-09-03T04:30:00Z')), true);
+check('Per 06:00 kapalı', isOpenNow(rawSettings, new Date('2026-09-03T10:00:00Z')), false);
+check('Cum 01:30 açık', isOpenNow(rawSettings, new Date('2026-09-04T05:30:00Z')), true);
+check('geçersiz saat → o gün kapalı',
+  isOpenNow({ ...rawSettings, working_hours: { ...RAW, wednesday: { enabled: true, open: 'akşam', close: '1:00' } } },
+  new Date('2026-09-02T19:00:00Z')), false);
+
 console.log(failures === 0 ? '\n✅ TÜM KONTROLLER GEÇTİ' : `\n❌ ${failures} KONTROL BAŞARISIZ`);
 Deno.exit(failures ? 1 : 0);
