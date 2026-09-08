@@ -17,11 +17,29 @@ const FUNCTIONS_URL =
  * @param orderId - Sipariş ID (Order ID)
  * @param metadata - Ek bilgiler (Additional metadata)
  */
+/**
+ * Ödeme dökümü. Sunucu tahsil edilecek tutarı BUNDAN yeniden hesaplıyor;
+ * `amount` tek başına kabul edilmiyor.
+ *
+ * Neden: bu fonksiyon tutarı istemciden alıp Stripe'a olduğu gibi geçiyordu.
+ * HST'si eksik bir uygulama paketi üç hafta boyunca vergisiz tahsilat yaptı
+ * ve hiçbir yerde uyarı çıkmadı. Vergi oranı artık sunucuda okunuyor.
+ */
+export interface PaymentBreakdown {
+  /** Kalem ara toplamı — indirim ve puan DÜŞÜLMEDEN */
+  subtotal: number;
+  discount: number;
+  pointsUsed: number;
+  deliveryFee: number;
+  tip: number;
+}
+
 export const createPaymentIntent = async (
   amount: number,
   currency: string,
   orderId?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
+  breakdown?: PaymentBreakdown
 ): Promise<{ clientSecret: string; paymentIntentId: string }> => {
   try {
     console.log('💳 Creating payment intent:', { amount, currency, orderId });
@@ -47,6 +65,7 @@ export const createPaymentIntent = async (
         currency,
         orderId,
         metadata,
+        breakdown,
       }),
     });
 

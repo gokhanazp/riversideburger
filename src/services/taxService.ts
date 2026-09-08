@@ -31,8 +31,15 @@ export const loadTaxRate = async (): Promise<number> => {
 
     if (error) throw error;
     const rate = Number(data?.tax_rate);
-    if (Number.isFinite(rate) && rate >= 0) {
+    // SIFIR geçerli oran DEĞİL. `rate >= 0` yazılıydı ve boş/null bir ayar
+    // Number() ile 0'a dönüşüp önbelleğe giriyordu; `getTaxRate()` içindeki
+    // `??` sıfırı yedeğe düşürmediği için o oturum boyunca hiç vergi
+    // alınmıyordu. Dosyanın kendi notu da "vergiyi sessizce 0 yapmak eksik
+    // tahsilat demek" diyor — kod o notla çelişiyordu.
+    if (Number.isFinite(rate) && rate > 0) {
       cachedRate = rate;
+    } else {
+      console.warn('[tax] ayardaki oran geçersiz, varsayılana düşülüyor:', data?.tax_rate);
     }
   } catch (e) {
     console.log('[tax] oran okunamadı, varsayılan kullanılıyor:', DEFAULT_TAX_RATE, e);

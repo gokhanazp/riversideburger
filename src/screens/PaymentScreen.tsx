@@ -199,11 +199,25 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
       if (intentAmount === amount) return; // aynı tutar için yeniden create etme
 
+      // Döküm sunucuya da gidiyor: tahsil edilecek tutarı orada yeniden
+      // hesaplayıp `amount` ile karşılaştırıyor. Vergiyi istemcinin
+      // hesaplaması tek başına yeterli değil — eksik vergiyle tahsilat
+      // yapan bir paket üç hafta boyunca sessizce çalıştı.
+      const itemsSubtotal = Number(
+        items.reduce((sum, i) => sum + i.price * i.quantity, 0).toFixed(2)
+      );
       const { clientSecret: secret, paymentIntentId: intentId } = await createPaymentIntent(
         amount,
         currency,
         undefined,
-        { pointsUsed, itemCount: items.length, tipAmount }
+        { pointsUsed, itemCount: items.length, tipAmount },
+        {
+          subtotal: itemsSubtotal,
+          discount: campaignDiscount,
+          pointsUsed,
+          deliveryFee: deliveryFee ?? 0,
+          tip: tipAmount,
+        }
       );
 
       setClientSecret(secret);
