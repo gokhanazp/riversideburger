@@ -100,8 +100,17 @@ serve(async (req) => {
       const tax = base > 0 ? Number(((base * taxRate) / 100).toFixed(2)) : 0;
       const expected = Number((base + tax + tip).toFixed(2));
 
-      // Bir kuruşluk yuvarlama farkı kabul ediliyor; ötesi reddediliyor.
-      if (Math.abs(expected - Number(amount)) > 0.01) {
+      // Karşılaştırma KURUŞ TAMSAYISI üzerinden. Ondalıkla yapıldığında
+      // 22.60 - 22.59 farkı 0.010000000000001 çıkıyor ve "bir kuruş tolerans"
+      // testini geçemiyordu; yani tolerans fiilen yoktu ve tam bir kuruşluk
+      // sapma geçerli ödemeyi reddediyordu.
+      //
+      // Bir kuruş kabul ediliyor, iki kuruş reddediliyor. İki taraf aynı
+      // ifadeyle hesapladığı için pratikte fark sıfır (180.000 senaryoda
+      // doğrulandı); tolerans yalnızca ileride bir yuvarlama ayrışırsa
+      // müşterinin ödemesi kırılmasın diye var.
+      const cents = (v: number) => Math.round(v * 100);
+      if (Math.abs(cents(expected) - cents(Number(amount))) > 1) {
         console.error('[create-payment-intent] tutar uyuşmuyor', {
           gonderilen: amount,
           beklenen: expected,
