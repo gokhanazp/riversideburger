@@ -138,6 +138,14 @@ const AdminUsers = ({ navigation }: any) => {
                     {new Date(user.created_at).toLocaleDateString(i18n.language === 'tr' ? 'tr-TR' : 'en-US', { day: '2-digit', month: 'short' }).toUpperCase()}
                 </Text>
             </View>
+            {user.signup_source === 'web' && (
+              <View style={styles.metaBadge}>
+                  <Ionicons name="globe-outline" size={10} color="#4A90D9" />
+                  <Text style={[styles.metaBadgeText, { color: '#4A90D9' }]}>
+                      {t('admin.users.sourceWeb')}
+                  </Text>
+              </View>
+            )}
           </View>
         </View>
 

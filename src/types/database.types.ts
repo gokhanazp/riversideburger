@@ -23,6 +23,7 @@ export interface User {
   full_name?: string; // Tam ad (Full name) - optional
   phone?: string; // Telefon (Phone) - optional
   points: number; // Kullanıcının toplam puanı (User's total points)
+  signup_source?: 'app' | 'web'; // Hesabın açıldığı kanal (default 'app')
   created_at: string;
   updated_at?: string;
 }

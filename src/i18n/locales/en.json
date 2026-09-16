@@ -854,7 +854,8 @@
       "customerPoints": "Customer Points",
       "orderSummary": "Order Summary",
       "deliveredCount": "Completed",
-      "roleAdmin": "Admin"
+      "roleAdmin": "Admin",
+      "sourceWeb": "Web"
     },
     "reviews": {
       "title": "Review Management",

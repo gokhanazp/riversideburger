@@ -854,7 +854,8 @@
       "customerPoints": "Müşteri Puanı",
       "orderSummary": "Sipariş Özeti",
       "deliveredCount": "Tamamlanan",
-      "roleAdmin": "Admin"
+      "roleAdmin": "Admin",
+      "sourceWeb": "Web"
     },
     "reviews": {
       "title": "Yorum Yönetimi",
