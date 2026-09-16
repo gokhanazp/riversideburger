@@ -140,6 +140,9 @@ serve(async (req) => {
         phone: guest.phone,
         role: 'customer',
         points: 0,
+        // Uygulamanın kendi kayıt akışı bunu hiç yazmıyor ve kolonun varsayılanı
+        // 'app' — yalnızca BU yol (sepette "Create an account") açıkça 'web' yazar.
+        signup_source: 'web',
       });
       if (rowError) {
         // Yarım hesap bırakma.
