@@ -72,7 +72,15 @@ serve(async (req) => {
     // Teslimat ücreti "bedava teslimat" kuponunun değerini belirliyor. Burada
     // ÖNİZLEME amaçlı istemciden alınıyor; bağlayıcı olan, ödeme anında
     // mesafeden hesaplanan ücret (order-draft / PaymentScreen).
-    const deliveryFee = Math.max(0, Number(body.delivery_fee ?? 0)) || 0;
+    //
+    // ÜCRET HENÜZ BİLİNMEYEBİLİR: web'de müşteri adresini girmeden ücret
+    // hesaplanmıyor. Teslimat seçiliyken ücreti sıfır saymak, geçerli bir
+    // "bedava teslimat" kuponunu 'no_benefit' diye reddetmek demek olurdu.
+    // Teslimat seçiliyse simgesel bir ücretle kuponu geçerli sayıyoruz;
+    // gerçek tutarı zaten ödeme anında sunucu hesaplıyor.
+    const reportedFee = Math.max(0, Number(body.delivery_fee ?? 0)) || 0;
+    const deliveryFee =
+      reportedFee > 0 ? reportedFee : body.delivery_method === 'delivery' ? 0.01 : 0;
 
     const verdict = await validateCoupon(admin, {
       code,
