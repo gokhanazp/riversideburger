@@ -104,9 +104,15 @@ export interface OrderDraft {
 
 export type DraftResult =
   | { ok: true; draft: OrderDraft }
-  | { ok: false; error: string; status: number };
+  | { ok: false; error: string; status: number; code?: string; reason?: string };
 
-const fail = (error: string, status = 400): DraftResult => ({ ok: false, error, status });
+const fail = (error: string, status = 400, code?: string, reason?: string): DraftResult => ({
+  ok: false,
+  error,
+  status,
+  ...(code ? { code } : {}),
+  ...(reason ? { reason } : {}),
+});
 
 // Kupon ret sebebinin müşteriye görünen İngilizce karşılığı. Web istemcisi bu
 // metni doğrudan gösteriyor; uygulama kendi yerelleştirmesini couponService'te
@@ -396,7 +402,18 @@ export async function buildOrderDraft(
       // "kuponum uygulandı" sanıp beklediğinden fazla ödemesi demek olurdu —
       // HST kaybındaki hatanın aynı sınıfı: istemcinin gösterdiği tutarla
       // tahsil edilen tutar ayrışıyor.
-      return fail(couponFailureMessage(verdict.reason, verdict.minOrderAmount), 422);
+      // MAKİNE OKUNUR KOD ŞART: web istemcisi sepet değiştiğinde dökümü
+      // kuponla birlikte yeniden çekiyor. Kupon bu arada geçersizleşirse
+      // (hedef ürün sepetten çıktı, minimum tutarın altına düşüldü) istek
+      // reddediliyor. Kodsuz olsaydı istemci bunu genel bir fiyatlama
+      // hatasından ayırt edemez ve müşteriye TÜM fiyatları kaybettirirdi;
+      // oysa doğru davranış kuponu düşürüp fiyatları göstermeye devam etmek.
+      return fail(
+        couponFailureMessage(verdict.reason, verdict.minOrderAmount),
+        422,
+        'coupon_invalid',
+        verdict.reason
+      );
     }
 
     const couponValue = verdict.discount + (verdict.waivesDelivery ? deliveryFee : 0);

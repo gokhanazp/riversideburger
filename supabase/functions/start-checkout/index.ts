@@ -53,7 +53,18 @@ serve(async (req) => {
     }
 
     const result = await buildOrderDraft(admin, body, signedInUserId);
-    if (!result.ok) return json({ error: result.error }, result.status);
+    // code/reason varsa istemciye geçiyor: web sepeti 'coupon_invalid'i
+    // görüp kuponu düşürüyor ve fiyatları göstermeye devam ediyor.
+    if (!result.ok) {
+      return json(
+        {
+          error: result.error,
+          ...(result.code ? { code: result.code } : {}),
+          ...(result.reason ? { reason: result.reason } : {}),
+        },
+        result.status
+      );
+    }
     const { draft } = result;
 
     // ── Yalnızca fiyat teklifi ─────────────────────────────────────────────
