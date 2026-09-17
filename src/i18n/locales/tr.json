@@ -855,7 +855,10 @@
       "orderSummary": "Sipariş Özeti",
       "deliveredCount": "Tamamlanan",
       "roleAdmin": "Admin",
-      "sourceWeb": "Web"
+      "sourceWeb": "Web",
+      "sourceGuest": "Misafir",
+      "filterMembers": "Üyeler",
+      "filterGuests": "Misafirler"
     },
     "reviews": {
       "title": "Yorum Yönetimi",

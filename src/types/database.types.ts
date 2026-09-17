@@ -23,7 +23,7 @@ export interface User {
   full_name?: string; // Tam ad (Full name) - optional
   phone?: string; // Telefon (Phone) - optional
   points: number; // Kullanıcının toplam puanı (User's total points)
-  signup_source?: 'app' | 'web'; // Hesabın açıldığı kanal (default 'app')
+  signup_source?: 'app' | 'web' | 'guest'; // Hesabın açıldığı kanal (default 'app'); guest = misafir siparişi için açılan şifresiz hesap
   created_at: string;
   updated_at?: string;
 }

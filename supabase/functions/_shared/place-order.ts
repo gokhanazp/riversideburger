@@ -99,6 +99,10 @@ async function resolveUserId(admin: SupabaseClient, draft: OrderDraft): Promise<
       phone: guest.phone,
       role: 'customer',
       points: 0,
+      // Şifresiz, müşterinin haberi olmayan bir hesap. Admin listesinde üye
+      // gibi görünmesin; ileride "şifre belirle, puanların seni bekliyor"
+      // akışının hedef kümesi de bu.
+      signup_source: 'guest',
     })
     .select('id')
     .single();

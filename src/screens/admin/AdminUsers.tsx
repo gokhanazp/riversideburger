@@ -33,8 +33,20 @@ const AdminUsers = ({ navigation }: any) => {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [filterRole, setFilterRole] = useState<'all' | 'customer' | 'admin'>('all');
+  // Misafir = signup_source 'guest': misafir siparişi için place-order'ın
+  // açtığı şifresiz hesap. Üye = hesabı gerçekten kendisi açmış müşteri.
+  // Liste tek seferde çekiliyor, filtre istemcide — sayaçlar da aynı listeden.
+  type FilterKind = 'all' | 'member' | 'guest' | 'admin';
+  const [filterKind, setFilterKind] = useState<FilterKind>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const isGuest = (u: User) => u.signup_source === 'guest';
+  const isMember = (u: User) => u.role === 'customer' && !isGuest(u);
+  const matchesKind = (u: User, kind: FilterKind) =>
+    kind === 'all' ||
+    (kind === 'member' && isMember(u)) ||
+    (kind === 'guest' && isGuest(u)) ||
+    (kind === 'admin' && u.role === 'admin');
 
   useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -42,19 +54,20 @@ const AdminUsers = ({ navigation }: any) => {
 
   useEffect(() => {
     fetchUsers();
-  }, [filterRole]);
+  }, []);
+
+  useEffect(() => {
+    applyFilters(users, searchQuery, filterKind);
+  }, [filterKind]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      let query = supabase.from('users').select('*').order('created_at', { ascending: false });
-      if (filterRole !== 'all') query = query.eq('role', filterRole);
-      
-      const { data, error } = await query;
+      const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
       if (error) throw error;
-      
+
       setUsers(data || []);
-      applyFilters(data || [], searchQuery);
+      applyFilters(data || [], searchQuery, filterKind);
     } catch (error: any) {
       Toast.show({ type: 'error', text1: t('admin.error'), text2: t('admin.users.errorLoading') });
     } finally {
@@ -63,11 +76,11 @@ const AdminUsers = ({ navigation }: any) => {
     }
   };
 
-  const applyFilters = (userList: User[], query: string) => {
-    let filtered = userList;
+  const applyFilters = (userList: User[], query: string, kind: FilterKind) => {
+    let filtered = userList.filter((u) => matchesKind(u, kind));
     if (query.trim() !== '') {
       const searchLower = query.toLowerCase();
-      filtered = filtered.filter((user) => 
+      filtered = filtered.filter((user) =>
         user.full_name?.toLowerCase().includes(searchLower) ||
         user.email?.toLowerCase().includes(searchLower) ||
         user.phone?.toLowerCase().includes(searchLower)
@@ -78,7 +91,7 @@ const AdminUsers = ({ navigation }: any) => {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    applyFilters(users, query);
+    applyFilters(users, query, filterKind);
   };
 
   const onRefresh = () => {
@@ -146,6 +159,14 @@ const AdminUsers = ({ navigation }: any) => {
                   </Text>
               </View>
             )}
+            {user.signup_source === 'guest' && (
+              <View style={styles.metaBadge}>
+                  <Ionicons name="person-outline" size={10} color="#888" />
+                  <Text style={[styles.metaBadgeText, { color: '#888' }]}>
+                      {t('admin.users.sourceGuest')}
+                  </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -192,7 +213,8 @@ const AdminUsers = ({ navigation }: any) => {
         </View>
 
         <View style={styles.headerStatsRow}>
-            <StatIcon icon="people" label={t('admin.users.filterAll')} val={users.length} color="#4DACFF" />
+            <StatIcon icon="people" label={t('admin.users.filterMembers')} val={users.filter(isMember).length} color="#4DACFF" />
+            <StatIcon icon="person-outline" label={t('admin.users.filterGuests')} val={users.filter(isGuest).length} color="#B0B0B0" />
             <StatIcon icon="medal" label={t('admin.users.filterAdmins')} val={users.filter(u => u.role === 'admin').length} color="#FFD700" />
         </View>
 
@@ -214,14 +236,19 @@ const AdminUsers = ({ navigation }: any) => {
       </LinearGradient>
 
       <View style={styles.filterRow}>
-            {(['all', 'customer', 'admin'] as const).map((role) => (
-                <TouchableOpacity 
-                    key={role}
-                    style={[styles.filterChip, filterRole === role && styles.filterChipActive]}
-                    onPress={() => setFilterRole(role)}
+            {([
+              ['all', 'admin.users.filterAll'],
+              ['member', 'admin.users.filterMembers'],
+              ['guest', 'admin.users.filterGuests'],
+              ['admin', 'admin.users.filterAdmins'],
+            ] as const).map(([kind, labelKey]) => (
+                <TouchableOpacity
+                    key={kind}
+                    style={[styles.filterChip, filterKind === kind && styles.filterChipActive]}
+                    onPress={() => setFilterKind(kind)}
                 >
-                    <Text style={[styles.filterChipText, filterRole === role && styles.filterChipTextActive]}>
-                        {t(`admin.users.filter${role.charAt(0).toUpperCase() + role.slice(1)}${role === 'all' ? '' : 's'}`)}
+                    <Text style={[styles.filterChipText, filterKind === kind && styles.filterChipTextActive]}>
+                        {t(labelKey)}
                     </Text>
                 </TouchableOpacity>
             ))}
