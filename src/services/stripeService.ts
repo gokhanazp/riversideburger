@@ -30,8 +30,16 @@ export interface PaymentBreakdown {
   subtotal: number;
   discount: number;
   pointsUsed: number;
+  /** Tahsil edilecek teslimat ücreti (kupon sıfırladıysa 0) */
   deliveryFee: number;
   tip: number;
+  // ---- Kupon ----
+  // Bu alanlar BEYAN niteliğinde. Sunucu kuponu yeniden doğrulayıp indirimi
+  // kendisi hesaplıyor; beyan tutmuyorsa ödeme reddediliyor.
+  couponCode?: string | null;
+  couponDiscount?: number;
+  /** Kupon ÖNCESİ teslimat ücreti — "bedava teslimat" doğrulaması için */
+  deliveryFeeBase?: number;
 }
 
 export const createPaymentIntent = async (
@@ -39,7 +47,9 @@ export const createPaymentIntent = async (
   currency: string,
   orderId?: string,
   metadata?: Record<string, any>,
-  breakdown?: PaymentBreakdown
+  breakdown?: PaymentBreakdown,
+  /** Kupon hedeflemesini sunucunun denetleyebilmesi için sepet (fiyat YOK). */
+  items?: { product_id: string; quantity: number; option_ids?: string[] }[]
 ): Promise<{ clientSecret: string; paymentIntentId: string }> => {
   try {
     console.log('💳 Creating payment intent:', { amount, currency, orderId });
@@ -66,6 +76,7 @@ export const createPaymentIntent = async (
         orderId,
         metadata,
         breakdown,
+        items,
       }),
     });
 

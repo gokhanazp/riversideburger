@@ -96,6 +96,10 @@ export function computeDiscount(
 
 // Bir kampanya, hesap dışı koşulları sağlıyor mu? (aktiflik, tarih, min tutar, ilk sipariş, limit)
 export function isEligible(c: Campaign, ctx: CampaignContext): boolean {
+  // KUPON OTOMATİK UYGULANMAZ. getActiveCampaigns bunları zaten ayıklıyor;
+  // buradaki ikinci denetim, kampanya listesi başka bir yerden gelirse
+  // kuponun sessizce herkese indirim olmasını engelliyor.
+  if (c.code) return false;
   if (!c.is_active) return false;
   if (!isWithinDate(c, ctx.nowMs)) return false;
   if (ctx.subtotal < (Number(c.min_order_amount) || 0)) return false;
@@ -147,6 +151,7 @@ export function getProductPromo(
 ): ProductPromo | null {
   let best: ProductPromo | null = null;
   for (const c of campaigns) {
+    if (c.code) continue; // kupon: rozeti ürün listesinde gösterilmez
     if (!c.is_active) continue;
     if (!isWithinDate(c, nowMs)) continue;
     if (c.type === 'first_order') continue; // sipariş bazlı + koşullu → üründe gösterme
@@ -197,6 +202,7 @@ export function computeNudge(
   let itemsNudge: CampaignNudge | null = null;
 
   for (const c of campaigns) {
+    if (c.code) continue; // kupon: "az kaldı" teşviki kupona uygulanmaz
     if (!c.is_active || !isWithinDate(c, now)) continue;
     if (c.type === 'first_order' && !ctx.isFirstOrder) continue;
     if (c.per_customer_limit != null && (ctx.usageByCampaign[c.id] || 0) >= c.per_customer_limit) continue;
@@ -243,6 +249,7 @@ export function computeNudge(
 export function getFirstOrderCampaign(campaigns: Campaign[], nowMs: number): Campaign | null {
   let best: Campaign | null = null;
   for (const c of campaigns) {
+    if (c.code) continue; // kupon olarak kurulmuş ilk-sipariş indirimi otomatik değil
     if (c.type !== 'first_order' || !c.is_active || !isWithinDate(c, nowMs)) continue;
     if (!best || (Number(c.discount_percent) || 0) > (Number(best.discount_percent) || 0)) best = c;
   }

@@ -27,6 +27,7 @@ import { Address, Campaign } from '../types/database.types';
 import { formatPrice, getCurrentCurrency } from '../services/currencyService';
 import { getDeliveryQuote, UberQuote } from '../services/uberDeliveryService';
 import { resolveCartCampaigns, getCampaignName, getCampaignSummary, AppliedCampaign, CampaignNudge } from '../services/campaignService';
+import { validateCouponCode, AppliedCoupon, CouponRejection } from '../services/couponService';
 import { supabase } from '../lib/supabase';
 import { calculateTax, getTaxRate } from '../services/taxService';
 
@@ -49,6 +50,14 @@ const CartScreen = ({ navigation }: any) => {
   const [appliedCampaign, setAppliedCampaign] = useState<AppliedCampaign | null>(null);
   const [campaignNudge, setCampaignNudge] = useState<CampaignNudge | null>(null);
   const [firstOrderCampaign, setFirstOrderCampaign] = useState<Campaign | null>(null);
+  // ---- Kupon ----
+  // Geçerlilik ve indirim tutarı SUNUCUDAN geliyor (validate-coupon); burada
+  // yalnızca taşınıyor. Ödeme anında create-payment-intent aynı hesabı
+  // yeniden yapıyor, o yüzden bu değerler bağlayıcı değil — gösterim amaçlı.
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+  const [couponChecking, setCouponChecking] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
   const [isFirstOrder, setIsFirstOrder] = useState(false);
   const pointsInputRef = useRef<any>(null);
   const pointsTextRef = useRef<string>('');
@@ -131,6 +140,8 @@ const CartScreen = ({ navigation }: any) => {
     }
     // Puan, kampanya indirimi sonrası kalan tutarı aşamaz
     const maxPoints = Math.min(userPoints, Math.max(0, getTotalPrice() - campaignDiscount));
+    // NOT: puan sınırı kampanya indirimini esas alıyor. Kupon daha avantajlıysa
+    // sınır bir miktar geniş kalır ama getPreTaxTotal zaten 0'da kırpıyor.
     if (numValue > maxPoints) {
       setPointsToUse(maxPoints);
       pointsTextRef.current = maxPoints.toFixed(2);
@@ -210,13 +221,115 @@ const CartScreen = ({ navigation }: any) => {
     return () => { cancelled = true; };
   }, [items, user?.id]);
 
+  // ---- Kupon işlemleri ----
+  // Sunucuya gönderilen sepet: FİYAT YOK. Fiyatı sunucu products tablosundan
+  // okuyor; istemcinin gönderdiği tutara güvenilmiyor.
+  const couponCartItems = useCallback(
+    () => items.map((it) => ({ product_id: it.id, quantity: it.quantity })),
+    [items]
+  );
+
+  const applyCoupon = async (rawCode: string) => {
+    const code = rawCode.trim().toUpperCase();
+    if (!code || couponChecking) return;
+
+    setCouponChecking(true);
+    setCouponError(null);
+    try {
+      const result = await validateCouponCode({
+        code,
+        items: couponCartItems(),
+        deliveryFee: deliveryMethod === 'pickup' ? 0 : (deliveryQuote?.fee ?? 0),
+      });
+      if (result.valid) {
+        setAppliedCoupon(result.coupon);
+        setCouponInput('');
+        Toast.show({
+          type: 'success',
+          text1: t('coupon.applied', { code: result.coupon.code }),
+          position: 'top',
+          topOffset: 60,
+        });
+      } else {
+        setAppliedCoupon(null);
+        setCouponError(
+          t(`coupon.error.${result.reason}`, {
+            amount: result.minOrderAmount != null ? formatPrice(result.minOrderAmount) : '',
+          })
+        );
+      }
+    } catch {
+      // Ağ hatası "kupon geçersiz" DEĞİL — müşteri geçerli kuponunu
+      // çöpe attığını sanmasın.
+      setCouponError(t('coupon.networkError'));
+    } finally {
+      setCouponChecking(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError(null);
+    setCouponInput('');
+  };
+
+  // Sepet değişince kuponu YENİDEN doğrula: "2 alana 1 bedava" kuponu müşteri
+  // ürün çıkarınca geçersizleşebilir, ya da minimum tutarın altına düşülebilir.
+  // Yeniden doğrulamadan indirim ekranda asılı kalır ve ödeme anında sunucu
+  // reddeder — müşterinin anlamadığı bir hata olur.
+  const appliedCouponCode = appliedCoupon?.code ?? null;
+  useEffect(() => {
+    if (!appliedCouponCode) return;
+    if (items.length === 0) {
+      setAppliedCoupon(null);
+      return;
+    }
+    let cancelled = false;
+    validateCouponCode({
+      code: appliedCouponCode,
+      items: items.map((it) => ({ product_id: it.id, quantity: it.quantity })),
+      deliveryFee: deliveryMethod === 'pickup' ? 0 : (deliveryQuote?.fee ?? 0),
+    })
+      .then((result) => {
+        if (cancelled) return;
+        if (result.valid) {
+          setAppliedCoupon(result.coupon);
+          setCouponError(null);
+        } else {
+          setAppliedCoupon(null);
+          setCouponError(
+            t(`coupon.error.${result.reason}`, {
+              amount: result.minOrderAmount != null ? formatPrice(result.minOrderAmount) : '',
+            })
+          );
+        }
+      })
+      // Ağ hatasında kuponu DÜŞÜRMÜYORUZ: sunucu ödeme anında zaten son sözü
+      // söyleyecek, geçici bir kesinti müşterinin indirimini silmemeli.
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [items, appliedCouponCode, deliveryMethod, deliveryQuote?.fee]);
+
   const campaignDiscount = appliedCampaign?.discount ?? 0;
-  const deliveryFee = deliveryMethod === 'pickup' ? 0 : (deliveryQuote?.fee ?? 0);
+  // Kupon öncesi teslimat ücreti — "bedava teslimat" kuponunun değeri bu.
+  const baseDeliveryFee = deliveryMethod === 'pickup' ? 0 : (deliveryQuote?.fee ?? 0);
+
+  // ÜST ÜSTE BİNME YOK: sipariş tek indirim taşıyor (orders.campaign_id) ve
+  // müşteriye hangisi daha çok kazandırıyorsa o uygulanıyor. "Bedava teslimat"
+  // ara toplamı değil ücreti düşürdüğü için karşılaştırma toplam kazanç
+  // üzerinden yapılıyor.
+  const couponValue = appliedCoupon
+    ? appliedCoupon.discount + (appliedCoupon.waivesDelivery ? baseDeliveryFee : 0)
+    : 0;
+  const couponWins = appliedCoupon != null && couponValue > campaignDiscount;
+
+  const discountAmount = couponWins ? appliedCoupon!.discount : campaignDiscount;
+  const deliveryFee = couponWins && appliedCoupon!.waivesDelivery ? 0 : baseDeliveryFee;
   // İndirim sırası: ürün ara toplamı - kampanya - puan, sonra + teslimat ücreti.
   // Bu tutar VERGİ HARİÇ ve aynı zamanda verginin tabanı; PaymentScreen'e de
   // vergisiz gidiyor çünkü bahşiş vergi öncesi tutardan hesaplanıyor.
   const getPreTaxTotal = () =>
-    Math.max(0, getTotalPrice() - campaignDiscount - pointsToUse) + deliveryFee;
+    Math.max(0, getTotalPrice() - discountAmount - pointsToUse) + deliveryFee;
 
   // Vergi = taban × oran. Bahşiş tabana dahil değil (Kanada'da gratuity HST'den muaf).
   const taxAmount = calculateTax(getPreTaxTotal());
@@ -354,8 +467,17 @@ const CartScreen = ({ navigation }: any) => {
       quoteId: deliveryMethod === 'pickup' ? null : (deliveryQuote?.quote_id ?? null),
       address: deliveryMethod === 'pickup' ? null : selectedAddress,
       deliveryMethod,
-      campaignId: appliedCampaign?.campaign.id ?? null,
-      campaignDiscount: campaignDiscount,
+      // Kazanan indirim siparişe tek campaign_id olarak yazılıyor: kupon
+      // kazandıysa kuponun kampanya satırı, yoksa otomatik kampanya.
+      campaignId: couponWins ? appliedCoupon!.campaignId : (appliedCampaign?.campaign.id ?? null),
+      campaignDiscount: discountAmount,
+      // Sunucu kuponu ÖDEME ANINDA yeniden doğruluyor; bu alanlar onun için.
+      couponCode: couponWins ? appliedCoupon!.code : null,
+      couponDiscount: couponWins ? appliedCoupon!.discount : 0,
+      // Kupon öncesi teslimat ücreti — "bedava teslimat" doğrulaması buna bakıyor.
+      deliveryFeeBase: baseDeliveryFee,
+      // Ürün/kategori hedefli kuponu sunucunun denetleyebilmesi için sepet.
+      couponItems: couponWins ? items.map((it) => ({ product_id: it.id, quantity: it.quantity })) : null,
     });
   };
 
@@ -580,13 +702,65 @@ const CartScreen = ({ navigation }: any) => {
         </View>
       )}
 
+      {/* Kupon kodu (Coupon code) */}
+      <View style={styles.couponBox}>
+        {appliedCoupon ? (
+          <View style={styles.couponAppliedRow}>
+            <Ionicons name="pricetag" size={18} color={Colors.primary} />
+            <View style={styles.couponAppliedText}>
+              <Text style={styles.couponAppliedCode}>{appliedCoupon.code}</Text>
+              {!couponWins && (
+                // Kupon geçerli ama otomatik kampanya daha avantajlı. Sessizce
+                // yok saymak, müşterinin "kuponum uygulanmadı" diye şikâyet
+                // etmesi demek — sebebini yazıyoruz.
+                <Text style={styles.couponHint}>{t('coupon.error.campaign_better')}</Text>
+              )}
+            </View>
+            <TouchableOpacity onPress={removeCoupon} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={styles.couponRemove}>{t('coupon.remove')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <View style={styles.couponTitleRow}>
+              <Ionicons name="pricetag-outline" size={16} color={Colors.primary} />
+              <Text style={styles.couponTitle}>{t('coupon.title')}</Text>
+            </View>
+            <View style={styles.couponInputRow}>
+            <TextInput
+              style={styles.couponInput}
+              value={couponInput}
+              onChangeText={(v) => { setCouponInput(v); if (couponError) setCouponError(null); }}
+              placeholder={t('coupon.placeholder')}
+              placeholderTextColor="#AAA"
+              autoCapitalize="characters"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={() => applyCoupon(couponInput)}
+              editable={!couponChecking}
+            />
+            <TouchableOpacity
+              style={[styles.couponApplyBtn, (!couponInput.trim() || couponChecking) && styles.couponApplyBtnDisabled]}
+              onPress={() => applyCoupon(couponInput)}
+              disabled={!couponInput.trim() || couponChecking}
+            >
+              <Text style={styles.couponApplyText}>
+                {couponChecking ? t('coupon.checking') : t('coupon.apply')}
+              </Text>
+            </TouchableOpacity>
+            </View>
+          </>
+        )}
+        {couponError && <Text style={styles.couponError}>{couponError}</Text>}
+      </View>
+
       {/* Özet Bölümü (Summary Section) */}
       <View style={styles.summaryGrid}>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>{t('cart.subtotal')}</Text>
           <Text style={styles.summaryValue}>{formatPrice(getTotalPrice())}</Text>
         </View>
-        {appliedCampaign && campaignDiscount > 0 && (
+        {!couponWins && appliedCampaign && campaignDiscount > 0 && (
           <>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
@@ -595,6 +769,21 @@ const CartScreen = ({ navigation }: any) => {
               </Text>
               <Text style={[styles.summaryValue, { color: '#28A745' }]}>
                 -{formatPrice(campaignDiscount)}
+              </Text>
+            </View>
+          </>
+        )}
+        {couponWins && (
+          <>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryItem}>
+              <Text style={[styles.summaryLabel, { color: Colors.primary }]} numberOfLines={1}>
+                🎟️ {appliedCoupon!.code}
+              </Text>
+              <Text style={[styles.summaryValue, { color: '#28A745' }]}>
+                {appliedCoupon!.waivesDelivery && appliedCoupon!.discount === 0
+                  ? t('coupon.freeDelivery')
+                  : `-${formatPrice(appliedCoupon!.discount)}`}
               </Text>
             </View>
           </>
@@ -646,7 +835,15 @@ const CartScreen = ({ navigation }: any) => {
             showsVerticalScrollIndicator={false}
           >
             {items.map(item => <EliteCartItem key={item.id} item={item} />)}
-            <ListFooter />
+            {/* ListFooter BİLEŞEN OLARAK değil, FONKSİYON OLARAK çağrılıyor.
+                Bileşen CartScreen'in içinde tanımlı olduğu için her render'da
+                yeni bir fonksiyon kimliği oluşuyor; <ListFooter /> yazıldığında
+                React bunu "başka bir bileşen türü" sayıp alt ağacı söküp
+                yeniden kuruyordu. İçindeki üç TextInput (kupon kodu, telefon,
+                not) her tuş vuruşunda yok edilip yeniden yaratıldığı için
+                klavye kapanıyor ve yalnızca tek harf yazılabiliyordu.
+                Fonksiyon çağrısı elemanları yerinde üretir, kimlik korunur. */}
+            {ListFooter()}
           </ScrollView>
           
           <View style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom + 85, 100) }]}>
@@ -789,6 +986,49 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary + '22',
   },
   nudgeText: { flex: 1, fontSize: 13, fontWeight: '600', color: Colors.primary, lineHeight: 18 },
+  // ---- Kupon ----
+  couponBox: {
+    // Kesik çizgi + marka rengi: sepette "burası doldurulabilir" sinyali.
+    // Düz gri çerçeveyle özet kutusundan ayırt edilemiyordu.
+    backgroundColor: Colors.primary + '08',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: Colors.primary + '55',
+  },
+  couponTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  couponTitle: { fontSize: 13, fontWeight: '700', color: Colors.primary },
+  couponInputRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  couponInput: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E4E6EB',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    letterSpacing: 1.5,
+  },
+  couponApplyBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  couponApplyBtnDisabled: { backgroundColor: '#D8D8D8' },
+  couponApplyText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+  couponAppliedRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  couponAppliedText: { flex: 1 },
+  couponAppliedCode: { fontSize: 14, fontWeight: '700', color: Colors.primary, letterSpacing: 1 },
+  couponHint: { fontSize: 11, fontWeight: '500', color: '#888', marginTop: 2 },
+  couponRemove: { fontSize: 13, fontWeight: '700', color: '#C0392B' },
+  couponError: { fontSize: 12, fontWeight: '600', color: '#C0392B', marginTop: 8 },
   summaryGrid: {
     flexDirection: 'row',
     backgroundColor: '#F8F9FA',

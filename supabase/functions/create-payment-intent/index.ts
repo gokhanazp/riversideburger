@@ -4,6 +4,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno';
+import { priceCartLines, validateCartShape } from '../_shared/cart-pricing.ts';
+import { normalizeCouponCode, validateCoupon } from '../_shared/coupons.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,7 +46,7 @@ serve(async (req) => {
     }
 
     // Request body'yi parse et (Parse request body)
-    const { amount, currency, orderId, metadata, breakdown } = await req.json();
+    const { amount, currency, orderId, metadata, breakdown, items } = await req.json();
 
     // Validasyon (Validation)
     if (!amount || amount <= 0) {
@@ -79,6 +81,102 @@ serve(async (req) => {
       const pointsUsed = num(breakdown.pointsUsed);
       const deliveryFee = num(breakdown.deliveryFee);
       const tip = num(breakdown.tip);
+
+      // ── Kupon: indirime uygulama DEĞİL, sunucu karar verir ───────────────
+      //
+      // Kupon kodu gönderildiyse burada yeniden doğrulanıyor ve kazandırdığı
+      // tutar sunucuda hesaplanıyor. İstemcinin beyan ettiği kupon indirimi
+      // sunucununkiyle tutmuyorsa ödeme reddediliyor — aksi halde uygulama
+      // "bu kupon %100 indirim veriyor" diyebilirdi.
+      //
+      // Bu denetim YALNIZCA kupon taşıyan siparişleri etkiliyor; kuponsuz akış
+      // olduğu gibi çalışmaya devam ediyor.
+      const couponCode = normalizeCouponCode(breakdown.couponCode ?? '');
+      if (couponCode) {
+        const admin = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+
+        const shapeError = validateCartShape(items);
+        if (shapeError && !shapeError.ok) {
+          return new Response(
+            JSON.stringify({ error: 'coupon check needs a valid cart', detail: shapeError.error }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const priced = await priceCartLines(admin, items);
+        if (!priced.ok) {
+          return new Response(JSON.stringify({ error: priced.error }), {
+            status: priced.status,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Kupon teslimat ücretini sıfırlayabildiği için doğrulama ücretin
+        // KUPON ÖNCESİ değeriyle yapılmalı; breakdown.deliveryFee ise tahsil
+        // edilecek (belki sıfırlanmış) tutar.
+        const deliveryFeeBase = num(breakdown.deliveryFeeBase ?? breakdown.deliveryFee);
+
+        const verdict = await validateCoupon(admin, {
+          code: couponCode,
+          userId: user.id,
+          lines: priced.lines.map((l) => ({
+            product_id: l.product_id,
+            category_id: l.category_id,
+            unit_price: l.unit_price,
+            quantity: l.quantity,
+          })),
+          subtotal: priced.subtotal,
+          deliveryFee: deliveryFeeBase,
+        });
+
+        if (!verdict.ok) {
+          console.error('[create-payment-intent] kupon reddedildi', {
+            code: couponCode,
+            reason: verdict.reason,
+            userId: user.id,
+          });
+          return new Response(
+            JSON.stringify({ error: 'coupon is not valid for this order', reason: verdict.reason }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const claimed = num(breakdown.couponDiscount);
+        const centsOf = (v: number) => Math.round(v * 100);
+        if (Math.abs(centsOf(verdict.discount) - centsOf(claimed)) > 1) {
+          console.error('[create-payment-intent] kupon indirimi uyuşmuyor', {
+            code: couponCode,
+            beyan: claimed,
+            sunucu: verdict.discount,
+            userId: user.id,
+          });
+          return new Response(
+            JSON.stringify({
+              error: 'coupon discount does not match the server calculation',
+              expected: verdict.discount,
+            }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Teslimat bedava kuponunda ücret sıfırlanmış olmalı; değilse müşteri
+        // hak ettiği indirimi alamıyor demektir.
+        const expectedFee = verdict.waivesDelivery ? 0 : deliveryFeeBase;
+        if (Math.abs(centsOf(expectedFee) - centsOf(deliveryFee)) > 1) {
+          console.error('[create-payment-intent] teslimat ücreti kuponla uyuşmuyor', {
+            code: couponCode,
+            beyan: deliveryFee,
+            sunucu: expectedFee,
+          });
+          return new Response(
+            JSON.stringify({ error: 'delivery fee does not match the coupon', expected: expectedFee }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
 
       const { data: settingsRow } = await supabaseClient
         .from('settings')

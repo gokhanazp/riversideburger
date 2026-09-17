@@ -75,6 +75,10 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     deliveryMethod = 'delivery',
     campaignId = null,
     campaignDiscount = 0,
+    couponCode = null,
+    couponDiscount = 0,
+    deliveryFeeBase = 0,
+    couponItems = null,
   } = route.params as {
     totalAmount: number;
     currency: string;
@@ -90,6 +94,13 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     deliveryMethod?: 'pickup' | 'delivery';
     campaignId?: string | null;
     campaignDiscount?: number;
+    /** Uygulanan kupon kodu — sunucu ödeme anında yeniden doğruluyor. */
+    couponCode?: string | null;
+    couponDiscount?: number;
+    /** Kupon öncesi teslimat ücreti; "bedava teslimat" doğrulaması buna bakıyor. */
+    deliveryFeeBase?: number;
+    /** Ürün/kategori hedefli kuponun sunucuda denetlenebilmesi için sepet. */
+    couponItems?: { product_id: string; quantity: number }[] | null;
   };
 
   // State
@@ -217,7 +228,15 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
           pointsUsed,
           deliveryFee: deliveryFee ?? 0,
           tip: tipAmount,
-        }
+          // Kupon: tutarına sunucu karar veriyor. Buradaki değerler BEYAN;
+          // create-payment-intent kuponu yeniden doğrulayıp kendi hesabıyla
+          // karşılaştırıyor ve tutmuyorsa ödemeyi reddediyor.
+          couponCode,
+          couponDiscount,
+          deliveryFeeBase: deliveryFeeBase || (deliveryFee ?? 0),
+        },
+        // Kupon hedeflemesini (kategori/ürün) sunucunun denetleyebilmesi için.
+        couponCode ? (couponItems ?? items.map((i) => ({ product_id: i.id, quantity: i.quantity }))) : undefined
       );
 
       setClientSecret(secret);

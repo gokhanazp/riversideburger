@@ -245,6 +245,13 @@ const ProfileScreen = ({ navigation }: any) => {
                   />
                   <MenuItem
                       index={7}
+                      iconName="pricetags-outline"
+                      title={t('coupon.myCoupons')}
+                      subtitle={t('coupon.myCouponsEmptyDesc')}
+                      onPress={() => navigation.navigate('MyCoupons')}
+                  />
+                  <MenuItem
+                      index={8}
                       iconName="chatbox-ellipses-outline"
                       title={t('profile.restaurantReview')}
                       subtitle={t('profile.restaurantReviewSubtitle')}

@@ -25,6 +25,7 @@ import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 // Sipariş ve Puan ekranları (Order and Points screens)
 import OrderHistoryScreen from '../screens/OrderHistoryScreen';
 import PointsHistoryScreen from '../screens/PointsHistoryScreen';
+import MyCouponsScreen from '../screens/MyCouponsScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
 import AddressListScreen from '../screens/AddressListScreen';
 import AddressEditScreen from '../screens/AddressEditScreen';
@@ -467,6 +468,18 @@ const AppNavigator = () => {
               fontSize: 18,
             },
           })}
+        />
+        <Stack.Screen
+          name="MyCoupons"
+          component={MyCouponsScreen}
+          options={{
+            title: t('coupon.myCoupons'),
+            headerShown: true,
+            headerStyle: { backgroundColor: Colors.primary },
+            headerShadowVisible: true,
+            headerTintColor: '#FFF',
+            headerTitleStyle: { fontWeight: 'bold', fontSize: 18 },
+          }}
         />
         <Stack.Screen
           name="PointsHistory"

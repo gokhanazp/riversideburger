@@ -28,8 +28,19 @@ import {
   deleteCampaign,
 } from '../../services/campaignService';
 import { getCategories, getProducts } from '../../services/productService';
+import { supabase } from '../../lib/supabase';
+import { formatPrice } from '../../services/currencyService';
 
-const TYPES: CampaignType[] = ['first_order', 'percentage', 'buy_x_get_y'];
+const TYPES: CampaignType[] = [
+  'first_order', 'percentage', 'buy_x_get_y',
+  'fixed_amount', 'free_delivery', 'free_item',
+];
+
+// Bu türleri OTOMATİK kampanya olarak kurmak mümkün değil: otomatik indirim
+// motoru (campaignEngine.ts / order-draft.ts) yalnızca first_order, percentage
+// ve buy_x_get_y hesaplıyor. Kodsuz kurulsalar sessizce 0 indirim verirlerdi —
+// admin kampanyayı kurmuş sanıp müşteri hiçbir şey görmezdi.
+const COUPON_ONLY_TYPES: CampaignType[] = ['fixed_amount', 'free_delivery', 'free_item'];
 const TARGETS: CampaignTargetType[] = ['all', 'category', 'product'];
 
 interface FormState {
@@ -48,6 +59,11 @@ interface FormState {
   validity_days: string; // boş = süresiz
   per_customer_limit: string; // boş = sınırsız
   is_active: boolean;
+  // ---- Kupon ----
+  code: string; // boş = otomatik kampanya, dolu = kupon
+  discount_amount: string; // fixed_amount için
+  max_redemptions: string; // boş = sınırsız (tüm müşteriler toplamı)
+  assigned_email: string; // boş = herkese açık kupon
 }
 
 const emptyForm: FormState = {
@@ -66,6 +82,10 @@ const emptyForm: FormState = {
   validity_days: '',
   per_customer_limit: '',
   is_active: true,
+  code: '',
+  discount_amount: '10',
+  max_redemptions: '',
+  assigned_email: '',
 };
 
 const AdminCampaigns = ({ navigation }: any) => {
@@ -107,6 +127,9 @@ const AdminCampaigns = ({ navigation }: any) => {
   const typeLabel = (type: CampaignType) =>
     type === 'first_order' ? t('admin.campaigns.typeFirstOrder')
     : type === 'percentage' ? t('admin.campaigns.typePercentage')
+    : type === 'fixed_amount' ? t('admin.campaigns.typeFixedAmount')
+    : type === 'free_delivery' ? t('admin.campaigns.typeFreeDelivery')
+    : type === 'free_item' ? t('admin.campaigns.typeFreeItem')
     : t('admin.campaigns.typeBuyXGetY');
 
   const openCreate = () => {
@@ -133,8 +156,26 @@ const AdminCampaigns = ({ navigation }: any) => {
       validity_days: '',
       per_customer_limit: c.per_customer_limit != null ? String(c.per_customer_limit) : '',
       is_active: c.is_active,
+      code: c.code || '',
+      discount_amount: c.discount_amount != null ? String(c.discount_amount) : '',
+      max_redemptions: c.max_redemptions != null ? String(c.max_redemptions) : '',
+      assigned_email: '',
     });
     setShowModal(true);
+
+    // Kayıtta yalnızca kimlik var; admin'in kimi atadığını görebilmesi ve
+    // atamayı KALDIRABİLMESİ için e-postayı geri çeviriyoruz. Boş bırakılan
+    // alan "herkese açık kupon" demek, "değiştirme" değil.
+    if (c.assigned_user_id) {
+      supabase
+        .from('users')
+        .select('email')
+        .eq('id', c.assigned_user_id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.email) setForm((f) => ({ ...f, assigned_email: data.email }));
+        });
+    }
   };
 
   const toggleId = (list: string[], id: string) =>
@@ -142,8 +183,13 @@ const AdminCampaigns = ({ navigation }: any) => {
 
   const validate = (): string | null => {
     // Sadece o anki seçili dildeki ad zorunlu; diğer dil kaydederken kopyalanır.
+    //
+    // KUPONDA AD ZORUNLU DEĞİL: kuponu tanımlayan şey kodun kendisi
+    // ("TEST20"), ayrıca bir ad yazmak angarya. Boş bırakılırsa kaydederken
+    // kod ad olarak kullanılıyor, böylece Kuponlarım ekranı ve admin listesi
+    // yine dolu görünüyor.
     const currentName = isTr ? form.name_tr : form.name_en;
-    if (!currentName.trim()) return t('admin.campaigns.required');
+    if (!currentName.trim() && !form.code.trim()) return t('admin.campaigns.required');
     if (form.type === 'first_order' || form.type === 'percentage') {
       const p = parseFloat(form.discount_percent);
       if (!Number.isFinite(p) || p <= 0 || p > 100) return t('admin.campaigns.invalidPercent');
@@ -158,6 +204,19 @@ const AdminCampaigns = ({ navigation }: any) => {
     if (form.type !== 'first_order') {
       if (form.target_type === 'category' && form.target_category_ids.length === 0) return t('admin.campaigns.selectAtLeastOne');
       if (form.target_type === 'product' && form.target_product_ids.length === 0) return t('admin.campaigns.selectAtLeastOne');
+    }
+
+    // ---- Kupon kuralları ----
+    const code = form.code.trim().toUpperCase();
+    if (code && !/^[A-Z0-9]{3,24}$/.test(code)) return t('admin.campaigns.invalidCode');
+
+    // Kodsuz kurulan sabit tutar / bedava teslimat / bedava ürün sessizce 0
+    // indirim verirdi: otomatik motor bu türleri hesaplamıyor.
+    if (!code && COUPON_ONLY_TYPES.includes(form.type)) return t('admin.campaigns.couponOnlyType');
+
+    if (form.type === 'fixed_amount') {
+      const a = parseFloat(form.discount_amount);
+      if (!Number.isFinite(a) || a <= 0) return t('admin.campaigns.invalidAmount');
     }
     return null;
   };
@@ -176,11 +235,35 @@ const AdminCampaigns = ({ navigation }: any) => {
       const days = parseInt(form.validity_days, 10);
       const hasValidity = Number.isFinite(days) && days > 0;
 
-      // Boş kalan dili, girilen dille doldur (AdminCategories ile aynı davranış)
-      const name_tr = (form.name_tr.trim() || form.name_en.trim());
-      const name_en = (form.name_en.trim() || form.name_tr.trim());
+      // Kupon kodu — ad yedeği olarak da kullanıldığı için burada hesaplanıyor.
+      const couponCode = form.code.trim().toUpperCase();
+
+      // Boş kalan dili, girilen dille doldur (AdminCategories ile aynı davranış).
+      // İkisi de boşsa kupon kodu ada düşer; kodsuz kampanyada validate zaten
+      // ad istiyor, o yüzden burada boş kalamaz.
+      const name_tr = (form.name_tr.trim() || form.name_en.trim() || couponCode);
+      const name_en = (form.name_en.trim() || form.name_tr.trim() || couponCode);
       const description_tr = (form.description_tr.trim() || form.description_en.trim()) || null;
       const description_en = (form.description_en.trim() || form.description_tr.trim()) || null;
+
+      // Atanan müşteri
+      let assignedUserId: string | null = null;
+      const assignedEmail = form.assigned_email.trim().toLowerCase();
+      if (couponCode && assignedEmail) {
+        const { data: assignee } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', assignedEmail)
+          .maybeSingle();
+        if (!assignee?.id) {
+          // Yanlış yazılan e-postayı sessizce "herkese açık kupon"a çevirmek,
+          // admin'in kişiye özel sandığı kuponu herkese açması demek olurdu.
+          Toast.show({ type: 'error', text1: t('admin.campaigns.assignedNotFound') });
+          setSaving(false);
+          return;
+        }
+        assignedUserId = assignee.id;
+      }
 
       const payload: Partial<Campaign> = {
         name_tr,
@@ -201,6 +284,13 @@ const AdminCampaigns = ({ navigation }: any) => {
         min_order_amount: parseFloat(form.min_order_amount) || 0,
         per_customer_limit: form.per_customer_limit.trim() ? parseInt(form.per_customer_limit, 10) : null,
         is_active: form.is_active,
+        // ---- Kupon ----
+        // Kod her zaman BÜYÜK HARF yazılıyor: veritabanındaki benzersizlik
+        // indeksi upper(code) üzerinde ve arama harf duyarsız.
+        code: couponCode || null,
+        discount_amount: form.type === 'fixed_amount' ? parseFloat(form.discount_amount) || 0 : null,
+        max_redemptions: form.max_redemptions.trim() ? parseInt(form.max_redemptions, 10) : null,
+        assigned_user_id: assignedUserId,
       };
 
       // Geçerlilik günü girildiyse tarih aralığını ayarla (yeni kayıt veya yeniden ayarlama)
@@ -255,6 +345,9 @@ const AdminCampaigns = ({ navigation }: any) => {
       const group = (c.buy_quantity || 1) + (c.free_quantity || 1);
       return isTr ? `${group} AL ${c.buy_quantity} ÖDE` : `${group} FOR ${c.buy_quantity}`;
     }
+    if (c.type === 'fixed_amount') return `-${formatPrice(Number(c.discount_amount) || 0)}`;
+    if (c.type === 'free_delivery') return isTr ? 'TESLİMAT BEDAVA' : 'FREE DELIVERY';
+    if (c.type === 'free_item') return isTr ? `${c.free_quantity || 1} BEDAVA` : `${c.free_quantity || 1} FREE`;
     return `%${c.discount_percent}`;
   };
 
@@ -266,6 +359,13 @@ const AdminCampaigns = ({ navigation }: any) => {
         <View style={{ flex: 1 }}>
           <Text style={styles.cardName}>{(isTr ? item.name_tr : item.name_en) || item.name_tr || item.name_en}</Text>
           <View style={styles.badgeRow}>
+            {item.code ? (
+              <View style={[styles.typeBadge, { backgroundColor: '#1A1A1A' }]}>
+                <Text style={[styles.typeBadgeText, { color: '#FFF', letterSpacing: 1 }]}>
+                  {t('admin.campaigns.couponBadge')} · {item.code}
+                </Text>
+              </View>
+            ) : null}
             <View style={styles.typeBadge}>
               <Text style={styles.typeBadgeText}>{typeLabel(item.type)}</Text>
             </View>
@@ -363,12 +463,31 @@ const AdminCampaigns = ({ navigation }: any) => {
                 multiline
               />
 
+              {/* Kupon kodu — dolu ise bu satır bir KUPON olur */}
+              <Text style={styles.label}>{t('admin.campaigns.code')}</Text>
+              <TextInput
+                style={[styles.input, { letterSpacing: 1.5, fontWeight: '700' }]}
+                value={form.code}
+                onChangeText={(v) => setForm({ ...form, code: v.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
+                placeholder={t('admin.campaigns.codePlaceholder')}
+                placeholderTextColor="#B0B0B0"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={24}
+              />
+              <Text style={styles.hint}>{t('admin.campaigns.codeHint')}</Text>
+
               {/* Tip */}
               <Text style={styles.label}>{t('admin.campaigns.type')}</Text>
               <View style={styles.chipRow}>
-                {TYPES.map((tp) => (
-                  <Chip key={tp} active={form.type === tp} label={typeLabel(tp)} onPress={() => setForm({ ...form, type: tp })} />
-                ))}
+                {TYPES
+                  // Kod yoksa kupona özel tipleri hiç gösterme: otomatik motor
+                  // onları hesaplamadığı için 0 indirim veren bir kampanya
+                  // kurulmuş olurdu.
+                  .filter((tp) => form.code.trim() !== '' || !COUPON_ONLY_TYPES.includes(tp))
+                  .map((tp) => (
+                    <Chip key={tp} active={form.type === tp} label={typeLabel(tp)} onPress={() => setForm({ ...form, type: tp })} />
+                  ))}
               </View>
 
               {/* Tipe göre parametreler */}
@@ -376,6 +495,19 @@ const AdminCampaigns = ({ navigation }: any) => {
                 <>
                   <Text style={styles.label}>{t('admin.campaigns.percent')}</Text>
                   <TextInput style={styles.input} value={form.discount_percent} onChangeText={(v) => setForm({ ...form, discount_percent: v })} keyboardType="decimal-pad" placeholder="50" placeholderTextColor="#B0B0B0" />
+                </>
+              )}
+              {form.type === 'fixed_amount' && (
+                <>
+                  <Text style={styles.label}>{t('admin.campaigns.amount')}</Text>
+                  <TextInput style={styles.input} value={form.discount_amount} onChangeText={(v) => setForm({ ...form, discount_amount: v })} keyboardType="decimal-pad" placeholder="10" placeholderTextColor="#B0B0B0" />
+                </>
+              )}
+              {form.type === 'free_item' && (
+                <>
+                  <Text style={styles.label}>{t('admin.campaigns.freeQty')}</Text>
+                  <TextInput style={styles.input} value={form.free_quantity} onChangeText={(v) => setForm({ ...form, free_quantity: v })} keyboardType="number-pad" placeholder="1" placeholderTextColor="#B0B0B0" />
+                  <Text style={styles.hint}>{t('admin.campaigns.freeItemHint')}</Text>
                 </>
               )}
               {form.type === 'buy_x_get_y' && (
@@ -450,6 +582,26 @@ const AdminCampaigns = ({ navigation }: any) => {
               <Text style={styles.label}>{t('admin.campaigns.perCustomerLimit')}</Text>
               <TextInput style={styles.input} value={form.per_customer_limit} onChangeText={(v) => setForm({ ...form, per_customer_limit: v })} keyboardType="number-pad" placeholder={t('admin.campaigns.perCustomerHint')} placeholderTextColor="#B0B0B0" />
 
+              {/* Yalnızca kuponlarda anlamlı koşullar */}
+              {form.code.trim() !== '' && (
+                <>
+                  <Text style={styles.label}>{t('admin.campaigns.maxRedemptions')}</Text>
+                  <TextInput style={styles.input} value={form.max_redemptions} onChangeText={(v) => setForm({ ...form, max_redemptions: v })} keyboardType="number-pad" placeholder={t('admin.campaigns.maxRedemptionsHint')} placeholderTextColor="#B0B0B0" />
+
+                  <Text style={styles.label}>{t('admin.campaigns.assignedEmail')}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.assigned_email}
+                    onChangeText={(v) => setForm({ ...form, assigned_email: v })}
+                    placeholder={t('admin.campaigns.assignedEmailHint')}
+                    placeholderTextColor="#B0B0B0"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </>
+              )}
+
               <View style={styles.switchRow}>
                 <Text style={styles.label}>{t('admin.campaigns.active')}</Text>
                 <Switch value={form.is_active} onValueChange={(v) => setForm({ ...form, is_active: v })} trackColor={{ true: Colors.primary }} />
@@ -493,7 +645,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#FFF', borderRadius: 16, padding: 16, marginBottom: 12, ...Shadows.small },
   cardTop: { flexDirection: 'row', alignItems: 'center' },
   cardName: { fontSize: 16, fontWeight: '700', color: Colors.text, marginBottom: 8 },
-  badgeRow: { flexDirection: 'row', gap: 8 },
+  badgeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   typeBadge: { backgroundColor: '#EEF0F3', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
   typeBadgeText: { fontSize: 12, fontWeight: '700', color: Colors.textSecondary },
   cardActions: { flexDirection: 'row', gap: 10, marginTop: 14 },

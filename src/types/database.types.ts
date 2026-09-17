@@ -137,7 +137,13 @@ export interface OrderCustomizationRow {
 }
 
 // Kampanya (Campaign / Promotion)
-export type CampaignType = 'first_order' | 'percentage' | 'buy_x_get_y';
+export type CampaignType =
+  | 'first_order'
+  | 'percentage'
+  | 'buy_x_get_y'
+  | 'fixed_amount'   // discount_amount kadar sabit indirim
+  | 'free_delivery'  // teslimat ücreti sıfırlanır
+  | 'free_item';     // hedeflenen en ucuz free_quantity adet bedava
 export type CampaignTargetType = 'all' | 'category' | 'product';
 
 export interface Campaign {
@@ -156,7 +162,14 @@ export interface Campaign {
   min_order_amount: number;
   starts_at?: string | null;
   ends_at?: string | null;
-  per_customer_limit?: number | null; // null = sınırsız
+  per_customer_limit?: number | null; // müşteri başına; null = sınırsız
+  // ---- Kupon alanları ----
+  // code DOLU ise bu satır bir KUPONDUR: kendiliğinden uygulanmaz, yalnızca
+  // müşteri kodu girince devreye girer. Boş ise otomatik kampanyadır.
+  code?: string | null;
+  discount_amount?: number | null; // fixed_amount için
+  assigned_user_id?: string | null; // doluysa yalnızca o müşteri kullanabilir
+  max_redemptions?: number | null; // tüm müşteriler toplamı; null = sınırsız
   is_active: boolean;
   priority: number;
   created_at?: string;

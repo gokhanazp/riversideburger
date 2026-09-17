@@ -49,20 +49,38 @@ export function formatPromoBadge(promo: ProductPromo, lang: string): string {
 
 // Kampanya özeti (ana sayfa şeridi / listeler için kısa açıklama)
 export function getCampaignSummary(c: Campaign, lang: string): string {
+  const tr = lang === 'tr';
   if (c.type === 'buy_x_get_y') return buyGetLabel(c.buy_quantity, c.free_quantity, lang);
+  // Kupona özel türler — bunlar yalnızca kupon satırlarında bulunur.
+  if (c.type === 'fixed_amount') {
+    const a = Number(c.discount_amount) || 0;
+    return tr ? `${a.toFixed(2)} indirim` : `${a.toFixed(2)} off`;
+  }
+  if (c.type === 'free_delivery') return tr ? 'Teslimat bedava' : 'Free delivery';
+  if (c.type === 'free_item') {
+    const n = c.free_quantity || 1;
+    return tr ? `${n} ürün bedava` : `${n} item free`;
+  }
   const p = c.discount_percent || 0;
-  if (c.type === 'first_order') return lang === 'tr' ? `İlk siparişe %${p}` : `${p}% off first order`;
-  return lang === 'tr' ? `%${p} indirim` : `${p}% off`;
+  if (c.type === 'first_order') return tr ? `İlk siparişe %${p}` : `${p}% off first order`;
+  return tr ? `%${p} indirim` : `${p}% off`;
 }
 
 // ---- Supabase erişimi (Data access) ----
 
+// Otomatik uygulanan aktif kampanyalar.
+//
+// `code` DOLU olan satırlar KUPONDUR ve buraya girmemeli: kupon ancak müşteri
+// kodu yazdığında devreye girer. Bu filtre olmadan her yeni kupon, sepetine
+// uygun ürün koyan HERKESE otomatik indirim olurdu — ve rozetlerde ürün
+// listesinde de görünürdü.
 export async function getActiveCampaigns(): Promise<Campaign[]> {
   try {
     const { data, error } = await supabase
       .from('campaigns')
       .select('*')
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .is('code', null);
     if (error) {
       console.warn('getActiveCampaigns error:', error.message);
       return [];

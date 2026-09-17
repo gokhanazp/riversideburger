@@ -19,10 +19,19 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getRestaurantPickup } from './uber.ts';
 import { geocodeAddress } from './geocode.ts';
+import {
+  normalizeCouponCode,
+  validateCoupon,
+  type CouponRejection,
+} from './coupons.ts';
+import {
+  priceCartLines,
+  validateCartShape,
+  type PricedLine,
+  type PricedOption,
+} from './cart-pricing.ts';
 
 const TAX_RATE_FALLBACK = 13; // Ontario HST
-const MAX_ITEMS = 50;
-const MAX_QTY_PER_ITEM = 20;
 
 export const round2 = (n: number) => Number(n.toFixed(2));
 
@@ -57,30 +66,21 @@ export interface RequestBody {
   tip_amount?: number;
   points_to_use?: number;
   notes?: string | null;
+  /** Müşterinin elle girdiği kupon kodu. Doğrulama sunucuda yapılır. */
+  coupon_code?: string | null;
 }
 
-export interface DraftLine {
-  product_id: string;
-  product_name: string;
-  category_id: string | null;
-  quantity: number;
-  unit_price: number;
-  subtotal: number;
-  option_ids: string[];
-  special_instructions: string | null;
-}
-
-export interface DraftOption {
-  id: string;
-  name: string;
-  name_en: string | null;
-  price: number;
-}
+// Fiyatlama modülünün ürettiği tiplerin aynısı — ikinci bir tanım yazmak,
+// alanlar ayrıştığında sessiz hataya yol açardı.
+export type DraftLine = PricedLine;
+export type DraftOption = PricedOption;
 
 export interface Breakdown {
   subtotal: number;
   discount: number;
   campaign_name: string | null;
+  /** Uygulanan kuponun kodu; kupon uygulanmadıysa null. */
+  coupon_code: string | null;
   points_used: number;
   delivery_fee: number;
   distance_km: number | null;
@@ -108,6 +108,38 @@ export type DraftResult =
 
 const fail = (error: string, status = 400): DraftResult => ({ ok: false, error, status });
 
+// Kupon ret sebebinin müşteriye görünen İngilizce karşılığı. Web istemcisi bu
+// metni doğrudan gösteriyor; uygulama kendi yerelleştirmesini couponService'te
+// yapıyor.
+function couponFailureMessage(reason: CouponRejection, minOrder?: number): string {
+  switch (reason) {
+    case 'not_found':
+      return 'That coupon code is not valid.';
+    case 'inactive':
+      return 'That coupon is no longer available.';
+    case 'not_started':
+      return 'That coupon is not active yet.';
+    case 'expired':
+      return 'That coupon has expired.';
+    case 'login_required':
+      return 'Please sign in to use this coupon.';
+    case 'not_yours':
+      return 'That coupon belongs to another account.';
+    case 'min_order':
+      return minOrder != null
+        ? `This coupon needs a minimum order of $${minOrder.toFixed(2)}.`
+        : 'Your order does not meet this coupon\'s minimum.';
+    case 'already_used':
+      return 'You have already used this coupon.';
+    case 'limit_reached':
+      return 'This coupon has reached its usage limit.';
+    case 'no_match':
+      return 'This coupon does not apply to the items in your cart.';
+    default:
+      return 'This coupon cannot be applied to your order.';
+  }
+}
+
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const toRad = (d: number) => (d * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1);
@@ -124,16 +156,10 @@ export async function buildOrderDraft(
   signedInUserId: string | null
 ): Promise<DraftResult> {
   // ── Girdi doğrulama ────────────────────────────────────────────────────
-  if (!Array.isArray(body.items) || body.items.length === 0) return fail('items is required');
-  if (body.items.length > MAX_ITEMS) return fail('too many items');
+  const shapeError = validateCartShape(body.items);
+  if (shapeError && !shapeError.ok) return fail(shapeError.error, shapeError.status);
   if (body.delivery_method !== 'pickup' && body.delivery_method !== 'delivery') {
     return fail('delivery_method must be pickup or delivery');
-  }
-  for (const item of body.items) {
-    if (!item.product_id) return fail('each item needs product_id');
-    if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_QTY_PER_ITEM) {
-      return fail('invalid quantity');
-    }
   }
 
   let userId: string | null = signedInUserId;
@@ -151,71 +177,15 @@ export async function buildOrderDraft(
     };
   }
 
-  // ── Ürünler ve fiyatlar: DB'den ────────────────────────────────────────
-  const productIds = [...new Set(body.items.map((i) => i.product_id))];
-  const { data: products, error: productError } = await admin
-    .from('products')
-    .select('id, name, price, category_id, is_active, stock_status')
-    .in('id', productIds);
-  if (productError) return fail('could not load products', 500);
+  // ── Fiyatlama: ortak modül (cart-pricing.ts) ───────────────────────────
+  // Aynı hesap validate-coupon tarafından da kullanılıyor; kupon önizlemesinde
+  // görülen ara toplam ile ödemede tahsil edilen ara toplam ayrışamaz.
+  const priced = await priceCartLines(admin, body.items);
+  if (!priced.ok) return fail(priced.error, priced.status);
 
-  const productById = new Map((products ?? []).map((p) => [p.id, p]));
-  for (const id of productIds) {
-    const p = productById.get(id);
-    if (!p) return fail(`unknown product: ${id}`);
-    if (!p.is_active) return fail(`product is not available: ${p.name}`);
-    // stock_status'a burada da uyuluyor. Uygulamada bir süre yok sayılmış ve
-    // tükenen ürünler sipariş edilebilmişti; sunucu tarafı son savunma.
-    if (p.stock_status === 'out_of_stock') return fail(`sold out: ${p.name}`);
-  }
-
-  // ── Ek malzeme fiyatları: DB'den ───────────────────────────────────────
-  const optionIds = [...new Set(body.items.flatMap((i) => i.option_ids ?? []))];
-  const optionById = new Map<string, DraftOption>();
-  if (optionIds.length > 0) {
-    const { data: options, error: optionError } = await admin
-      .from('product_options')
-      .select('id, name, name_en, price, is_active')
-      .in('id', optionIds);
-    if (optionError) {
-      // 22P02 = geçersiz girdi sözdizimi: gelen kimlik UUID değil. Bu bozuk
-      // bir sepet (ör. eski localStorage içeriği), sunucu hatası değil —
-      // 500 "could not load options" demek müşteriye de bize de yardım etmiyor.
-      if (optionError.code === '22P02') return fail('your cart contains an invalid item — please clear it and add again', 400);
-      console.error('[order-draft] options load failed', optionError);
-      return fail('could not load options', 500);
-    }
-    for (const o of options ?? []) {
-      if (!o.is_active) return fail(`option is not available: ${o.name}`);
-      optionById.set(o.id, { id: o.id, name: o.name, name_en: o.name_en, price: Number(o.price ?? 0) });
-    }
-    for (const id of optionIds) {
-      if (!optionById.has(id)) return fail(`unknown option: ${id}`);
-    }
-  }
-
-  // ── Ara toplam ─────────────────────────────────────────────────────────
-  // Kalem fiyatı = ürün fiyatı + seçilen ek malzemelerin toplamı.
-  // Uygulamadaki davranışla aynı: ekstralar kalem fiyatının İÇİNDE.
-  const lines: DraftLine[] = body.items.map((item) => {
-    const product = productById.get(item.product_id)!;
-    const extras = (item.option_ids ?? []).reduce(
-      (sum, id) => sum + Number(optionById.get(id)!.price ?? 0),
-      0
-    );
-    const unitPrice = round2(Number(product.price) + extras);
-    return {
-      product_id: product.id,
-      product_name: product.name,
-      category_id: (product.category_id as string | null) ?? null,
-      quantity: item.quantity,
-      unit_price: unitPrice,
-      subtotal: round2(unitPrice * item.quantity),
-      option_ids: item.option_ids ?? [],
-      special_instructions: item.special_instructions ?? null,
-    };
-  });
-  const subtotal = round2(lines.reduce((sum, l) => sum + l.subtotal, 0));
+  const lines: DraftLine[] = priced.lines;
+  const optionById = new Map(priced.options.map((o) => [o.id, o]));
+  const subtotal = priced.subtotal;
 
   // Misafirin e-postası tanınıyorsa mevcut müşteri satırı kullanılır; böylece
   // kampanya geçmişi ve puan bakiyesi doğru okunur. Kullanıcı BURADA
@@ -230,10 +200,14 @@ export async function buildOrderDraft(
   }
 
   // ── Kampanya: sunucuda seçilir ─────────────────────────────────────────
+  // `code` DOLU olan satırlar kupondur ve kendiliğinden uygulanmaz — yalnızca
+  // müşteri kodu girdiğinde devreye girer. Bu filtre olmadan her yeni kupon,
+  // sepetinde uygun ürün olan HERKESE otomatik indirim olurdu.
   const { data: campaigns } = await admin
     .from('campaigns')
     .select('*')
     .eq('is_active', true)
+    .is('code', null)
     .order('priority', { ascending: true });
 
   // İlk-sipariş kampanyası ve müşteri başına kullanım limiti için gerçek
@@ -336,23 +310,6 @@ export async function buildOrderDraft(
     }
   }
 
-  // ── Puan: kullanıcının GERÇEK bakiyesiyle sınırlı ──────────────────────
-  let userRow: { points: number | null; phone: string | null; full_name: string | null } | null = null;
-  if (userId) {
-    const { data } = await admin
-      .from('users')
-      .select('points, phone, full_name')
-      .eq('id', userId)
-      .single();
-    userRow = data;
-  }
-
-  const balance = Math.max(0, Number(userRow?.points ?? 0));
-  const requested = Math.max(0, Number(body.points_to_use ?? 0));
-  // Puan indirimden SONRAKİ tutarı aşamaz — sepetteki kuralın aynısı
-  // (CartScreen:132).
-  const pointsUsed = round2(Math.min(requested, balance, Math.max(0, subtotal - discount)));
-
   // ── Teslimat ücreti: mesafe + ayarlardaki kademeler ────────────────────
   const { data: settings } = await admin
     .from('settings')
@@ -405,6 +362,71 @@ export async function buildOrderDraft(
     else if (distanceKm <= tier2Km) deliveryFee = round2(tier2Fee);
     else return fail(`outside our delivery area (${distanceKm} km)`, 422);
   }
+
+  // ── Kupon kodu: müşteri ELLE girer, kampanyayla YARIŞIR ────────────────
+  //
+  // Üst üste binme yok — sipariş başına tek indirim taşınıyor
+  // (orders.campaign_id) ve müşteriye HANGİSİ DAHA İYİYSE o veriliyor.
+  // "Teslimat bedava" kuponu ara toplamı değil ücreti düşürdüğü için
+  // karşılaştırma toplam kazanç üzerinden yapılır.
+  //
+  // Sıra önemli: kupon teslimat ücretini sıfırlayabildiği için ücret bu
+  // satırdan ÖNCE hesaplanmış olmak zorunda; puan ise indirim sonrası tutarla
+  // sınırlı olduğu için SONRA hesaplanıyor.
+  let couponCode: string | null = null;
+  const requestedCoupon = normalizeCouponCode(body.coupon_code ?? '');
+
+  if (requestedCoupon) {
+    const verdict = await validateCoupon(admin, {
+      code: requestedCoupon,
+      userId,
+      lines: lines.map((l) => ({
+        product_id: l.product_id,
+        category_id: l.category_id,
+        unit_price: l.unit_price,
+        quantity: l.quantity,
+      })),
+      subtotal,
+      deliveryFee,
+      nowMs,
+    });
+
+    if (!verdict.ok) {
+      // GEÇERSİZ KUPON SİPARİŞİ DURDURUR. Sessizce yutmak, müşterinin
+      // "kuponum uygulandı" sanıp beklediğinden fazla ödemesi demek olurdu —
+      // HST kaybındaki hatanın aynı sınıfı: istemcinin gösterdiği tutarla
+      // tahsil edilen tutar ayrışıyor.
+      return fail(couponFailureMessage(verdict.reason, verdict.minOrderAmount), 422);
+    }
+
+    const couponValue = verdict.discount + (verdict.waivesDelivery ? deliveryFee : 0);
+    if (couponValue > discount) {
+      discount = verdict.discount;
+      campaignId = verdict.campaign.id;
+      campaignName = verdict.campaign.name_en ?? verdict.campaign.name_tr ?? null;
+      couponCode = verdict.campaign.code;
+      if (verdict.waivesDelivery) deliveryFee = 0;
+    }
+    // Aktif kampanya kupondan iyiyse kampanya kalır, kupon TÜKETİLMEZ —
+    // müşteri onu bir sonraki siparişinde kullanabilir.
+  }
+
+  // ── Puan: kullanıcının GERÇEK bakiyesiyle sınırlı ──────────────────────
+  let userRow: { points: number | null; phone: string | null; full_name: string | null } | null = null;
+  if (userId) {
+    const { data } = await admin
+      .from('users')
+      .select('points, phone, full_name')
+      .eq('id', userId)
+      .single();
+    userRow = data;
+  }
+
+  const balance = Math.max(0, Number(userRow?.points ?? 0));
+  const requested = Math.max(0, Number(body.points_to_use ?? 0));
+  // Puan indirimden SONRAKİ tutarı aşamaz — sepetteki kuralın aynısı
+  // (CartScreen:132).
+  const pointsUsed = round2(Math.min(requested, balance, Math.max(0, subtotal - discount)));
 
   // ── Vergi ve toplam ────────────────────────────────────────────────────
   const taxRate = Number(settings?.tax_rate ?? TAX_RATE_FALLBACK);
@@ -471,6 +493,7 @@ export async function buildOrderDraft(
         subtotal,
         discount,
         campaign_name: campaignName,
+        coupon_code: couponCode,
         points_used: pointsUsed,
         delivery_fee: deliveryFee,
         distance_km: distanceKm,

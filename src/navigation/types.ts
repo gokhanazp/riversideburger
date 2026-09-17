@@ -41,6 +41,7 @@ export type RootStackParamList = {
   OrderTracking: { orderId: string };
   OrderHistory: undefined;
   PointsHistory: undefined;
+  MyCoupons: undefined; // Kuponlarım ekranı (My coupons screen)
   ProfileEdit: undefined;
   AddressList: undefined;
   AddressEdit: { addressId: string | null };
