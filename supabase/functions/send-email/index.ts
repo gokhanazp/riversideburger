@@ -15,7 +15,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendEmail, getReplyTo, FROM_HELLO, FROM_ORDERS, SITE_URL } from '../_shared/email.ts';
+import { sendEmail, getReplyTo, FROM_DEFAULT, SITE_URL } from '../_shared/email.ts';
 import { welcomeEmail, orderEmail, type OrderLine } from '../_shared/email-templates.ts';
 
 const UNIQUE_VIOLATION = '23505';
@@ -47,7 +47,7 @@ serve(async (req) => {
     // ── Alıcıyı ve içeriği çöz ────────────────────────────────────────────
     let to: string | null = null;
     let userId: string | null = null;
-    let from = FROM_HELLO;
+    const from = FROM_DEFAULT;
     let subject = '';
     let html = '';
     let unsubscribeUrl: string | undefined;
@@ -128,7 +128,6 @@ serve(async (req) => {
       });
       to = user.email;
       userId = user.id;
-      from = FROM_ORDERS;
       subject = built.subject;
       html = built.html;
     } else {

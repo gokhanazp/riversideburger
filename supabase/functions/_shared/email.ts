@@ -12,8 +12,22 @@
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
 export const MAIL_DOMAIN = 'send.riversideburgers.ca';
-export const FROM_ORDERS = `Riverside Burgers <orders@${MAIL_DOMAIN}>`;
-export const FROM_HELLO = `Riverside Burgers <hello@${MAIL_DOMAIN}>`;
+
+// TEK GÖNDEREN ADRESİ. Başta üyelik postasını hello@, sipariş fişini orders@
+// adresinden gönderiyordum. Üyelik postaları geldi, sipariş fişi gelmedi:
+// orders@ adresinden ilk kez posta çıkıyordu ve hiç itibar geçmişi yoktu.
+// Gmail yeni bir gönderen adresini ilk seferde daha sıkı süzüyor.
+//
+// Küçük bir gönderici için itibarı tek adreste toplamak doğru olan: iki adres
+// arasında bölüştürmek, ikisini de zayıf bırakıyor. Hacim büyüdüğünde ve
+// itibar oturduğunda işlemsel/pazarlama ayrımı için ayrı adresler (ya da ayrı
+// alt alan adları) anlamlı hale gelir — o zaman ayırırız.
+export const FROM_DEFAULT = `Riverside Burgers <hello@${MAIL_DOMAIN}>`;
+
+/** @deprecated FROM_DEFAULT kullanın — ayrı adresler itibarı böldüğü için birleştirildi. */
+export const FROM_ORDERS = FROM_DEFAULT;
+/** @deprecated FROM_DEFAULT kullanın. */
+export const FROM_HELLO = FROM_DEFAULT;
 export const SITE_URL = 'https://riversideburgers.ca';
 
 // E-posta görselleri SİTEDEN servis ediliyor (riverside-web/public/email/).
