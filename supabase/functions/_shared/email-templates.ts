@@ -201,10 +201,16 @@ export function orderEmail(params: {
     ? `<strong style="color:${INK};">Delivering to</strong><br>${esc(params.address)}`
     : `<strong style="color:${INK};">Pick up from</strong><br>688 Queen Street East, Toronto`;
 
-  const earned = params.pointsEarned > 0
+  // Puanlar 1:1 PARA olarak harcanıyor (points_used doğrudan tutardan
+  // düşülüyor), o yüzden kazanılan puan da para olarak yazılıyor. Ham sayıyı
+  // "0.05 points" diye basmak hem yanıltıcı hem de uygulamanın tam sayı "PTS"
+  // gösterimiyle çelişiyordu. Bir kuruşun altında kalan tutarda satır hiç
+  // gösterilmiyor: "You earned $0.00" kazanç gibi durmuyor.
+  const earnedValue = Number(params.pointsEarned) || 0;
+  const earned = earnedValue >= 0.01
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9f2;border-radius:10px;margin:16px 0 0;">
          <tr><td align="center" style="padding:12px;color:${OK};font-size:14px;font-weight:700;">
-           You earned ${params.pointsEarned} points on this order
+           You earned ${money(earnedValue)} in points on this order
          </td></tr>
        </table>`
     : '';
