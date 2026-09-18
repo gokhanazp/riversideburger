@@ -15,7 +15,7 @@
 //      onlar Kasım 2025'te geliştirme verisiyle çekilmiş ve Türkçe ürün
 //      açıklamalarıyla $89.90 gibi test fiyatları taşıyor.
 //      JPEG seçildi çünkü PNG aynı kalitede altı kat büyük çıkıyor.
-import { esc, money, SITE_URL, ASSETS, APP_STORE_URL, PLAY_STORE_URL } from './email.ts';
+import { esc, money, SITE_URL, ASSETS, APP_STORE_URL, PLAY_STORE_URL, GOOGLE_REVIEW_URL } from './email.ts';
 
 const BRAND = '#e63946';
 const INK = '#1a1a1a';
@@ -96,6 +96,41 @@ function appPromo(compact = false): string {
   </table>
 </td></tr>`;
 }
+
+/** Google yorum daveti. Sitedeki GoogleReviewCard ile aynı metin ve görsel dil.
+ *
+ *  ÖNCE MEMNUNİYET SORULMUYOR: "memnun kaldıysanız yorum yazın" biçiminde
+ *  filtreleme (review gating) Google'ın politikasına ve FTC kurallarına aykırı.
+ *  Yıldızlar metin karakteri (★), SVG değil — Outlook ve Gmail SVG'yi atıyor.
+ */
+const reviewBlock = `
+<tr><td style="padding:0 24px 20px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(230,57,70,.05);border:1px solid rgba(230,57,70,.3);border-radius:14px;">
+    <tr><td style="padding:18px 20px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
+        <td width="44" style="vertical-align:top;padding-right:14px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:11px;"><tr>
+            <td align="center" style="width:44px;height:44px;">
+              <img src="${ASSETS}/google-g.png" width="22" height="22" alt="Google" style="display:block;border:0;">
+            </td>
+          </tr></table>
+        </td>
+        <td style="vertical-align:top;">
+          <div style="color:#F5B301;font-size:15px;letter-spacing:2px;line-height:18px;">★★★★★</div>
+          <div style="color:${INK};font-size:16px;font-weight:800;margin:4px 0 3px;">Your review means a lot to us</div>
+          <div style="color:${SOFT};font-size:13px;line-height:20px;">
+            It takes about 30 seconds — and it's how neighbours find a small, family-run kitchen like ours.
+          </div>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:14px 0 0;"><tr>
+            <td style="background:${BRAND};border-radius:10px;">
+              <a href="${GOOGLE_REVIEW_URL}" style="display:inline-block;padding:11px 22px;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;">Rate us on Google</a>
+            </td>
+          </tr></table>
+        </td>
+      </tr></table>
+    </td></tr>
+  </table>
+</td></tr>`;
 
 function shell(title: string, bodyRows: string, footerExtra = ''): string {
   return `<!doctype html>
@@ -244,6 +279,7 @@ export function orderEmail(params: {
         ${earned}
         ${button(params.trackUrl, 'Track your order')}
       </td></tr>
+      ${reviewBlock}
       ${appPromo(true)}
       <tr><td style="padding:0 24px 24px;">
         <p style="margin:0;color:${SOFT};font-size:13px;line-height:20px;">

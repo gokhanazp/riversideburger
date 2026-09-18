@@ -26,6 +26,9 @@ export const APP_STORE_URL = 'https://apps.apple.com/app/id6756664786';
 export const PLAY_STORE_URL =
   'https://play.google.com/store/apps/details?id=com.riverside_burgers.app';
 
+// Google'ın "yorum yaz" kısa bağlantısı — sitedeki GoogleReviewCard ile aynı.
+export const GOOGLE_REVIEW_URL = 'https://g.page/r/CVFu2sBnWiP4EBE/review';
+
 /** Panelden yönetilen iletişim e-postası; bulunamazsa bilinen adrese düşer. */
 export async function getReplyTo(admin: { from: (t: string) => any }): Promise<string> {
   const { data } = await admin
