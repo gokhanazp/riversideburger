@@ -16,6 +16,16 @@ export const FROM_ORDERS = `Riverside Burgers <orders@${MAIL_DOMAIN}>`;
 export const FROM_HELLO = `Riverside Burgers <hello@${MAIL_DOMAIN}>`;
 export const SITE_URL = 'https://riversideburgers.ca';
 
+// E-posta görselleri SİTEDEN servis ediliyor (riverside-web/public/email/).
+// Neden: posta istemcileri yerel dosya okuyamaz, base64 gömme ise Outlook ve
+// Gmail'de sıkça engelleniyor. Site zaten Cloudflare'de duruyor, ek altyapı
+// gerekmiyor — ama görseller ancak site dağıtıldıktan sonra görünür.
+export const ASSETS = `${SITE_URL}/email`;
+
+export const APP_STORE_URL = 'https://apps.apple.com/app/id6756664786';
+export const PLAY_STORE_URL =
+  'https://play.google.com/store/apps/details?id=com.riverside_burgers.app';
+
 /** Panelden yönetilen iletişim e-postası; bulunamazsa bilinen adrese düşer. */
 export async function getReplyTo(admin: { from: (t: string) => any }): Promise<string> {
   const { data } = await admin
