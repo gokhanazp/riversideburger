@@ -1,0 +1,35 @@
+# Supabase CLI yapılandırması.
+#
+# Bu dosyanın var olma sebebi verify_jwt: `supabase functions deploy` bayraksız
+# çalıştırıldığında JWT doğrulamasını AÇIK varsayıyor. 2026-09-17'de
+# stripe-webhook bayraksız yeniden deploy edildi, Stripe'ın (yetki başlığı
+# taşımayan) istekleri ağ geçidinde 401 aldı ve webhook 9 gün boyunca düştü;
+# siparişler yalnızca tarayıcıdan dönen confirm-checkout yoluyla oluştu.
+# Aşağıdaki değerler 2026-09-22'de Management API'den okunan CANLI durumdur;
+# artık `--no-verify-jwt` hatırlamak gerekmiyor, deploy bunu buradan okuyor.
+#
+# Kural: dışarıdan (Stripe, Uber, veritabanı trigger'ı, e-posta bağlantısı)
+# çağrılan fonksiyonlar JWT taşıyamaz → false. Tarayıcı/uygulamadan anon veya
+# kullanıcı JWT'siyle çağrılanlar → true (varsayılan, listelenmiyor).
+project_id = "srcslhltajjvteqeptrt"
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.uber-webhook]
+verify_jwt = false
+
+[functions.notify-admin-new-order]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.unsubscribe]
+verify_jwt = false
+
+[functions.create-payment-intent]
+verify_jwt = false
+
+[functions.confirm-payment]
+verify_jwt = false
