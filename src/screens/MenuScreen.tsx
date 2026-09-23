@@ -97,6 +97,21 @@ const MenuScreen = ({ navigation, route }: any) => {
     if (route?.params?.productIds) { setCampaignProductIds(route.params.productIds); setSelectedCategory('all'); setCampaignName(route?.params?.campaignName || null); }
   }, [route?.params?.categoryId, route?.params?.searchQuery, route?.params?.productIds, route?.params?.campaignName]);
 
+  // Menü ilk kategoriden başlasın. Kategoriler asenkron geldiği için ilk
+  // render'da 'all' ile başlıyoruz; liste gelir gelmez ilk kategoriye
+  // (display_order'a göre Combos) geçiyoruz.
+  //
+  // Üç durumda dokunmuyoruz: kullanıcı bir kategori seçtiyse, bağlantıyla
+  // belirli bir kategoriye gelindiyse, ya da kampanya filtresi aktifse —
+  // kampanyada ürünler kategoriden bağımsız listeleniyor.
+  useEffect(() => {
+    if (campaignProductIds) return;
+    if (route?.params?.categoryId) return;
+    if (selectedCategory !== 'all') return;
+    if (categories.length === 0) return;
+    setSelectedCategory(categories[0].id);
+  }, [categories, campaignProductIds, selectedCategory, route?.params?.categoryId]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
@@ -300,7 +315,11 @@ const MenuScreen = ({ navigation, route }: any) => {
             showsHorizontalScrollIndicator={false} 
             contentContainerStyle={styles.categoryScroll}
           >
-            <CategoryTab category="all" label={t('menu.allCategories')} />
+            {/* "Tüm Kategoriler" sekmesi kaldırıldı: menü ilk kategoriden
+                (Combos) başlıyor. 'all' değeri İÇERİDE duruyor — kampanya
+                bağlantısıyla gelindiğinde ürünler kategoriye göre değil
+                kampanya listesine göre süzülüyor ve o yol bu değeri
+                kullanıyor. */}
             {categories.map((cat) => (
               <CategoryTab 
                 key={cat.id} 
