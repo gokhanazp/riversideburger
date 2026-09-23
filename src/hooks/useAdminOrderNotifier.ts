@@ -82,12 +82,34 @@ export function useAdminOrderNotifier() {
       }
       printedRef.current.add(orderId);
 
-      // Sipariş satırı ile kalemleri AYRI insert'ler: sipariş commit olduğu anda
-      // realtime bizi uyandırıyor ve kalemler daha yazılmamış olabiliyor. Böyle
-      // bir anda okursak mutfağa kalemsiz fiş çıkar. Kalem gelmediyse kısa bir
-      // süre bekleyip tekrar bakıyoruz.
+      // Sipariş, kalemler ve özelleştirmeler AYRI insert'ler. Sipariş commit
+      // olduğu anda realtime bizi uyandırıyor; diğer ikisi hâlâ yolda olabilir.
+      //
+      // ESKİ DAVRANIŞ HATALIYDI: kalemler görünür görünmez basıyordu. Oysa
+      // özelleştirmeler kalemlerden SONRA yazılıyor (orderService.createOrder
+      // sırayla: orders → order_items → order_item_customizations). Fiş
+      // arada basıldığında ürün satırı çıkıyor ama ">> Veggie", "Domates
+      // Çıkar" gibi satırlar çıkmıyordu — mutfak yanlış ürün hazırlıyordu.
+      //
+      // Canlı veriden ölçüm: özelleştirmeler kalemlerden 0,30 sn ile 5,81 sn
+      // sonra geliyor (ortanca 0,53 sn). Sabit bir bekleme bu yüzden işe
+      // yaramaz: kısa tutarsan kaçırıyorsun, uzun tutarsan her fişi
+      // geciktiriyorsun ve yine garanti veremiyorsun.
+      //
+      // Bunun yerine YAZIM DURULANA KADAR bekliyoruz: kalem ve özelleştirme
+      // sayısı ardışık iki okumada değişmediyse yazma bitmiş sayılır. Hiç
+      // özelleştirmesi olmayan sipariş de doğal olarak "durulmuş" sayılır ve
+      // yalnızca bir sessizlik turu kadar gecikir.
+      const SETTLE_MS = 500;      // okumalar arası
+      const STABLE_READS = 2;     // kaç okuma değişmeden geçmeli
+      const MAX_WAIT_MS = 9000;   // üst sınır: 5,81 sn'lik en kötü örneğin üstü
+
       let fullOrder: any = null;
-      for (let attempt = 0; attempt < 3; attempt++) {
+      let lastSignature = '';
+      let stable = 0;
+      const started = Date.now();
+
+      while (Date.now() - started < MAX_WAIT_MS) {
         const { data } = await supabase
           .from('orders')
           // Özelleştirmeler de çekilmeli: fişte "Domates Çıkar" gibi satırlar
@@ -95,10 +117,24 @@ export function useAdminOrderNotifier() {
           .select('*, user:users(full_name, phone), order_items(*, product:products(name)), order_item_customizations(*), campaign:campaigns(name_tr, name_en)')
           .eq('id', orderId)
           .single();
+
         fullOrder = data;
         if (!fullOrder) break;
-        if ((fullOrder.order_items?.length ?? 0) > 0) break;
-        if (attempt < 2) await new Promise((r) => setTimeout(r, 400));
+
+        const itemCount = fullOrder.order_items?.length ?? 0;
+        const customCount = fullOrder.order_item_customizations?.length ?? 0;
+        const signature = `${itemCount}:${customCount}`;
+
+        // Kalem hiç yoksa henüz "durulmuş" sayılmaz — kalemsiz fiş basılamaz.
+        if (itemCount > 0 && signature === lastSignature) {
+          stable += 1;
+          if (stable >= STABLE_READS) break;
+        } else {
+          stable = 0;
+        }
+        lastSignature = signature;
+
+        await new Promise((r) => setTimeout(r, SETTLE_MS));
       }
 
       if (!fullOrder) {

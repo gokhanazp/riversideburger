@@ -172,26 +172,6 @@ export async function placeOrder(
 
   if (!order) throw new Error('could not create order after retries');
 
-  // ── Kalemler ───────────────────────────────────────────────────────────
-  const { error: itemsError } = await admin.from('order_items').insert(
-    draft.lines.map((l) => ({
-      order_id: order!.id,
-      product_id: l.product_id,
-      quantity: l.quantity,
-      price: l.unit_price,
-      subtotal: l.subtotal,
-    }))
-  );
-  if (itemsError) {
-    // Kalemsiz sipariş mutfak için işe yaramaz — ama ödeme ALINDI, siparişi
-    // silmek parayı alıp siparişi yok etmek olurdu. Sipariş kalıyor, hata
-    // loglanıyor; mutfak kalemsiz bir fiş görürse restoran müşteriyi arayabilir.
-    console.error('[place-order] items insert failed — order kept', {
-      order_id: order.id,
-      itemsError,
-    });
-  }
-
   // ── Özelleştirmeler ────────────────────────────────────────────────────
   const optionById = new Map(draft.options.map((o) => [o.id, o]));
   const customizationRows = draft.lines.flatMap((l) =>
@@ -217,6 +197,36 @@ export async function placeOrder(
     // Fişte "Domates Çıkar" gibi satırlar buradan basılıyor ama eksikliği
     // siparişi iptal ettirmez — uygulamadaki davranışın aynısı.
     if (customError) console.error('[place-order] customizations failed', customError);
+  }
+
+  // ── Kalemler (EN SONA) ─────────────────────────────────────────────────
+  //
+  // Sıra bilinçli: özelleştirmeler kalemlerden ÖNCE yazılıyor. Admin
+  // tarafındaki otomatik fiş, siparişin realtime INSERT olayıyla uyanıp
+  // "kalemler geldi mi" diye bakıyor ve geldiyse basıyor. Kalemler önce
+  // yazıldığında fiş arada basılabiliyor ve ">> Veggie" gibi satırlar fişe
+  // hiç düşmüyordu — mutfak yanlış ürün hazırlıyordu.
+  //
+  // Kalemleri sona almak kontrolü kesinleştiriyor: kalemler göründüyse
+  // özelleştirmeler zaten yazılmıştır. Güvenli, çünkü
+  // order_item_customizations satırları order_items'a bağlı değil.
+  const { error: itemsError } = await admin.from('order_items').insert(
+    draft.lines.map((l) => ({
+      order_id: order!.id,
+      product_id: l.product_id,
+      quantity: l.quantity,
+      price: l.unit_price,
+      subtotal: l.subtotal,
+    }))
+  );
+  if (itemsError) {
+    // Kalemsiz sipariş mutfak için işe yaramaz — ama ödeme ALINDI, siparişi
+    // silmek parayı alıp siparişi yok etmek olurdu. Sipariş kalıyor, hata
+    // loglanıyor; mutfak kalemsiz bir fiş görürse restoran müşteriyi arayabilir.
+    console.error('[place-order] items insert failed — order kept', {
+      order_id: order.id,
+      itemsError,
+    });
   }
 
   // ── Ödeme kaydı ────────────────────────────────────────────────────────

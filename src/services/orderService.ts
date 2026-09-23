@@ -105,21 +105,6 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
 
     if (orderError) throw orderError;
 
-    // Sipariş kalemlerini ekle (Add order items)
-    const orderItems = items.map(item => ({
-      order_id: orderData.id,
-      product_id: item.product_id,
-      quantity: item.quantity,
-      price: item.price,
-      subtotal: item.subtotal,
-    }));
-
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItems);
-
-    if (itemsError) throw itemsError;
-
     // Özelleştirmeleri kaydet (Save customizations)
     for (const item of items) {
       if (item.customizations && item.customizations.length > 0) {
@@ -185,6 +170,36 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
         }
       }
     }
+
+
+    // KALEMLER EN SONA YAZILIYOR — sıra bilinçli.
+    //
+    // Admin tarafındaki otomatik fiş, siparişin realtime INSERT olayıyla
+    // uyanıp "kalemler geldi mi" diye bakıyor ve geldiyse basıyor. Eskiden
+    // kalemler özelleştirmelerden ÖNCE yazılıyordu; fiş arada basıldığında
+    // ürün satırı çıkıyor ama ">> Veggie" ya da "Domates Çıkar" satırları
+    // çıkmıyordu ve mutfak yanlış ürün hazırlıyordu.
+    //
+    // Canlı veride özelleştirmeler kalemlerden 0,30 sn ile 5,81 sn sonra
+    // geliyordu; sabit bir bekleme süresiyle kapatılamayacak kadar geniş bir
+    // aralık. Sırayı çevirmek sorunu zamanlamadan çıkarıp kesinliğe taşıyor:
+    // kalemler göründüyse özelleştirmeler ZATEN yazılmıştır.
+    //
+    // Bu tersine çevirme güvenli, çünkü order_item_customizations satırları
+    // order_items'a bağlı değil — order_id ve product_id taşıyorlar.
+    const orderItems = items.map(item => ({
+      order_id: orderData.id,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      price: item.price,
+      subtotal: item.subtotal,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
+
+    if (itemsError) throw itemsError;
 
     // Eğer puan kullanıldıysa, kullanıcının puanını azalt (If points used, decrease user's points)
     if (points_used > 0) {
