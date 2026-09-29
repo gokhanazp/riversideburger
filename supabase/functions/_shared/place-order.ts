@@ -280,9 +280,6 @@ export interface SettleSession {
   /** Rapor için normalize yöntem (card / apple_pay / google_pay). Çağıran
    *  Stripe'tan okuyup verir; yoksa null kalır, sipariş yine oluşur. */
   payment_method?: string | null;
-}| null;
-  payment_intent: string | { id: string } | null;
-  amount_total: number | null;
 }
 
 export type SettleResult =
