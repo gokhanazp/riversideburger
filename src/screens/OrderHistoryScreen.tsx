@@ -22,6 +22,7 @@ import Toast from 'react-native-toast-message';
 import { Colors, Shadows } from '../constants/theme';
 import { hasUserReviewedOrder } from '../services/reviewService';
 import { formatPrice } from '../services/currencyService';
+import { GOOGLE_REVIEW_URL } from '../constants/links';
 
 type FilterType = 'all' | 'active' | 'completed';
 
@@ -289,6 +290,20 @@ const OrderHistoryScreen = () => {
           >
             <Ionicons name="star-outline" size={18} color={Colors.primary} />
             <Text style={styles.outlineActionText}>{t('orderHistory.reviewOrder')}</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Google yorumu: teslim edilmiş HER siparişte, uygulama içi puana
+            bakılmaksızın. Yalnızca memnun görünenlere göstermek "review gating"
+            olur; Google bunu yasaklıyor. */}
+        {item.status === 'delivered' && (
+          <TouchableOpacity
+            style={styles.outlineAction}
+            onPress={() => Linking.openURL(GOOGLE_REVIEW_URL)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="logo-google" size={18} color={Colors.primary} />
+            <Text style={styles.outlineActionText}>{t('orderHistory.rateOnGoogle')}</Text>
           </TouchableOpacity>
         )}
 
