@@ -370,6 +370,9 @@ export function setPasswordEmail(params: {
         <p style="margin:0 0 14px;color:${INK};font-size:15px;line-height:23px;">${greeting}</p>
         <p style="margin:0 0 18px;color:${INK};font-size:15px;line-height:23px;">${intro}</p>
         ${button(params.link, params.isGuest ? 'Set my password' : 'Choose a new password')}
+        <p style="margin:0 0 6px;color:${INK};font-size:14px;line-height:22px;">
+          <strong>Same login for the app.</strong> Once your password is set, sign in to the Riverside Burgers app with this email and password — that's where your points are spent.
+        </p>
       </td></tr>
       <tr><td style="padding:0 24px 24px;">
         <p style="margin:0;color:${SOFT};font-size:13px;line-height:20px;">
