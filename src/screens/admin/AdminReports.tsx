@@ -27,6 +27,9 @@ import { formatPrice } from '../../services/currencyService';
 type Preset = 'today' | 'yesterday' | '7d' | '30d' | 'month' | 'lastMonth' | 'year' | 'custom';
 type Bucket = 'day' | 'week' | 'month';
 type StatusFilter = 'all' | 'delivered' | 'in_progress' | 'cancelled';
+// Kanal: orders.source. NULL kayıtlar sunucuda 'app' sayılıyor.
+type SourceFilter = 'all' | 'web' | 'app';
+const SOURCE_ICON: Record<SourceFilter, keyof typeof Ionicons.glyphMap> = { all: 'layers-outline', web: 'globe-outline', app: 'phone-portrait-outline' };
 // null = ödenmiş ve iptal edilmemiş (varsayılan). Kümeler sunucudaki
 // report_order_matches ile aynı anlamı taşıyor.
 const STATUS_SETS: Record<StatusFilter, string[] | null> = {
@@ -109,6 +112,7 @@ export default function AdminReports() {
   const [preset, setPreset] = useState<Preset>('30d');
   const [bucket, setBucket] = useState<Bucket | 'auto'>('auto');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [loading, setLoading] = useState(true);
@@ -129,9 +133,10 @@ export default function AdminReports() {
     try {
       if (Number.isNaN(range.from.getTime()) || Number.isNaN(range.to.getTime())) throw new Error('invalid date range');
       const p_statuses = STATUS_SETS[statusFilter];
-      const p = { p_from: range.from.toISOString(), p_to: range.to.toISOString(), p_statuses };
+      const p_source = sourceFilter === 'all' ? null : sourceFilter;
+      const p = { p_from: range.from.toISOString(), p_to: range.to.toISOString(), p_statuses, p_source };
       const prevFrom = new Date(range.from.getTime() - (range.to.getTime() - range.from.getTime()));
-      const prev = { p_from: prevFrom.toISOString(), p_to: range.from.toISOString(), p_statuses };
+      const prev = { p_from: prevFrom.toISOString(), p_to: range.from.toISOString(), p_statuses, p_source };
       const [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses] = await Promise.all([
         supabase.rpc('report_summary', p),
         supabase.rpc('report_summary', prev),
@@ -142,9 +147,9 @@ export default function AdminReports() {
         supabase.rpc('report_hours', p),
         supabase.rpc('report_channels', p),
         supabase.rpc('report_delivery', p),
-        // Durum dağılımı filtreden BAĞIMSIZ: filtre "iptal" seçiliyken bile
-        // dönemin tamamı görünsün.
-        supabase.rpc('report_status_breakdown', { p_from: p.p_from, p_to: p.p_to }),
+        // Durum dağılımı DURUM filtresinden bağımsız: filtre "iptal" seçiliyken
+        // bile dönemin tamamı görünsün. Kanal filtresi ise uygulanıyor.
+        supabase.rpc('report_status_breakdown', { p_from: p.p_from, p_to: p.p_to, p_source }),
       ]);
       const firstErr = [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses].find((r) => r.error)?.error;
       if (firstErr) throw firstErr;
@@ -168,7 +173,7 @@ export default function AdminReports() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [range, effBucket, statusFilter, t]);
+  }, [range, effBucket, statusFilter, sourceFilter, t]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -315,6 +320,17 @@ export default function AdminReports() {
         {(['all', 'delivered', 'in_progress', 'cancelled'] as StatusFilter[]).map((k) => (
           <TouchableOpacity key={k} onPress={() => setStatusFilter(k)} style={[styles.statusChip, statusFilter === k && styles.statusChipActive]}>
             <Text style={[styles.statusChipText, statusFilter === k && styles.statusChipTextActive]}>{t(`admin.reports.status_${k}`)}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Kanal: web sitesi / mobil uygulama. Ayrı satır — durum çipleriyle
+          aynı satıra sığmıyor ve ekran dışında kalan çip fark edilmiyor. */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={styles.statusRow}>
+        {(['all', 'web', 'app'] as SourceFilter[]).map((k) => (
+          <TouchableOpacity key={k} onPress={() => setSourceFilter(k)} style={[styles.statusChip, styles.sourceChip, sourceFilter === k && styles.statusChipActive]}>
+            <Ionicons name={SOURCE_ICON[k]} size={13} color={sourceFilter === k ? Colors.white : '#666'} />
+            <Text style={[styles.statusChipText, sourceFilter === k && styles.statusChipTextActive]}>{t(`admin.reports.source_${k}`)}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -517,6 +533,7 @@ const styles = StyleSheet.create({
   statusChipActive: { backgroundColor: Colors.text },
   statusChipText: { fontSize: 12, fontWeight: '700', color: '#666' },
   statusChipTextActive: { color: Colors.white },
+  sourceChip: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   customRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingBottom: 8, flexWrap: 'wrap' },
   dateInput: { flex: 1, minWidth: 120, backgroundColor: Colors.white, borderRadius: 12, borderWidth: 1, borderColor: '#EEE', paddingHorizontal: 12, height: 42, fontSize: 14, color: Colors.text },
   hint: { fontSize: 11, color: '#999', marginTop: 6, width: '100%' },
