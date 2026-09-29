@@ -1507,7 +1507,8 @@
       "st_ready": "Hazır",
       "st_delivering": "Yolda",
       "st_delivered": "Teslim edildi",
-      "st_cancelled": "İptal"
+      "st_cancelled": "İptal",
+      "retry": "Tekrar dene"
     }
   },
   "favorites": {

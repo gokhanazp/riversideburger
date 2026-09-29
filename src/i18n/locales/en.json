@@ -1508,7 +1508,8 @@
       "st_ready": "Ready",
       "st_delivering": "On the way",
       "st_delivered": "Delivered",
-      "st_cancelled": "Cancelled"
+      "st_cancelled": "Cancelled",
+      "retry": "Try again"
     }
   },
   "favorites": {

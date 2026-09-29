@@ -37,25 +37,40 @@ const STATUS_SETS: Record<StatusFilter, string[] | null> = {
 };
 const TZ = 'America/Toronto';
 
-// Toronto yerel gece yarısını UTC Date olarak verir (DST dahil).
+// Toronto saat dilimi, Intl'siz. Hermes (React Native'in JS motoru)
+// "new Date(toLocaleString(...))" biçimini ayrıştıramıyor; ilk sürümde bu
+// yüzden tarih NaN oldu ve ekran sonsuza kadar "yükleniyor"da kaldı.
+// Toronto = UTC−5, yaz saatinde UTC−4. DST: Mart'ın 2. Pazarı 02:00 (yerel)
+// başlar, Kasım'ın 1. Pazarı 02:00 (yerel) biter.
+function nthSunday(year: number, month0: number, nth: number): number {
+  const firstDow = new Date(Date.UTC(year, month0, 1)).getUTCDay();
+  return 1 + ((7 - firstDow) % 7) + (nth - 1) * 7;
+}
+function torontoOffsetMin(utcMs: number): number {
+  const y = new Date(utcMs).getUTCFullYear();
+  const dstStart = Date.UTC(y, 2, nthSunday(y, 2, 2), 7, 0, 0); // 02:00 EST = 07:00 UTC
+  const dstEnd = Date.UTC(y, 10, nthSunday(y, 10, 1), 6, 0, 0); // 02:00 EDT = 06:00 UTC
+  return utcMs >= dstStart && utcMs < dstEnd ? -240 : -300;
+}
+// Toronto yerel gece yarısı → UTC Date.
 function torontoMidnight(y: number, m: number, d: number): Date {
-  const guess = new Date(Date.UTC(y, m, d, 5, 0, 0)); // EST'te 05:00 UTC = 00:00
-  const local = new Date(guess.toLocaleString('en-US', { timeZone: TZ }));
-  const utc = new Date(guess.toLocaleString('en-US', { timeZone: 'UTC' }));
-  const offsetMs = utc.getTime() - local.getTime();
-  return new Date(Date.UTC(y, m, d, 0, 0, 0) + offsetMs);
+  const naive = Date.UTC(y, m, d, 0, 0, 0);
+  let off = torontoOffsetMin(naive + 5 * 3600000);
+  let utc = naive - off * 60000;
+  const off2 = torontoOffsetMin(utc);
+  if (off2 !== off) utc = naive - off2 * 60000;
+  return new Date(utc);
 }
 function torontoToday(): { y: number; m: number; d: number } {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
-  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
-  return { y: get('year'), m: get('month') - 1, d: get('day') };
+  const now = Date.now();
+  const local = new Date(now + torontoOffsetMin(now) * 60000);
+  return { y: local.getUTCFullYear(), m: local.getUTCMonth(), d: local.getUTCDate() };
 }
 const addDays = (dt: Date, n: number) => new Date(dt.getTime() + n * 86400000);
 const parseYmd = (s: string) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s.trim());
   if (!m) return null;
-  const [y, mo, d] = [Number(m[1]), Number(m[2]) - 1, Number(m[3])];
-  const dt = torontoMidnight(y, mo, d);
+  const dt = torontoMidnight(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
   return Number.isNaN(dt.getTime()) ? null : dt;
 };
 
@@ -80,10 +95,12 @@ function rangeFor(preset: Preset, customFrom: string, customTo: string): { from:
 
 const pct = (cur: number, prev: number) => (prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null);
 const n = (v: unknown) => Number(v) || 0;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const shortDay = (iso: string, bucket: Bucket) => {
-  const d = new Date(iso + 'T12:00:00Z');
-  if (bucket === 'month') return d.toLocaleDateString('en-CA', { month: 'short', timeZone: 'UTC' });
-  return d.toLocaleDateString('en-CA', { day: '2-digit', month: 'short', timeZone: 'UTC' });
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
+  if (!m) return String(iso);
+  const mon = MONTHS[Number(m[2]) - 1] ?? m[2];
+  return bucket === 'month' ? `${mon} ${m[1].slice(2)}` : `${Number(m[3])} ${mon}`;
 };
 
 export default function AdminReports() {
@@ -97,6 +114,7 @@ export default function AdminReports() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useLayoutEffect(() => { navigation.setOptions({ headerShown: false }); }, [navigation]);
 
@@ -107,11 +125,13 @@ export default function AdminReports() {
   const load = useCallback(async (silent = false) => {
     if (!range) return;
     if (!silent) setLoading(true);
-    const p_statuses = STATUS_SETS[statusFilter];
-    const p = { p_from: range.from.toISOString(), p_to: range.to.toISOString(), p_statuses };
-    const prevFrom = new Date(range.from.getTime() - (range.to.getTime() - range.from.getTime()));
-    const prev = { p_from: prevFrom.toISOString(), p_to: range.from.toISOString(), p_statuses };
+    setError(null);
     try {
+      if (Number.isNaN(range.from.getTime()) || Number.isNaN(range.to.getTime())) throw new Error('invalid date range');
+      const p_statuses = STATUS_SETS[statusFilter];
+      const p = { p_from: range.from.toISOString(), p_to: range.to.toISOString(), p_statuses };
+      const prevFrom = new Date(range.from.getTime() - (range.to.getTime() - range.from.getTime()));
+      const prev = { p_from: prevFrom.toISOString(), p_to: range.from.toISOString(), p_statuses };
       const [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses] = await Promise.all([
         supabase.rpc('report_summary', p),
         supabase.rpc('report_summary', prev),
@@ -141,7 +161,9 @@ export default function AdminReports() {
         statuses: statuses.data ?? [],
       });
     } catch (e: any) {
-      Toast.show({ type: 'error', text1: t('admin.error'), text2: e?.message ?? t('admin.reports.loadError') });
+      const msg = e?.message ?? t('admin.reports.loadError');
+      setError(msg);
+      Toast.show({ type: 'error', text1: t('admin.error'), text2: msg });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -310,7 +332,15 @@ export default function AdminReports() {
       >
         {loading && !data ? (
           <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
-        ) : !data ? null : (
+        ) : !data ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{t('admin.reports.loadError')}</Text>
+            {error ? <Text style={styles.cardSub}>{error}</Text> : null}
+            <TouchableOpacity onPress={() => void load()} style={styles.retryBtn}>
+              <Text style={styles.retryText}>{t('admin.reports.retry')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
           <>
             {/* KPI */}
             <View style={styles.kpiGrid}>
@@ -536,4 +566,6 @@ const styles = StyleSheet.create({
   dowDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: Colors.primary },
   dowVal: { fontSize: 11, fontWeight: '800', color: Colors.text },
   empty: { fontSize: 13, color: '#999', paddingVertical: 12 },
+  retryBtn: { marginTop: 12, alignSelf: 'flex-start', backgroundColor: Colors.primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
+  retryText: { color: Colors.white, fontWeight: '800' },
 });
