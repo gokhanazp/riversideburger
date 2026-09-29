@@ -1494,7 +1494,20 @@
       "lifetime": "Toplam",
       "lastOrderDaysAgo": "son sipariş {{days}} gün önce",
       "atRisk": "30+ gündür yok",
-      "busiestHours": "En yoğun saatler (Toronto saati)"
+      "busiestHours": "En yoğun saatler (Toronto saati)",
+      "status_all": "Tüm siparişler",
+      "status_delivered": "Teslim edildi",
+      "status_in_progress": "Devam eden",
+      "status_cancelled": "İptal",
+      "statusBreakdown": "Duruma göre siparişler",
+      "statusFilterHint": "Yukarıdaki rakamlar şu filtreyle: {{filter}}",
+      "st_pending": "Bekliyor",
+      "st_confirmed": "Onaylandı",
+      "st_preparing": "Hazırlanıyor",
+      "st_ready": "Hazır",
+      "st_delivering": "Yolda",
+      "st_delivered": "Teslim edildi",
+      "st_cancelled": "İptal"
     }
   },
   "favorites": {

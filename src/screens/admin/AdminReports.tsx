@@ -26,6 +26,15 @@ import { formatPrice } from '../../services/currencyService';
 
 type Preset = 'today' | 'yesterday' | '7d' | '30d' | 'month' | 'lastMonth' | 'year' | 'custom';
 type Bucket = 'day' | 'week' | 'month';
+type StatusFilter = 'all' | 'delivered' | 'in_progress' | 'cancelled';
+// null = ödenmiş ve iptal edilmemiş (varsayılan). Kümeler sunucudaki
+// report_order_matches ile aynı anlamı taşıyor.
+const STATUS_SETS: Record<StatusFilter, string[] | null> = {
+  all: null,
+  delivered: ['delivered'],
+  in_progress: ['pending', 'confirmed', 'preparing', 'ready', 'delivering'],
+  cancelled: ['cancelled'],
+};
 const TZ = 'America/Toronto';
 
 // Toronto yerel gece yarısını UTC Date olarak verir (DST dahil).
@@ -82,6 +91,7 @@ export default function AdminReports() {
   const navigation = useNavigation<any>();
   const [preset, setPreset] = useState<Preset>('30d');
   const [bucket, setBucket] = useState<Bucket | 'auto'>('auto');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [loading, setLoading] = useState(true);
@@ -97,11 +107,12 @@ export default function AdminReports() {
   const load = useCallback(async (silent = false) => {
     if (!range) return;
     if (!silent) setLoading(true);
-    const p = { p_from: range.from.toISOString(), p_to: range.to.toISOString() };
+    const p_statuses = STATUS_SETS[statusFilter];
+    const p = { p_from: range.from.toISOString(), p_to: range.to.toISOString(), p_statuses };
     const prevFrom = new Date(range.from.getTime() - (range.to.getTime() - range.from.getTime()));
-    const prev = { p_from: prevFrom.toISOString(), p_to: range.from.toISOString() };
+    const prev = { p_from: prevFrom.toISOString(), p_to: range.from.toISOString(), p_statuses };
     try {
-      const [summary, prevSummary, series, products, options, customers, hours, channels, delivery] = await Promise.all([
+      const [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses] = await Promise.all([
         supabase.rpc('report_summary', p),
         supabase.rpc('report_summary', prev),
         supabase.rpc('report_timeseries', { ...p, p_bucket: effBucket }),
@@ -111,8 +122,11 @@ export default function AdminReports() {
         supabase.rpc('report_hours', p),
         supabase.rpc('report_channels', p),
         supabase.rpc('report_delivery', p),
+        // Durum dağılımı filtreden BAĞIMSIZ: filtre "iptal" seçiliyken bile
+        // dönemin tamamı görünsün.
+        supabase.rpc('report_status_breakdown', { p_from: p.p_from, p_to: p.p_to }),
       ]);
-      const firstErr = [summary, prevSummary, series, products, options, customers, hours, channels, delivery].find((r) => r.error)?.error;
+      const firstErr = [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses].find((r) => r.error)?.error;
       if (firstErr) throw firstErr;
       setData({
         summary: summary.data?.[0] ?? {},
@@ -124,6 +138,7 @@ export default function AdminReports() {
         hours: hours.data ?? [],
         channels: channels.data ?? [],
         delivery: delivery.data?.[0] ?? {},
+        statuses: statuses.data ?? [],
       });
     } catch (e: any) {
       Toast.show({ type: 'error', text1: t('admin.error'), text2: e?.message ?? t('admin.reports.loadError') });
@@ -131,7 +146,7 @@ export default function AdminReports() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [range, effBucket, t]);
+  }, [range, effBucket, statusFilter, t]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -272,6 +287,14 @@ export default function AdminReports() {
         ))}
       </ScrollView>
 
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statusRow}>
+        {(['all', 'delivered', 'in_progress', 'cancelled'] as StatusFilter[]).map((k) => (
+          <TouchableOpacity key={k} onPress={() => setStatusFilter(k)} style={[styles.statusChip, statusFilter === k && styles.statusChipActive]}>
+            <Text style={[styles.statusChipText, statusFilter === k && styles.statusChipTextActive]}>{t(`admin.reports.status_${k}`)}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       {preset === 'custom' && (
         <View style={styles.customRow}>
           <TextInput value={customFrom} onChangeText={setCustomFrom} placeholder="2026-09-01" placeholderTextColor="#AAA" style={styles.dateInput} autoCapitalize="none" keyboardType="numbers-and-punctuation" />
@@ -301,6 +324,18 @@ export default function AdminReports() {
               <View style={styles.kpi}><Text style={styles.kpiLabel}>{t('admin.reports.pointsEarned')}</Text><Text style={styles.kpiVal}>{formatPrice(n(S.points_earned))}</Text></View>
             </View>
             <Text style={styles.prevNote}>{t('admin.reports.vsPrevious', { days })}</Text>
+
+            {/* Durum dağılımı */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>{t('admin.reports.statusBreakdown')}</Text>
+              {data.statuses.map((r: any) => (
+                <View key={r.status} style={styles.rowBetween}>
+                  <Text style={styles.rowLabel}>{t(`admin.reports.st_${r.status}`, { defaultValue: r.status })}</Text>
+                  <Text style={styles.rowVal}>{n(r.orders)} · {formatPrice(n(r.revenue))}</Text>
+                </View>
+              ))}
+              {statusFilter !== 'all' && <Text style={styles.hint}>{t('admin.reports.statusFilterHint', { filter: t(`admin.reports.status_${statusFilter}`) })}</Text>}
+            </View>
 
             {/* Satış zaman serisi */}
             <View style={styles.card}>
@@ -444,6 +479,11 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   chipText: { fontSize: 13, fontWeight: '700', color: '#666' },
   chipTextActive: { color: Colors.white },
+  statusRow: { paddingHorizontal: 20, paddingBottom: 10, gap: 8 },
+  statusChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12, backgroundColor: '#F1F3F5' },
+  statusChipActive: { backgroundColor: Colors.text },
+  statusChipText: { fontSize: 12, fontWeight: '700', color: '#666' },
+  statusChipTextActive: { color: Colors.white },
   customRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingBottom: 8, flexWrap: 'wrap' },
   dateInput: { flex: 1, minWidth: 120, backgroundColor: Colors.white, borderRadius: 12, borderWidth: 1, borderColor: '#EEE', paddingHorizontal: 12, height: 42, fontSize: 14, color: Colors.text },
   hint: { fontSize: 11, color: '#999', marginTop: 6, width: '100%' },

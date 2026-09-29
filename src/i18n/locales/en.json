@@ -1495,7 +1495,20 @@
       "lifetime": "Lifetime",
       "lastOrderDaysAgo": "last order {{days}} days ago",
       "atRisk": "Not seen 30+ days",
-      "busiestHours": "Busiest hours (Toronto time)"
+      "busiestHours": "Busiest hours (Toronto time)",
+      "status_all": "All orders",
+      "status_delivered": "Delivered",
+      "status_in_progress": "In progress",
+      "status_cancelled": "Cancelled",
+      "statusBreakdown": "Orders by status",
+      "statusFilterHint": "Figures above are filtered to: {{filter}}",
+      "st_pending": "Pending",
+      "st_confirmed": "Confirmed",
+      "st_preparing": "Preparing",
+      "st_ready": "Ready",
+      "st_delivering": "On the way",
+      "st_delivered": "Delivered",
+      "st_cancelled": "Cancelled"
     }
   },
   "favorites": {
