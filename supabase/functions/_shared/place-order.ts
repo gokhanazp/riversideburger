@@ -151,6 +151,7 @@ export async function placeOrder(
         source: 'web',
         payment_status: 'paid',
         paid_at: paidAt,
+        payment_method: session.payment_method ?? null,
       })
       .select('id, order_number, public_token')
       .single();
@@ -274,6 +275,12 @@ export async function placeOrder(
 export interface SettleSession {
   id: string;
   payment_status: string | null;
+  payment_intent: string | { id: string } | null;
+  amount_total: number | null;
+  /** Rapor için normalize yöntem (card / apple_pay / google_pay). Çağıran
+   *  Stripe'tan okuyup verir; yoksa null kalır, sipariş yine oluşur. */
+  payment_method?: string | null;
+}| null;
   payment_intent: string | { id: string } | null;
   amount_total: number | null;
 }

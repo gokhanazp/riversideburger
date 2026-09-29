@@ -13,6 +13,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno';
 import { settleSession } from '../_shared/place-order.ts';
+import { paymentMethodLabel } from '../_shared/stripe-payment-method.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,7 +46,11 @@ serve(async (req) => {
     });
 
     const session = await stripe.checkout.sessions.retrieve(session_id);
-    const result = await settleSession(admin, session);
+    // Rapor için ödeme yöntemi (kart / Apple Pay / Google Pay). Okunamazsa
+    // null; sipariş yine oluşur.
+    const piId = typeof session.payment_intent === 'string' ? session.payment_intent : (session.payment_intent?.id ?? null);
+    const payment_method = await paymentMethodLabel(stripe, piId);
+    const result = await settleSession(admin, { ...session, payment_method });
 
     if (result.status === 'unpaid') {
       return json({ paid: false, payment_status: result.payment_status });

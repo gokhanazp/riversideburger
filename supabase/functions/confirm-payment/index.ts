@@ -79,6 +79,25 @@ serve(async (req) => {
           updateData.card_exp_year = paymentMethod.card.exp_year;
           updateData.payment_method = paymentMethod.type;
         }
+        // Rapor için siparişe de normalize etiket: Apple/Google Pay Stripe'ta
+        // "card" görünür, cüzdan bilgisi card.wallet.type altında.
+        const wallet = paymentMethod.card?.wallet?.type as string | undefined;
+        const orderLabel = wallet === 'apple_pay' || wallet === 'google_pay' || wallet === 'link' ? wallet : paymentMethod.type;
+        // Müşteri JWT'li istemci orders'ı güncelleyemez (RLS'te müşteriye UPDATE
+        // yok); yalnızca bu tek alan için service role.
+        const adminClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+        const { data: payRow } = await adminClient
+          .from('payments')
+          .select('order_id')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .maybeSingle();
+        if (payRow?.order_id && orderLabel) {
+          const { error: pmError } = await adminClient
+            .from('orders')
+            .update({ payment_method: orderLabel })
+            .eq('id', payRow.order_id);
+          if (pmError) console.warn('[confirm-payment] orders.payment_method yazılamadı', pmError.message);
+        }
       }
     }
 

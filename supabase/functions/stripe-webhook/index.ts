@@ -19,6 +19,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno';
 import { settleSession } from '../_shared/place-order.ts';
+import { paymentMethodLabel } from '../_shared/stripe-payment-method.ts';
 
 serve(async (req) => {
   if (req.method !== 'POST') return new Response('POST required', { status: 405 });
@@ -69,7 +70,9 @@ serve(async (req) => {
 
       // Sipariş satırı burada doğuyor. Müşteri ödeme sonrası sekmeyi kapatsa
       // bile bu yol siparişi oluşturur — kalıcı yol bu, tarayıcı dönüşü değil.
-      const result = await settleSession(admin, session);
+      const piId = typeof session.payment_intent === 'string' ? session.payment_intent : (session.payment_intent?.id ?? null);
+      const payment_method = await paymentMethodLabel(stripe, piId);
+      const result = await settleSession(admin, { ...session, payment_method });
 
       if (result.status === 'unknown_session') {
         // Bizim taslağımıza ait değil (ya da süresi dolmuş). 200 dönüyoruz:
