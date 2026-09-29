@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider } from 'react-native-paper';
 import { View, ActivityIndicator, Platform, AppState } from 'react-native';
+import { Linking } from 'react-native';
 import Toast from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
@@ -124,6 +125,12 @@ export default function App() {
     const handleNotificationTap = (response: any) => {
       const data = response?.notification?.request?.content?.data as any;
       clearBadgeCount();
+      // Teslimat sonrası Google yorum ricası (send-review-requests): doğrudan
+      // yorum penceresine git; uygulamanın içinde gezdirmenin anlamı yok.
+      if (data?.type === 'google_review' && typeof data.url === 'string') {
+        Linking.openURL(data.url).catch(() => {});
+        return;
+      }
       if (data?.type === 'new_order_admin' && user.role === 'admin') {
         goToOrdersWhenReady();
       }

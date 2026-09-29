@@ -16,7 +16,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, getReplyTo, FROM_DEFAULT, SITE_URL } from '../_shared/email.ts';
-import { welcomeEmail, orderEmail, type OrderLine } from '../_shared/email-templates.ts';
+import { welcomeEmail, orderEmail, reviewRequestEmail, type OrderLine } from '../_shared/email-templates.ts';
 
 const UNIQUE_VIOLATION = '23505';
 
@@ -126,6 +126,31 @@ serve(async (req) => {
         address: order.delivery_address,
         trackUrl: `${SITE_URL}/order/${order.order_number}?t=${order.public_token}`,
       });
+      to = user.email;
+      userId = user.id;
+      subject = built.subject;
+      html = built.html;
+    } else if (kind === 'review_request') {
+      // Teslimattan sonra Google yorum ricası (send-review-requests buraya
+      // devrediyor). ref_id = order_id; mükerrer koruması email_log'daki
+      // tekil indeks.
+      const { data: order } = await admin
+        .from('orders')
+        .select('id, order_number, user_id')
+        .eq('id', ref_id)
+        .maybeSingle();
+      if (!order?.user_id) return json({ skipped: 'sipariş ya da müşteri yok' });
+
+      const { data: user } = await admin
+        .from('users')
+        .select('id, email, full_name, unsubscribe_token, marketing_opt_out_at')
+        .eq('id', order.user_id)
+        .maybeSingle();
+      if (!user?.email) return json({ skipped: 'müşterinin e-postası yok' });
+      if (user.marketing_opt_out_at) return json({ skipped: 'abonelikten çıkmış' });
+
+      unsubscribeUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/unsubscribe?token=${user.unsubscribe_token}`;
+      const built = reviewRequestEmail({ name: user.full_name, orderNumber: order.order_number, unsubscribeUrl });
       to = user.email;
       userId = user.id;
       subject = built.subject;

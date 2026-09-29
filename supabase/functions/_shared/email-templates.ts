@@ -292,3 +292,36 @@ export function orderEmail(params: {
     // çıkarılabilmesi de doğru olmaz.
   };
 }
+
+// ── Teslimattan sonra Google yorum ricası ──────────────────────────────────
+//
+// Kısa ve tek düğmeli: fişteki düğmenin aynısı, ama bu kez posta yalnızca
+// bundan ibaret. Memnuniyet sorusu YOK — "memnunsan Google'a, değilsen bize
+// yaz" ayrımı review gating sayılıyor ve Google bunu yasaklıyor; herkese aynı
+// posta gidiyor, mutsuz müşteri için "just reply" yolu altta.
+export function reviewRequestEmail(params: {
+  name: string | null;
+  orderNumber: string;
+  unsubscribeUrl: string;
+}): { subject: string; html: string } {
+  const first = params.name?.trim() ? esc(params.name.trim().split(' ')[0]) : null;
+  const greeting = first ? `Hi ${first},` : 'Hi there,';
+  return {
+    subject: first ? `How was your burger, ${first}?` : 'How was your burger?',
+    html: shell('How was your burger?', `
+      <tr><td style="padding:28px 24px 8px;">
+        <h1 style="margin:0 0 12px;color:${INK};font-size:24px;font-weight:800;line-height:30px;">How was your burger?</h1>
+        <p style="margin:0 0 14px;color:${INK};font-size:15px;line-height:23px;">${greeting}</p>
+        <p style="margin:0 0 18px;color:${INK};font-size:15px;line-height:23px;">
+          Thanks for ordering from us (order ${esc(params.orderNumber)}). If you enjoyed it, a quick Google review takes about 30 seconds — and it's how neighbours find a small, family-run kitchen like ours.
+        </p>
+        ${button(GOOGLE_REVIEW_URL, 'Rate us on Google')}
+      </td></tr>
+      <tr><td style="padding:0 24px 24px;">
+        <p style="margin:0;color:${SOFT};font-size:13px;line-height:20px;">
+          Something wasn't right? Just reply to this email and we'll make it right.
+        </p>
+      </td></tr>
+    `, `<br><br><a href="${params.unsubscribeUrl}" style="color:${SOFT};">Unsubscribe from our emails</a>`),
+  };
+}
