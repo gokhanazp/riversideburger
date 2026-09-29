@@ -16,7 +16,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendEmail, getReplyTo, FROM_DEFAULT, SITE_URL } from '../_shared/email.ts';
-import { welcomeEmail, orderEmail, reviewRequestEmail, type OrderLine } from '../_shared/email-templates.ts';
+import { welcomeEmail, orderEmail, reviewRequestEmail, guestInviteEmail, type OrderLine } from '../_shared/email-templates.ts';
 
 const UNIQUE_VIOLATION = '23505';
 
@@ -152,6 +152,25 @@ serve(async (req) => {
 
       unsubscribeUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/unsubscribe?token=${user.unsubscribe_token}`;
       const built = reviewRequestEmail({ name: user.full_name, orderNumber: order.order_number, unsubscribeUrl });
+      to = user.email;
+      userId = user.id;
+      subject = built.subject;
+      html = built.html;
+    } else if (kind === 'guest_invite') {
+      // Mevcut misafire tek seferlik "hesabını kaydet" daveti. ref_id = user_id;
+      // tekil indeks kişi başı bir gönderimi garanti ediyor. Bu arada hesap
+      // sahiplenildiyse ya da abonelikten çıkıldıysa gönderilmiyor.
+      const { data: user } = await admin
+        .from('users')
+        .select('id, email, full_name, unsubscribe_token, marketing_opt_out_at, signup_source, claimed_at')
+        .eq('id', ref_id)
+        .maybeSingle();
+      if (!user?.email) return json({ skipped: 'kullanıcı ya da e-posta yok' });
+      if (user.signup_source !== 'guest' || user.claimed_at) return json({ skipped: 'misafir değil' });
+      if (user.marketing_opt_out_at) return json({ skipped: 'abonelikten çıkmış' });
+
+      unsubscribeUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/unsubscribe?token=${user.unsubscribe_token}`;
+      const built = guestInviteEmail({ name: user.full_name, email: user.email, unsubscribeUrl });
       to = user.email;
       userId = user.id;
       subject = built.subject;

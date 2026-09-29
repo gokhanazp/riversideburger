@@ -382,3 +382,43 @@ export function setPasswordEmail(params: {
     `),
   };
 }
+
+// ── Mevcut misafirlere tek seferlik davet ──────────────────────────────────
+//
+// Düğme şifre sayfasına e-posta DOLU gidiyor; tek kullanımlık jeton buraya
+// konmuyor çünkü 1 saatte bitiyor ve insanlar postayı akşam açıyor. Müşteri
+// orada tek dokunuşla bağlantı istiyor. Ticari posta sayılır: abonelikten
+// çıkma bağlantısı ve "bir daha sormayacağız" sözü var.
+export function guestInviteEmail(params: {
+  name: string | null;
+  email: string;
+  unsubscribeUrl: string;
+}): { subject: string; html: string } {
+  const first = params.name?.trim() ? esc(params.name.trim().split(' ')[0]) : null;
+  const greeting = first ? `Hi ${first},` : 'Hi there,';
+  const link = `${SITE_URL}/account/set-password?email=${encodeURIComponent(params.email)}`;
+  return {
+    subject: 'Your Riverside Burgers account is waiting',
+    html: shell('Your account is waiting', `
+      <tr><td style="padding:28px 24px 8px;">
+        <h1 style="margin:0 0 12px;color:${INK};font-size:24px;font-weight:800;line-height:30px;">Your account is waiting</h1>
+        <p style="margin:0 0 14px;color:${INK};font-size:15px;line-height:23px;">${greeting}</p>
+        <p style="margin:0 0 14px;color:${INK};font-size:15px;line-height:23px;">
+          Thanks for ordering from us. Your guest order quietly created an account for you — your orders and points are already on it. It just needs a password.
+        </p>
+        <p style="margin:0 0 18px;color:${INK};font-size:15px;line-height:23px;">
+          Set one and you can sign in on riversideburgers.ca and in the Riverside Burgers app: reorder your usual in a tap, keep earning points, and spend them whenever you like.
+        </p>
+        ${button(link, 'Save my account')}
+        <p style="margin:0 0 6px;color:${INK};font-size:14px;line-height:22px;">
+          <strong>Same login for the app.</strong> The email and password you choose work in the app too.
+        </p>
+      </td></tr>
+      <tr><td style="padding:0 24px 24px;">
+        <p style="margin:0;color:${SOFT};font-size:13px;line-height:20px;">
+          Not interested? No problem — we won't ask again.
+        </p>
+      </td></tr>
+    `, `<br><br><a href="${params.unsubscribeUrl}" style="color:${SOFT};">Unsubscribe from our emails</a>`),
+  };
+}
