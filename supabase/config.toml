@@ -36,3 +36,8 @@ verify_jwt = false
 
 [functions.send-review-requests]
 verify_jwt = false
+
+# Misafirin oturumu yok; sahiplik order_number + public_token ile, ya da
+# yalnızca e-posta (yanıt her durumda aynı).
+[functions.request-password-link]
+verify_jwt = false

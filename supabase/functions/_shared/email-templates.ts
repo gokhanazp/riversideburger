@@ -211,6 +211,8 @@ export function orderEmail(params: {
   isDelivery: boolean;
   address: string | null;
   trackUrl: string;
+  /** Misafir hesabı (şifresiz): fişe "hesabını kaydet" kutusu ekleniyor. */
+  isGuest?: boolean;
 }): { subject: string; html: string } {
   const rows = params.lines.map((l) => `
     <tr>
@@ -250,6 +252,23 @@ export function orderEmail(params: {
        </table>`
     : '';
 
+  // Misafir: hesabı var ama şifresi yok. Bağlantı sipariş sayfasındaki
+  // "Save your account" kartına iniyor; jeton ORADA üretiliyor ki 1 saatlik
+  // ömrü fişin açıldığı anda değil, müşteri istediğinde başlasın.
+  const saveAccount = params.isGuest
+    ? `<tr><td style="padding:0 24px 8px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff5f5;border:1px solid #f6cdd1;border-radius:12px;">
+          <tr><td style="padding:14px 16px;">
+            <div style="color:${INK};font-size:14px;font-weight:800;line-height:20px;">Save your account</div>
+            <div style="color:${SOFT};font-size:13px;line-height:20px;margin:4px 0 8px;">
+              You ordered as a guest, so your account already exists — it just needs a password. Set one to keep your points and reorder in a tap in our app.
+            </div>
+            <a href="${params.trackUrl}#save-account" style="color:${BRAND};font-size:13px;font-weight:700;text-decoration:none;">Set a password →</a>
+          </td></tr>
+        </table>
+      </td></tr>`
+    : '';
+
   return {
     subject: `Order #${params.orderNumber} confirmed`,
     html: shell(`Order #${params.orderNumber}`, `
@@ -279,6 +298,7 @@ export function orderEmail(params: {
         ${earned}
         ${button(params.trackUrl, 'Track your order')}
       </td></tr>
+      ${saveAccount}
       ${reviewBlock}
       ${appPromo(true)}
       <tr><td style="padding:0 24px 24px;">
@@ -323,5 +343,39 @@ export function reviewRequestEmail(params: {
         </p>
       </td></tr>
     `, `<br><br><a href="${params.unsubscribeUrl}" style="color:${SOFT};">Unsubscribe from our emails</a>`),
+  };
+}
+
+// ── Şifre belirle / sıfırla ────────────────────────────────────────────────
+//
+// Tek düğme, tek iş. Misafir için "hesabın zaten var" vurgusu: müşteri hiç
+// hesap açmadığını sanıyor. Üye için sıradan sıfırlama metni. Bağlantı 1 saat
+// geçerli ve tek kullanımlık (Auth mailer_otp_exp).
+export function setPasswordEmail(params: {
+  name: string | null;
+  isGuest: boolean;
+  link: string;
+}): { subject: string; html: string } {
+  const first = params.name?.trim() ? esc(params.name.trim().split(' ')[0]) : null;
+  const greeting = first ? `Hi ${first},` : 'Hi there,';
+  const title = params.isGuest ? 'Save your account' : 'Set a new password';
+  const intro = params.isGuest
+    ? `You've ordered from us as a guest, so you already have a Riverside Burgers account — it just needs a password. Set one and your orders and points are yours to use on our website and in the app.`
+    : `Use the button below to choose a new password for your Riverside Burgers account.`;
+  return {
+    subject: params.isGuest ? 'Save your Riverside Burgers account' : 'Set a new password',
+    html: shell(title, `
+      <tr><td style="padding:28px 24px 8px;">
+        <h1 style="margin:0 0 12px;color:${INK};font-size:24px;font-weight:800;line-height:30px;">${title}</h1>
+        <p style="margin:0 0 14px;color:${INK};font-size:15px;line-height:23px;">${greeting}</p>
+        <p style="margin:0 0 18px;color:${INK};font-size:15px;line-height:23px;">${intro}</p>
+        ${button(params.link, params.isGuest ? 'Set my password' : 'Choose a new password')}
+      </td></tr>
+      <tr><td style="padding:0 24px 24px;">
+        <p style="margin:0;color:${SOFT};font-size:13px;line-height:20px;">
+          This link is valid for 1 hour and works once. If you didn't ask for it, you can safely ignore this email — nothing changes on your account.
+        </p>
+      </td></tr>
+    `),
   };
 }

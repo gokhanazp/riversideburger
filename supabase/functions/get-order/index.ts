@@ -52,7 +52,7 @@ serve(async (req) => {
         // Belirteç sahibi zaten siparişin sahibi; kurye adı ve telefonu ona
         // gösterilmesi GEREKEN bilgi (Uber'in kendi takip sayfası da gösteriyor).
         // Adres, e-posta ve müşteri adı hâlâ dönmüyor.
-        'order_number, status, payment_status, source, delivery_method, total_amount, tax_amount, discount_amount, tip_amount, delivery_fee, points_used, created_at, ' +
+        'user_id, order_number, status, payment_status, source, delivery_method, total_amount, tax_amount, discount_amount, tip_amount, delivery_fee, points_used, created_at, ' +
           'uber_status, uber_tracking_url, pickup_eta, dropoff_eta, ' +
           'courier_name, courier_phone, courier_image_url, courier_vehicle_make, courier_vehicle_model, courier_vehicle_color, courier_license_plate, courier_location_updated_at, ' +
           'campaign:campaigns(name_en), order_items(quantity, price, subtotal, product:products(name))'
@@ -69,7 +69,20 @@ serve(async (req) => {
     // sipariş numaralarının gerçek olduğunu sızdırmamak için.
     if (!data) return json({ error: 'not found' }, 404);
 
-    return json({ order: data });
+    // Misafir mi? Sipariş sayfası buna göre "hesabını kaydet" kartını
+    // gösteriyor. user_id dışarı ÇIKMIYOR: yalnızca bu bakış için çekildi.
+    let isGuest = false;
+    if (data.user_id) {
+      const { data: owner } = await admin
+        .from('users')
+        .select('signup_source')
+        .eq('id', data.user_id)
+        .maybeSingle();
+      isGuest = owner?.signup_source === 'guest';
+    }
+    const { user_id: _userId, ...publicOrder } = data as Record<string, unknown>;
+
+    return json({ order: { ...publicOrder, is_guest: isGuest } });
   } catch (error) {
     console.error('[get-order] unhandled', error);
     return json({ error: 'unexpected error' }, 500);

@@ -92,7 +92,7 @@ serve(async (req) => {
 
       const { data: user } = await admin
         .from('users')
-        .select('id, email, full_name')
+        .select('id, email, full_name, signup_source')
         .eq('id', order.user_id)
         .maybeSingle();
       if (!user?.email) return json({ skipped: 'müşterinin e-postası yok' });
@@ -125,6 +125,7 @@ serve(async (req) => {
         isDelivery: order.delivery_method === 'delivery',
         address: order.delivery_address,
         trackUrl: `${SITE_URL}/order/${order.order_number}?t=${order.public_token}`,
+        isGuest: user.signup_source === 'guest',
       });
       to = user.email;
       userId = user.id;
