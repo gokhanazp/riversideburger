@@ -52,6 +52,7 @@ import AdminProductCustomization from '../screens/admin/AdminProductCustomizatio
 import AdminProductOptions from '../screens/admin/AdminProductOptions';
 import AdminCategories from '../screens/admin/AdminCategories';
 import AdminUsers from '../screens/admin/AdminUsers';
+import AdminReports from '../screens/admin/AdminReports';
 import AdminSettings from '../screens/admin/AdminSettings';
 import AdminContactSettings from '../screens/admin/AdminContactSettings';
 import AdminBanners from '../screens/admin/AdminBanners';
@@ -628,6 +629,11 @@ const AppNavigator = () => {
               fontSize: 18,
             },
           }}
+        />
+        <Stack.Screen
+          name="AdminReports"
+          component={AdminReports}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="AdminOrders"

@@ -232,6 +232,7 @@ const AdminDashboard = ({ navigation }: any) => {
                 <ActionCard index={11} icon="people-outline" title={t('admin.users.title')} color="#6F42C1" onPress={() => navigation.navigate('AdminUsers')} />
                 <ActionCard index={12} icon="print-outline" title={t('admin.printer.menuTitle')} color="#343A40" onPress={() => navigation.navigate('AdminPrinterSettings')} />
                 <ActionCard index={13} icon="pricetags-outline" title={t('admin.campaigns.menuTitle')} color="#E8590C" onPress={() => navigation.navigate('AdminCampaigns')} />
+                <ActionCard index={14} icon="bar-chart-outline" title={t('admin.reports.title')} color="#0D6EFD" onPress={() => navigation.navigate('AdminReports')} />
             </View>
         </View>
         <View style={{ height: 40 }} />
