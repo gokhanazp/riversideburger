@@ -1,6 +1,7 @@
 // Order History Screen - Sipariş Geçmişi Ekranı
 import React, { useState, useEffect, useMemo, useLayoutEffect } from 'react';
 import {
+  Linking,
   View,
   Text,
   StyleSheet,
