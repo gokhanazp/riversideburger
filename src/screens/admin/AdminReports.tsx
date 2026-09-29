@@ -301,7 +301,9 @@ export default function AdminReports() {
         </View>
       </LinearGradient>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+      {/* style={flexGrow: 0} ŞART: yatay ScrollView aksi halde dikeyde
+          sıkıştırılıyor (alttaki liste yeri alıyor) ve çip yazıları kırpılıyor. */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={styles.chipsRow}>
         {presets.map((p) => (
           <TouchableOpacity key={p.key} onPress={() => setPreset(p.key)} style={[styles.chip, preset === p.key && styles.chipActive]}>
             <Text style={[styles.chipText, preset === p.key && styles.chipTextActive]}>{p.label}</Text>
@@ -309,7 +311,7 @@ export default function AdminReports() {
         ))}
       </ScrollView>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statusRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={styles.statusRow}>
         {(['all', 'delivered', 'in_progress', 'cancelled'] as StatusFilter[]).map((k) => (
           <TouchableOpacity key={k} onPress={() => setStatusFilter(k)} style={[styles.statusChip, statusFilter === k && styles.statusChipActive]}>
             <Text style={[styles.statusChipText, statusFilter === k && styles.statusChipTextActive]}>{t(`admin.reports.status_${k}`)}</Text>
@@ -504,12 +506,13 @@ const styles = StyleSheet.create({
   headerStat: { flex: 1 },
   statVal: { fontSize: 17, fontWeight: '900', color: Colors.white },
   statLabel: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '700', textTransform: 'uppercase', marginTop: 2 },
-  chipsRow: { paddingHorizontal: 20, paddingVertical: 14, gap: 8 },
+  hScroll: { flexGrow: 0, flexShrink: 0 },
+  chipsRow: { paddingHorizontal: 20, paddingVertical: 14, gap: 8, alignItems: 'center' },
   chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14, backgroundColor: Colors.white, borderWidth: 1, borderColor: '#EEE' },
   chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   chipText: { fontSize: 13, fontWeight: '700', color: '#666' },
   chipTextActive: { color: Colors.white },
-  statusRow: { paddingHorizontal: 20, paddingBottom: 10, gap: 8 },
+  statusRow: { paddingHorizontal: 20, paddingBottom: 10, gap: 8, alignItems: 'center' },
   statusChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12, backgroundColor: '#F1F3F5' },
   statusChipActive: { backgroundColor: Colors.text },
   statusChipText: { fontSize: 12, fontWeight: '700', color: '#666' },
