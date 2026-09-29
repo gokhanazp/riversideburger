@@ -3,14 +3,12 @@
     "name": "Riverside Burgers",
     "slug": "riverside-burgers",
     "scheme": "riversideburgers",
-    "version": "2.0.7",
+    "version": "2.0.8",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "2.0.7",
     "updates": {
       "url": "https://u.expo.dev/8fe95f1d-8d84-4ccf-8b75-cdd48aceb0fd",
       "fallbackToCacheTimeout": 0

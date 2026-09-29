@@ -219,3 +219,13 @@ Sorularınız için issue açabilirsiniz.
 
 **Not**: Bu uygulama development aşamasındadır. Production kullanımı için ek güvenlik ve optimizasyon gereklidir.
 
+
+## Runtime version vs store version
+
+`expo.runtimeVersion` is pinned to a string (`"2.0.7"`) on purpose and is
+**not** tied to `expo.version`. A store build only needs a new `version`
+(e.g. 2.0.8 for new App Store screenshots); as long as the native layer is
+unchanged, keep the runtime string as is so one OTA line reaches every
+installed build. Bump the runtime string only when native code changes
+(Expo SDK upgrade, new native module, config plugin change) — and ship a
+store build at the same time.
