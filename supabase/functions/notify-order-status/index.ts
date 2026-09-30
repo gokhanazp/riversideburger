@@ -18,6 +18,13 @@ import { orderStatusEmail } from '../_shared/email-templates.ts';
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 const UNIQUE_VIOLATION = '23505';
 const EMAIL_STATUSES = new Set(['ready', 'cancelled']);
+// Push yalnızca müşterinin bir şey YAPACAĞI ya da bilmesi gereken anlarda.
+// "Onaylandı" ve "hazırlanıyor" çoğu zaman saniyeler arayla geliyor (admin
+// art arda dokunuyor) ve iki push üst üste bunaltıyor; gel-al'da "teslim
+// edildi" ise müşteri zaten tezgâhtayken düşüyor. Bunlar yine de uygulama
+// içi listeye yazılıyor, sessizce.
+const pushWanted = (status: string, pickup: boolean) =>
+  status === 'ready' || status === 'cancelled' || (!pickup && (status === 'delivering' || status === 'delivered'));
 
 type ExpoTicket = { status: 'ok' | 'error'; details?: { error?: string } };
 
@@ -84,7 +91,9 @@ serve(async (req) => {
     if (prefs && prefs.order_status_enabled === false) return json({ skipped: 'order status notifications off' });
 
     const tokens = [...new Set<string>((tokenRows ?? []).map((r: { token: string }) => r.token).filter(Boolean))];
-    const pushAllowed = tokens.length > 0 && prefs?.push_notifications !== false;
+    const pickup = order.delivery_method === 'pickup';
+    const hasPush = tokens.length > 0 && prefs?.push_notifications !== false;
+    const pushAllowed = hasPush && pushWanted(status, pickup);
     const summary: Record<string, unknown> = { order: order.order_number, status };
 
     // Aynı (sipariş, durum, kanal) için ikinci kez çalışmayı engeller.
@@ -141,7 +150,8 @@ serve(async (req) => {
     }
 
     // ── E-posta: push'u olmayanlara, yalnızca hazır / iptal ──────────────
-    const emailAllowed = !pushAllowed && EMAIL_STATUSES.has(status) && !!user.email && prefs?.email_notifications !== false;
+    // E-posta yalnızca push'u hiç olmayanlara (web misafiri): hazır ve iptal.
+    const emailAllowed = !hasPush && EMAIL_STATUSES.has(status) && !!user.email && prefs?.email_notifications !== false;
     if (emailAllowed && (await claim('email'))) {
       const built = orderStatusEmail({
         status: status as 'ready' | 'cancelled',
