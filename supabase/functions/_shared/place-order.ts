@@ -21,6 +21,8 @@ export interface PlaceOrderInput {
   sessionId: string;
   paymentIntentId: string | null;
   amount: number;
+  /** Rapor için normalize ödeme yöntemi (card / apple_pay / google_pay); yoksa null. */
+  paymentMethod?: string | null;
 }
 
 export interface PlacedOrder {
@@ -151,7 +153,7 @@ export async function placeOrder(
         source: 'web',
         payment_status: 'paid',
         paid_at: paidAt,
-        payment_method: session.payment_method ?? null,
+        payment_method: input.paymentMethod ?? null,
       })
       .select('id, order_number, public_token')
       .single();
@@ -327,6 +329,7 @@ export async function settleSession(
     sessionId: session.id,
     paymentIntentId,
     amount: (session.amount_total ?? 0) / 100,
+    paymentMethod: session.payment_method ?? null,
   });
 
   return { status: 'placed', order };
