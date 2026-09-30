@@ -152,3 +152,63 @@ export const isOpenAtRestaurantTime = (
 
   return false;
 };
+
+// ── Gün sınırı ve tarih gösterimi ─────────────────────────────────────────
+//
+// "Bugünün siparişleri", sipariş kartındaki saat, fişteki saat: hepsi
+// RESTORANIN gününe göre olmalı. Cihazın saat dilimiyle hesaplanınca
+// İstanbul'daki telefonda gün Toronto saatiyle 17:00'de değişiyor ve akşam
+// siparişleri ertesi güne düşüyordu. Restoranın tableti Toronto'da olduğu
+// için orada fark edilmiyordu.
+
+const RESTAURANT_DATE_PARTS = (date: Date) => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: RESTAURANT_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  return { y: get('year'), m: get('month'), d: get('day') };
+};
+
+/** Toronto'da bugünün 00:00'ı, UTC anı olarak. Sorgularda `created_at >= …` için. */
+export const restaurantStartOfToday = (now: Date = new Date()): Date => {
+  let y = NaN;
+  let m = NaN;
+  let d = NaN;
+  try {
+    ({ y, m, d } = RESTAURANT_DATE_PARTS(now));
+  } catch {
+    // Intl saat dilimi desteği yok — ofsetle kaydırıp UTC alanlarını oku.
+  }
+  if (!(y && m && d)) {
+    const shifted = new Date(now.getTime() + torontoOffsetHours(now) * 3600_000);
+    y = shifted.getUTCFullYear();
+    m = shifted.getUTCMonth() + 1;
+    d = shifted.getUTCDate();
+  }
+  // O günün gece yarısındaki ofset: yaz saati geçişleri yerel 02:00'de olduğu
+  // için gece yarısı hâlâ ÖNCEKİ ofsettedir; 05:00 UTC her iki geçişten önce.
+  const offset = torontoOffsetHours(new Date(Date.UTC(y, m - 1, d, 5)));
+  return new Date(Date.UTC(y, m - 1, d, -offset));
+};
+
+/**
+ * Bir anı Toronto saatiyle biçimlendirir. Varsayılan "29 Sep, 23:10" gibi;
+ * `options` ile alanlar değiştirilebilir (yıl, yalnızca saat vb.).
+ */
+export const formatRestaurantDateTime = (
+  value: string | Date,
+  locale = 'en-CA',
+  options: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }
+): string => {
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return '—';
+  try {
+    return new Intl.DateTimeFormat(locale, { timeZone: RESTAURANT_TZ, ...options }).format(date);
+  } catch {
+    const shifted = new Date(date.getTime() + torontoOffsetHours(date) * 3600_000);
+    return shifted.toISOString().slice(0, 16).replace('T', ' ');
+  }
+};

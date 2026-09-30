@@ -1,5 +1,6 @@
 // Order History Screen - Sipariş Geçmişi Ekranı
 import React, { useState, useEffect, useMemo, useLayoutEffect } from 'react';
+import { formatRestaurantDateTime } from '../services/restaurantTime';
 import {
   Linking,
   View,
@@ -163,7 +164,7 @@ const OrderHistoryScreen = () => {
     if (diffDay < 7) return t('orderHistory.daysAgo', { count: diffDay }) || `${diffDay} gün önce`;
 
     const locale = i18n.language === 'tr' ? 'tr-TR' : 'en-US';
-    return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+    return formatRestaurantDateTime(date, locale, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   const renderOrderItem = ({ item }: { item: Order }) => {

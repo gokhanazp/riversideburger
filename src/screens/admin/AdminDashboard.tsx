@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { restaurantStartOfToday } from '../../services/restaurantTime';
 import {
   View,
   Text,
@@ -55,9 +56,9 @@ const AdminDashboard = ({ navigation }: any) => {
       const totalRevenue = revenueData?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
       const { count: totalUsers } = await supabase.from('users').select('*', { count: 'exact', head: true });
       const { count: totalProducts } = await supabase.from('products').select('*', { count: 'exact', head: true });
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const { count: todayOrders } = await supabase.from('orders').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString());
+      // Restoranın günü, cihazın değil: İstanbul'daki telefonda gün 17:00'de
+      // değişip akşam siparişlerini yarına atıyordu.
+      const { count: todayOrders } = await supabase.from('orders').select('*', { count: 'exact', head: true }).gte('created_at', restaurantStartOfToday().toISOString());
       const { count: pendingReviews } = await supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('is_approved', false).eq('is_rejected', false);
 
       setStats({

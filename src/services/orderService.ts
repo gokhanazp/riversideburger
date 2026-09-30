@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { restaurantStartOfToday } from './restaurantTime';
 import { Order, OrderItem, OrderStatus } from '../types/database.types';
 import { usePoints } from './pointsService';
 
@@ -416,9 +417,7 @@ export const subscribeToNewOrders = (callback: (order: Order) => void) => {
 // Bugünkü istatistikleri getir (Get today's statistics) - ADMIN
 export const getTodayStats = async () => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayISO = today.toISOString();
+    const todayISO = restaurantStartOfToday().toISOString(); // Toronto günü
 
     // Bugünkü siparişler (Today's orders)
     const { data: orders, error: ordersError } = await supabase

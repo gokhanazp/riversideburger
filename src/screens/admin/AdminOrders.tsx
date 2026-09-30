@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import { formatRestaurantDateTime } from '../../services/restaurantTime';
 import {
   View,
   Text,
@@ -372,7 +373,7 @@ const AdminOrders = ({ navigation, route }: any) => {
               ${contact?.phone1 ? `<div>${contact.phone1}</div>` : ''}
               ${contact?.businessNumber ? `<div>${contact.businessNumber}</div>` : ''}
               <div class="order-number">ORDER #${order.order_number}</div>
-              <div>${t('admin.printer.receipt.orderDateTime')}: ${new Date(order.created_at).toLocaleString()}</div>
+              <div>${t('admin.printer.receipt.orderDateTime')}: ${formatRestaurantDateTime(order.created_at, 'en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}</div>
             </div>
             <div class="section">
               <div class="info-row"><b>Customer:</b> <span>${order.user?.full_name || 'Guest'}</span></div>
@@ -561,9 +562,7 @@ const AdminOrders = ({ navigation, route }: any) => {
           <View style={styles.cardFooter}>
             <View>
                 <Text style={styles.cardDate}>
-                {new Date(order.created_at).toLocaleDateString(i18n.language === 'tr' ? 'tr-TR' : 'en-US', {
-                    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-                })}
+                {formatRestaurantDateTime(order.created_at, i18n.language === 'tr' ? 'tr-TR' : 'en-US')}
                 </Text>
                 <Text style={styles.cardPrice}>{formatPrice(order.total_amount)}</Text>
             </View>

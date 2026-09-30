@@ -7,6 +7,7 @@
 // Expo Go veya web'de native modül bulunmadığından import güvenli tutulur.
 
 import { Platform, PermissionsAndroid } from 'react-native';
+import { formatRestaurantDateTime } from './restaurantTime';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Order } from '../types/database.types';
 import { getCurrencyInfo } from './currencyService';
@@ -238,7 +239,8 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
   await printer.addText(`${rt('orderPrefix')}${order.order_number}\n`);
   await printer.addTextSize({ width: 1, height: 1 });
 
-  const dateStr = new Date(order.created_at).toLocaleString();
+  // Fişteki saat restoranın saati; tablet başka dilimde olsa da Toronto yazar.
+  const dateStr = formatRestaurantDateTime(order.created_at, 'en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
   await printer.addText(`${rt('orderDateTime')}: ${dateStr}\n`);
 
   const methodLabel =

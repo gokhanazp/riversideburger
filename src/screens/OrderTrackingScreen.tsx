@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { formatRestaurantDateTime } from '../services/restaurantTime';
 import {
   View,
   Text,
@@ -76,7 +77,9 @@ function formatEta(iso: string | null, locale: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '—';
   const localeTag = locale === 'tr' ? 'tr-TR' : 'en-CA';
-  return d.toLocaleTimeString(localeTag, { hour: '2-digit', minute: '2-digit' });
+  // Kurye saati restoranın saat dilimiyle: müşteri başka dilimdeyken
+  // "14:20'de gelecek" cihaz saatine göre yanıltıcı oluyordu.
+  return formatRestaurantDateTime(d, localeTag, { hour: '2-digit', minute: '2-digit' });
 }
 
 function minutesUntil(iso: string | null): number | null {
