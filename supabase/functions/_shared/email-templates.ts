@@ -422,3 +422,119 @@ export function guestInviteEmail(params: {
     `, `<br><br><a href="${params.unsubscribeUrl}" style="color:${SOFT};">Unsubscribe from our emails</a>`),
   };
 }
+
+// ── Catering başvurusu ─────────────────────────────────────────────────────
+export interface CateringRequestLike {
+  id: string;
+  name: string;
+  company: string | null;
+  email: string;
+  phone: string;
+  event_date: string | null;
+  event_time: string | null;
+  guests: number | null;
+  event_type: string | null;
+  service: string | null;
+  address: string | null;
+  notes: string | null;
+}
+
+const row = (label: string, value: string | number | null | undefined) =>
+  value === null || value === undefined || value === ''
+    ? ''
+    : `<tr>
+        <td style="padding:6px 0;color:${SOFT};font-size:13px;width:38%;vertical-align:top;">${esc(label)}</td>
+        <td style="padding:6px 0;color:${INK};font-size:14px;vertical-align:top;">${esc(value)}</td>
+      </tr>`;
+
+/** Restorana: başvurunun özeti. Yanıt adresi müşteri; "Reply" ile teklif yazılır. */
+export function cateringRequestEmail(r: CateringRequestLike): { subject: string; html: string } {
+  const bits = [r.name, r.guests ? `${r.guests} guests` : null, r.event_date].filter(Boolean).join(' · ');
+  return {
+    subject: `Catering request — ${bits}`,
+    html: shell('Catering request', `
+      <tr><td style="padding:28px 24px 8px;">
+        <h1 style="margin:0 0 6px;color:${INK};font-size:22px;font-weight:800;line-height:28px;">New catering request</h1>
+        <p style="margin:0 0 16px;color:${SOFT};font-size:14px;line-height:21px;">From the website. Reply to this email to answer ${esc(r.name)} directly.</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${LINE};border-bottom:1px solid ${LINE};">
+          ${row('Name', r.name)}
+          ${row('Company', r.company)}
+          ${row('Email', r.email)}
+          ${row('Phone', r.phone)}
+          ${row('Event date', r.event_date)}
+          ${row('Time', r.event_time)}
+          ${row('Guests', r.guests)}
+          ${row('Occasion', r.event_type)}
+          ${row('Service', r.service)}
+          ${row('Address', r.address)}
+          ${row('Notes', r.notes)}
+        </table>
+        <p style="margin:14px 0 0;color:${MUTED};font-size:12px;">Request ID ${esc(r.id)}</p>
+      </td></tr>
+    `),
+  };
+}
+
+/** Müşteriye: alındı, 24 saat içinde dönüş. */
+export function cateringAckEmail(r: CateringRequestLike): { subject: string; html: string } {
+  const first = esc(r.name.trim().split(' ')[0] || 'there');
+  const when = [r.event_date, r.guests ? `${r.guests} guests` : null].filter(Boolean).join(', ');
+  return {
+    subject: 'We got your catering request',
+    html: shell('We got your catering request', `
+      <tr><td style="padding:28px 24px 8px;">
+        <h1 style="margin:0 0 12px;color:${INK};font-size:24px;font-weight:800;line-height:30px;">Thanks, ${first}!</h1>
+        <p style="margin:0 0 14px;color:${INK};font-size:15px;line-height:23px;">
+          We've received your catering request${when ? ` (${esc(when)})` : ''}. Someone from the kitchen will get back to you within 24 hours with a menu suggestion and a quote.
+        </p>
+        <p style="margin:0 0 18px;color:${INK};font-size:15px;line-height:23px;">
+          Need to add or change anything? Just reply to this email, or call us on +1 (416) 850-7026.
+        </p>
+      </td></tr>
+    `),
+  };
+}
+
+// ── Sipariş durumu (yalnızca uygulaması olmayan müşteriye: hazır / iptal) ──
+export function orderStatusEmail(params: {
+  status: 'ready' | 'cancelled';
+  orderNumber: string;
+  name: string | null;
+  deliveryMethod: 'pickup' | 'delivery' | string;
+  trackUrl: string;
+}): { subject: string; html: string } {
+  const first = params.name?.trim() ? esc(params.name.trim().split(' ')[0]) : null;
+  const greeting = first ? `Hi ${first},` : 'Hi there,';
+  const n = esc(params.orderNumber);
+  if (params.status === 'cancelled') {
+    return {
+      subject: `Order #${params.orderNumber} was cancelled`,
+      html: shell('Order cancelled', `
+        <tr><td style="padding:28px 24px 24px;">
+          <h1 style="margin:0 0 12px;color:${INK};font-size:24px;font-weight:800;line-height:30px;">Order cancelled</h1>
+          <p style="margin:0 0 14px;color:${INK};font-size:15px;line-height:23px;">${greeting}</p>
+          <p style="margin:0 0 14px;color:${INK};font-size:15px;line-height:23px;">
+            Order <strong>#${n}</strong> has been cancelled. If you were charged, the refund goes back to the same card within a few business days.
+          </p>
+          <p style="margin:0;color:${SOFT};font-size:13px;line-height:20px;">Questions? Reply to this email or call +1 (416) 850-7026.</p>
+        </td></tr>
+      `),
+    };
+  }
+  const pickup = params.deliveryMethod === 'pickup';
+  return {
+    subject: pickup ? `Order #${params.orderNumber} is ready for pickup` : `Order #${params.orderNumber} is ready`,
+    html: shell(pickup ? 'Ready for pickup' : 'Your order is ready', `
+      <tr><td style="padding:28px 24px 24px;">
+        <h1 style="margin:0 0 12px;color:${INK};font-size:24px;font-weight:800;line-height:30px;">${pickup ? 'Ready for pickup!' : 'Your order is ready'}</h1>
+        <p style="margin:0 0 14px;color:${INK};font-size:15px;line-height:23px;">${greeting}</p>
+        <p style="margin:0 0 6px;color:${INK};font-size:15px;line-height:23px;">
+          ${pickup
+            ? `Order <strong>#${n}</strong> is packed and waiting for you at <strong>688 Queen Street East</strong>. See you soon!`
+            : `Order <strong>#${n}</strong> is packed and the courier is being called. You can follow it on your order page.`}
+        </p>
+        ${button(params.trackUrl, 'View your order')}
+      </td></tr>
+    `),
+  };
+}

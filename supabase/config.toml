@@ -41,3 +41,11 @@ verify_jwt = false
 # yalnızca e-posta (yanıt her durumda aynı).
 [functions.request-password-link]
 verify_jwt = false
+
+# Web catering formu; başvuran çoğu zaman üye değil.
+[functions.catering-request]
+verify_jwt = false
+
+# Tetikleyiciden pg_net ile çağrılıyor; sır x-email-secret.
+[functions.notify-order-status]
+verify_jwt = false
