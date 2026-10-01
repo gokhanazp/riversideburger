@@ -40,6 +40,8 @@ export interface CartItem extends MenuItem {
     option_price: number;
   }>;
   specialInstructions?: string;
+  /** 'upsell' = sepetteki "Goes well with" şeridinden eklendi (rapor için). */
+  addedVia?: 'menu' | 'upsell';
 }
 
 // Sipariş durumu için tip tanımı (Order status type definition)

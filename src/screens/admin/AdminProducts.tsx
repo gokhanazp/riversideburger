@@ -45,6 +45,7 @@ interface Product {
   ingredients?: string[];
   calories?: number | null;
   display_order?: number;
+  upsell_rank?: number | null;
   created_at: string;
   updated_at?: string;
 }
@@ -66,6 +67,9 @@ const AdminProducts = ({ navigation }: any) => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  // Ekstra satış: genel havuz sırası ('' = havuzda değil) ve ürün bazlı eşler.
+  const [upsellRank, setUpsellRank] = useState('');
+  const [pairings, setPairings] = useState<string[]>([]);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -144,10 +148,32 @@ const AdminProducts = ({ navigation }: any) => {
     fetchProducts();
   };
 
+  const loadPairings = async (productId: string) => {
+    const { data } = await supabase
+      .from('product_pairings')
+      .select('suggested_product_id, sort_order')
+      .eq('product_id', productId)
+      .order('sort_order', { ascending: true });
+    setPairings((data ?? []).map((r: any) => r.suggested_product_id as string));
+  };
+
+  const savePairings = async (productId: string) => {
+    const { error: delError } = await supabase.from('product_pairings').delete().eq('product_id', productId);
+    if (delError) throw delError;
+    if (pairings.length) {
+      const { error } = await supabase
+        .from('product_pairings')
+        .insert(pairings.map((id, i) => ({ product_id: productId, suggested_product_id: id, sort_order: i })));
+      if (error) throw error;
+    }
+  };
+
   const handleAddProduct = () => {
     setSelectedProduct(null);
     setLocalImagePreview(null);
     setIngredientInput('');
+    setUpsellRank('');
+    setPairings([]);
     setFormData({
       name: '',
       description: '',
@@ -167,6 +193,9 @@ const AdminProducts = ({ navigation }: any) => {
     setSelectedProduct(product);
     setLocalImagePreview(null);
     setIngredientInput('');
+    setUpsellRank(product.upsell_rank != null ? String(product.upsell_rank) : '');
+    setPairings([]);
+    void loadPairings(product.id);
     setFormData({
       name: product.name,
       description: product.description,
@@ -200,15 +229,18 @@ const AdminProducts = ({ navigation }: any) => {
         ingredients: formData.ingredients,
         calories: formData.calories.trim() ? parseInt(formData.calories) : null,
         display_order: formData.display_order,
+        upsell_rank: upsellRank.trim() === '' ? null : (parseInt(upsellRank, 10) || null),
       };
 
       if (selectedProduct) {
         const { error } = await supabase.from('products').update(productData).eq('id', selectedProduct.id);
         if (error) throw error;
+        await savePairings(selectedProduct.id);
         Toast.show({ type: 'success', text1: t('admin.products.success'), text2: t('admin.products.productUpdated') });
       } else {
-        const { error } = await supabase.from('products').insert(productData);
+        const { data: created, error } = await supabase.from('products').insert(productData).select('id').single();
         if (error) throw error;
+        if (created?.id && pairings.length) await savePairings(created.id);
         Toast.show({ type: 'success', text1: t('admin.products.success'), text2: t('admin.products.productAdded') });
       }
 
@@ -585,7 +617,7 @@ const AdminProducts = ({ navigation }: any) => {
                             thumbColor={formData.stock_status === 'in_stock' ? Colors.success : '#999'}
                           />
                       </View>
-                      <View style={[styles.switchRow, { borderBottomWidth: 0 }]}>
+                      <View style={styles.switchRow}>
                           <Text style={styles.switchLabel}>{t('admin.products.featuredLabel')}</Text>
                           <Switch 
                             value={formData.is_featured}
@@ -593,6 +625,49 @@ const AdminProducts = ({ navigation }: any) => {
                             trackColor={{ false: '#eee', true: '#FFD70040' }}
                             thumbColor={formData.is_featured ? '#FFD700' : '#999'}
                           />
+                      </View>
+
+                      {/* Ekstra satış: genel havuz anahtarı + sırası */}
+                      <View style={[styles.switchRow, upsellRank === '' && { borderBottomWidth: 0 }]}>
+                          <Text style={styles.switchLabel}>{t('admin.products.upsellLabel')}</Text>
+                          <Switch
+                            value={upsellRank !== ''}
+                            onValueChange={v => setUpsellRank(v ? (upsellRank || '10') : '')}
+                            trackColor={{ false: '#eee', true: Colors.primary + '40' }}
+                            thumbColor={upsellRank !== '' ? Colors.primary : '#999'}
+                          />
+                      </View>
+                      {upsellRank !== '' && (
+                        <View style={[styles.switchRow, { borderBottomWidth: 0 }]}>
+                          <Text style={styles.switchLabel}>{t('admin.products.upsellRank')}</Text>
+                          <TextInput
+                            style={styles.rankInput}
+                            value={upsellRank}
+                            onChangeText={setUpsellRank}
+                            keyboardType="number-pad"
+                            maxLength={3}
+                          />
+                        </View>
+                      )}
+                  </View>
+
+                  {/* Ürün bazlı eşler: bu ürün sepetteyken önce bunlar önerilir */}
+                  <View style={styles.switchesContainer}>
+                      <Text style={styles.switchLabel}>{t('admin.products.pairsWith')}</Text>
+                      <Text style={styles.pairHint}>{t('admin.products.pairsWithHint')}</Text>
+                      <View style={styles.pairWrap}>
+                        {products.filter(p => p.id !== selectedProduct?.id).map(p => {
+                          const on = pairings.includes(p.id);
+                          return (
+                            <TouchableOpacity
+                              key={p.id}
+                              onPress={() => setPairings(on ? pairings.filter(id => id !== p.id) : [...pairings, p.id])}
+                              style={[styles.pairChip, on && styles.pairChipOn]}
+                            >
+                              <Text style={[styles.pairChipText, on && styles.pairChipTextOn]}>{p.name}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
                       </View>
                   </View>
 
@@ -689,6 +764,13 @@ const styles = StyleSheet.create({
   switchesContainer: { backgroundColor: Colors.white, borderRadius: 20, padding: 20, marginBottom: 30, borderWidth: 1, borderColor: '#EEE' },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
   switchLabel: { fontSize: 16, fontWeight: '700', color: Colors.text },
+  rankInput: { width: 64, textAlign: 'center', borderWidth: 1, borderColor: '#EEE', borderRadius: 10, paddingVertical: 6, fontSize: 15, fontWeight: '700', color: Colors.text },
+  pairHint: { fontSize: 12, color: '#888', marginTop: 4, marginBottom: 10 },
+  pairWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pairChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12, backgroundColor: '#F1F3F5' },
+  pairChipOn: { backgroundColor: Colors.primary },
+  pairChipText: { fontSize: 12, fontWeight: '700', color: '#555' },
+  pairChipTextOn: { color: '#FFF' },
   saveBigBtn: { backgroundColor: Colors.primary, height: 60, borderRadius: 20, justifyContent: 'center', alignItems: 'center', ...Shadows.medium },
   saveBigBtnText: { color: Colors.white, fontSize: 18, fontWeight: '900' },
   previewContainer: { width: '100%', height: '100%', position: 'relative' },

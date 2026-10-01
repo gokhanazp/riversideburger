@@ -137,7 +137,7 @@ export default function AdminReports() {
       const p = { p_from: range.from.toISOString(), p_to: range.to.toISOString(), p_statuses, p_source };
       const prevFrom = new Date(range.from.getTime() - (range.to.getTime() - range.from.getTime()));
       const prev = { p_from: prevFrom.toISOString(), p_to: range.from.toISOString(), p_statuses, p_source };
-      const [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses] = await Promise.all([
+      const [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses, upsell] = await Promise.all([
         supabase.rpc('report_summary', p),
         supabase.rpc('report_summary', prev),
         supabase.rpc('report_timeseries', { ...p, p_bucket: effBucket }),
@@ -147,11 +147,12 @@ export default function AdminReports() {
         supabase.rpc('report_hours', p),
         supabase.rpc('report_channels', p),
         supabase.rpc('report_delivery', p),
+        supabase.rpc('report_upsell', p),
         // Durum dağılımı DURUM filtresinden bağımsız: filtre "iptal" seçiliyken
         // bile dönemin tamamı görünsün. Kanal filtresi ise uygulanıyor.
         supabase.rpc('report_status_breakdown', { p_from: p.p_from, p_to: p.p_to, p_source }),
       ]);
-      const firstErr = [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses].find((r) => r.error)?.error;
+      const firstErr = [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses, upsell].find((r) => r.error)?.error;
       if (firstErr) throw firstErr;
       setData({
         summary: summary.data?.[0] ?? {},
@@ -164,6 +165,7 @@ export default function AdminReports() {
         channels: channels.data ?? [],
         delivery: delivery.data?.[0] ?? {},
         statuses: statuses.data ?? [],
+        upsell: upsell.data?.[0] ?? {},
       });
     } catch (e: any) {
       const msg = e?.message ?? t('admin.reports.loadError');
@@ -417,6 +419,14 @@ export default function AdminReports() {
                   <View style={styles.rowBetween}><Text style={[styles.rowLabel, { fontWeight: '800', color: Colors.text }]}>{t('admin.reports.netDelivery')}</Text><Text style={[styles.rowVal, { color: n(data.delivery.net_delivery) < 0 ? Colors.primary : '#28A745' }]}>{formatPrice(n(data.delivery.net_delivery))}</Text></View>
                 </View>
               )}
+            </View>
+
+            {/* Ekstra satış ("Goes well with" şeridinden eklenenler) */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>{t('admin.reports.upsell')}</Text>
+              <View style={styles.rowBetween}><Text style={styles.rowLabel}>{t('admin.reports.upsellOrders')}</Text><Text style={styles.rowVal}>{n(data.upsell.orders_with_upsell)} / {n(data.upsell.orders_total)} · {n(data.upsell.attach_rate_pct)}%</Text></View>
+              <View style={styles.rowBetween}><Text style={styles.rowLabel}>{t('admin.reports.upsellItems')}</Text><Text style={styles.rowVal}>{n(data.upsell.upsell_items)}</Text></View>
+              <View style={styles.rowBetween}><Text style={styles.rowLabel}>{t('admin.reports.upsellRevenue')}</Text><Text style={styles.rowVal}>{formatPrice(n(data.upsell.upsell_revenue))}</Text></View>
             </View>
 
             {/* Ödeme yöntemi */}

@@ -189,6 +189,7 @@
     "addedToCartDesc": "{{quantity}}x {{name}} sepetinize eklendi"
   },
   "cart": {
+    "goesWellWith": "Bununla iyi gider",
     "title": "Sepetim",
     "closedTitle": "Şu anda kapalıyız",
     "closedDesc": "Siparişi henüz alamıyoruz — sepetiniz açılana kadar duruyor.",
@@ -745,6 +746,10 @@
       "filterUnpaid": "Ödenmedi"
     },
     "products": {
+      "upsellLabel": "Ekstra olarak öner",
+      "upsellRank": "Sıra",
+      "pairsWith": "Bununla iyi gider",
+      "pairsWithHint": "Bu ürün sepetteyken önce bunlar önerilir. Kalan yerleri genel havuz doldurur.",
       "title": "Ürün Yönetimi",
       "addProduct": "Yeni Ürün Ekle",
       "editProduct": "Ürünü Düzenle",
@@ -1475,6 +1480,10 @@
       "pickup": "Gel-al",
       "delivery": "Teslimat",
       "webVsApp": "Web sitesi / Uygulama",
+      "upsell": "Ekstra satış",
+      "upsellOrders": "Ekstra eklenen sipariş",
+      "upsellItems": "Ekstra kalem",
+      "upsellRevenue": "Ekstra ciro",
       "deliveryEconomics": "Teslimat ekonomisi",
       "chargedToCustomers": "Müşteriden alınan",
       "uberCost": "Uber'e ödenen",

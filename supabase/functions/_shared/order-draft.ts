@@ -41,6 +41,8 @@ export interface RequestItem {
   /** product_options.id listesi — fiyatları sunucuda okunur */
   option_ids?: string[];
   special_instructions?: string | null;
+  /** Sepet şeridinden ('upsell') mi menüden ('menu') mi eklendi; rapor için. */
+  added_via?: 'menu' | 'upsell' | null;
 }
 
 export interface RequestBody {

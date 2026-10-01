@@ -21,6 +21,7 @@ import { useAuthStore } from '../store/authStore';
 import { CartItem } from '../types';
 import Toast from 'react-native-toast-message';
 import ConfirmModal from '../components/ConfirmModal';
+import UpsellStrip from '../components/UpsellStrip';
 import { getUserPoints } from '../services/pointsService';
 import { getDefaultAddress, getUserAddresses } from '../services/addressService';
 import { Address, Campaign } from '../types/database.types';
@@ -835,6 +836,7 @@ const CartScreen = ({ navigation }: any) => {
             showsVerticalScrollIndicator={false}
           >
             {items.map(item => <EliteCartItem key={item.id} item={item} />)}
+            <UpsellStrip />
             {/* ListFooter BİLEŞEN OLARAK değil, FONKSİYON OLARAK çağrılıyor.
                 Bileşen CartScreen'in içinde tanımlı olduğu için her render'da
                 yeni bir fonksiyon kimliği oluşuyor; <ListFooter /> yazıldığında

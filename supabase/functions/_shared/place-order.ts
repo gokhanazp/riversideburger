@@ -220,6 +220,7 @@ export async function placeOrder(
       quantity: l.quantity,
       price: l.unit_price,
       subtotal: l.subtotal,
+      added_via: l.added_via ?? null,
     }))
   );
   if (itemsError) {

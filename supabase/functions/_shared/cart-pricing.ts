@@ -20,6 +20,7 @@ export interface PricingItem {
   quantity: number;
   option_ids?: string[];
   special_instructions?: string | null;
+  added_via?: 'menu' | 'upsell' | null;
 }
 
 export interface PricedLine {
@@ -31,6 +32,8 @@ export interface PricedLine {
   subtotal: number;
   option_ids: string[];
   special_instructions: string | null;
+  /** 'upsell' = web sepetindeki "Goes well with" şeridinden eklendi; rapor için. */
+  added_via: 'menu' | 'upsell' | null;
 }
 
 export interface PricedOption {
@@ -131,6 +134,7 @@ export async function priceCartLines(
       subtotal: round2(unitPrice * item.quantity),
       option_ids: item.option_ids ?? [],
       special_instructions: item.special_instructions ?? null,
+      added_via: item.added_via === 'upsell' ? 'upsell' : item.added_via === 'menu' ? 'menu' : null,
     };
   });
 

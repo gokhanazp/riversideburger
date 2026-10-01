@@ -23,6 +23,8 @@ interface CreateOrderParams {
     quantity: number;
     price: number;
     subtotal: number;
+    /** Raporlama: 'upsell' = sepet şeridinden eklendi. */
+    added_via?: 'menu' | 'upsell';
     customizations?: Array<{
       option_id: string;
       option_name: string;
@@ -194,6 +196,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
       quantity: item.quantity,
       price: item.price,
       subtotal: item.subtotal,
+      added_via: item.added_via ?? 'menu',
     }));
 
     const { error: itemsError } = await supabase

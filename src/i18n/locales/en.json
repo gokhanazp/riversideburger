@@ -189,6 +189,7 @@
     "addedToCartDesc": "{{quantity}}x {{name}} added to your cart"
   },
   "cart": {
+    "goesWellWith": "Goes well with",
     "title": "My Cart",
     "closedTitle": "We're closed right now",
     "closedDesc": "We cannot take the order yet — your cart is saved until we open.",
@@ -745,6 +746,10 @@
       "filterUnpaid": "Unpaid"
     },
     "products": {
+      "upsellLabel": "Suggest as add-on",
+      "upsellRank": "Order in list",
+      "pairsWith": "Goes well with",
+      "pairsWithHint": "Suggested in the cart when this product is in it. The add-on pool fills the rest.",
       "title": "Product Management",
       "addProduct": "Add New Product",
       "editProduct": "Edit Product",
@@ -1476,6 +1481,10 @@
       "pickup": "Pickup",
       "delivery": "Delivery",
       "webVsApp": "Website vs app",
+      "upsell": "Add-on sales",
+      "upsellOrders": "Orders with an add-on",
+      "upsellItems": "Add-on items",
+      "upsellRevenue": "Add-on revenue",
       "deliveryEconomics": "Delivery economics",
       "chargedToCustomers": "Charged to customers",
       "uberCost": "Paid to Uber",

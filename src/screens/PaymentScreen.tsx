@@ -405,6 +405,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       subtotal: item.price * item.quantity,
       customizations: item.customizations,
       specialInstructions: item.specialInstructions,
+      added_via: item.addedVia ?? 'menu',
     }));
 
     const order = await createOrder({
