@@ -803,6 +803,11 @@ const AdminOrders = ({ navigation, route }: any) => {
                                 <View style={styles.itQtyBox}><Text style={styles.itQty}>{it.quantity}x</Text></View>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.itName}>{it.product?.name}</Text>
+                                    {/* Sepetteki "Goes well with" şeridinden eklenen kalem: hangi
+                                        satışların öneriden geldiği tek bakışta görünsün. */}
+                                    {(it as any).added_via === 'upsell' && (
+                                        <View style={styles.itUpsell}><Text style={styles.itUpsellText}>{t('admin.orders.addedViaUpsell')}</Text></View>
+                                    )}
                                     {/* Özelleştirmeyi panelin dilinde göster. option_name_en sipariş
                                         anında kaydediliyor; eski siparişlerde boş olabilir, o zaman
                                         Türkçe ada düşülür. */}
@@ -968,6 +973,8 @@ const styles = StyleSheet.create({
   itQty: { color: Colors.primary, fontWeight: '900', fontSize: 12 },
   itName: { fontSize: 15, fontWeight: '700', color: '#444' },
   itCustom: { fontSize: 11, color: '#888', fontStyle: 'italic', marginTop: 2 },
+  itUpsell: { alignSelf: 'flex-start', backgroundColor: '#FFF4E5', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 3 },
+  itUpsellText: { fontSize: 10, fontWeight: '800', color: '#B35C00', textTransform: 'uppercase', letterSpacing: 0.4 },
   itPrice: { fontSize: 15, fontWeight: '800', color: Colors.text },
   notesBox: { backgroundColor: '#F8F9FA', padding: 16, borderRadius: 16 },
   notesText: { fontSize: 14, color: '#666', lineHeight: 20 },

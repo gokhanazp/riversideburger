@@ -722,6 +722,7 @@
       "orderDetails": "Order Details",
       "customerInfo": "Customer Information",
       "deliveryAddress": "Delivery Address",
+      "addedViaUpsell": "Added from suggestions",
       "orderItems": "Order Items",
       "specialNotes": "Special Notes",
       "orderStatus": "Order Status",

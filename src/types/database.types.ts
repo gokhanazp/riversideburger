@@ -187,6 +187,8 @@ export interface OrderItem {
   created_at: string;
   // Relations
   product?: Product;
+  /** 'upsell' = sepetteki "Goes well with" şeridinden eklendi */
+  added_via?: 'menu' | 'upsell' | null;
 }
 
 // Settings (Ayarlar)

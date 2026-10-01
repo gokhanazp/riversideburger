@@ -722,6 +722,7 @@
       "orderDetails": "Sipariş Detayları",
       "customerInfo": "Müşteri Bilgileri",
       "deliveryAddress": "Teslimat Adresi",
+      "addedViaUpsell": "Öneriden eklendi",
       "orderItems": "Sipariş Detayları",
       "specialNotes": "Özel Notlar",
       "orderStatus": "Sipariş Durumu",
