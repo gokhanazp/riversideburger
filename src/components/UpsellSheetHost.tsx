@@ -42,8 +42,9 @@ export default function UpsellSheetHost() {
 
   const goToCart = () => {
     close();
+    // Sekme adı CartTab (MainTabParamList); OrderConfirmation'daki HomeTab ile aynı desen.
     if (navigationRef.isReady()) {
-      (navigationRef as any).navigate('Main', { screen: 'Cart' });
+      navigationRef.navigate('Main', { screen: 'CartTab' });
     }
   };
 
