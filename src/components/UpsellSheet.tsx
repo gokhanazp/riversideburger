@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Modal, View, Text, TouchableOpacity, Image, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -25,11 +25,15 @@ export default function UpsellSheet({
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const addItem = useCartStore((s) => s.addItem);
-  const [added, setAdded] = useState<Record<string, number>>({});
+  const items = useCartStore((s) => s.items);
+
+  // "✓ n" yerel durumdan DEĞİL sepetten okunuyor: panel kök seviyede tek
+  // örnek olduğu için yerel sayaç bir sonraki açılışa taşınıyordu — sepetten
+  // silinen ürün bile tikli görünüyordu.
+  const inCart = (id: string) => items.filter((i) => i.id === id).reduce((sum, i) => sum + i.quantity, 0);
 
   const add = (s: UpsellSuggestion) => {
     addItem(suggestionToMenuItem(s), undefined, undefined, { addedVia: 'upsell' });
-    setAdded((m) => ({ ...m, [s.id]: (m[s.id] ?? 0) + 1 }));
   };
 
   return (
@@ -49,7 +53,7 @@ export default function UpsellSheet({
 
           <ScrollView style={styles.list} bounces={false}>
             {suggestions.map((s) => {
-              const n = added[s.id] ?? 0;
+              const n = inCart(s.id);
               return (
                 <View key={s.id} style={styles.row}>
                   {s.image_url ? <Image source={{ uri: s.image_url }} style={styles.image} /> : <View style={[styles.image, styles.imageEmpty]} />}
