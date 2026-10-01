@@ -189,6 +189,9 @@
     "addedToCartDesc": "{{quantity}}x {{name}} added to your cart"
   },
   "cart": {
+    "upsellSubtitle": "Add something to go with it?",
+    "noThanks": "No thanks",
+    "goToCart": "Go to cart",
     "goesWellWith": "Goes well with",
     "title": "My Cart",
     "closedTitle": "We're closed right now",

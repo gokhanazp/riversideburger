@@ -189,6 +189,9 @@
     "addedToCartDesc": "{{quantity}}x {{name}} sepetinize eklendi"
   },
   "cart": {
+    "upsellSubtitle": "Yanına bir şey ekleyelim mi?",
+    "noThanks": "Hayır, teşekkürler",
+    "goToCart": "Sepete git",
     "goesWellWith": "Bununla iyi gider",
     "title": "Sepetim",
     "closedTitle": "Şu anda kapalıyız",

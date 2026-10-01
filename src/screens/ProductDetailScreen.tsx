@@ -28,6 +28,8 @@ import Toast from 'react-native-toast-message';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { MenuItem } from '../types';
+import UpsellSheet from '../components/UpsellSheet';
+import { getUpsellSuggestions, UpsellSuggestion } from '../services/upsellService';
 import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { customizationService } from '../services/customizationService';
@@ -43,6 +45,14 @@ const HERO_HEIGHT = width * 1.1;
 const ProductDetailScreen = ({ route, navigation }: any) => {
   const { t, i18n } = useTranslation();
   const { item } = route.params as { item: MenuItem };
+  // "Goes well with": ekleme anında beklememek için önceden çekiliyor.
+  const [upsell, setUpsell] = useState<UpsellSuggestion[]>([]);
+  const [showUpsell, setShowUpsell] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    getUpsellSuggestions([item.id], 4).then((rows) => { if (alive) setUpsell(rows); }).catch(() => {});
+    return () => { alive = false; };
+  }, [item.id]);
   const [quantity, setQuantity] = useState(1);
   const [customizations, setCustomizations] = useState<CategoryWithOptions[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<SelectedCustomization[]>([]);
@@ -262,11 +272,22 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
       topOffset: 60,
     });
 
+    // Öneri varsa önce "Goes well with" paneli; kapanınca geri dönülür.
+    if (upsell.length > 0) {
+      setShowUpsell(true);
+      return;
+    }
     navigation.goBack();
   };
 
   return (
     <View style={styles.container}>
+      <UpsellSheet
+        visible={showUpsell}
+        suggestions={upsell}
+        onClose={() => { setShowUpsell(false); navigation.goBack(); }}
+        onGoToCart={() => { setShowUpsell(false); (navigation as any).navigate('Main', { screen: 'Cart' }); }}
+      />
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       
       {/* Animated Header */}
