@@ -7,6 +7,7 @@ import Toast from 'react-native-toast-message';
 import { Colors, Spacing, FontSizes, Shadows } from '../constants/theme';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { useCartStore } from '../store/cartStore';
+import { openUpsell } from '../store/upsellStore';
 import { MenuItem as MenuItemType } from '../types';
 import { formatPrice } from '../services/currencyService';
 
@@ -54,6 +55,7 @@ const FavoritesScreen = ({ navigation }: any) => {
               onPress={(e) => {
                 e.stopPropagation();
                 addItem(item);
+                openUpsell(item.id);
                 Toast.show({
                   type: 'success',
                   text1: `🍔 ${t('profile.addedToCart')}`,

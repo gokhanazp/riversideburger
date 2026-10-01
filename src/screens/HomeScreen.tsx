@@ -10,6 +10,7 @@ import { CategoryType } from '../types';
 import BannerSlider from '../components/BannerSlider';
 import { supabase } from '../lib/supabase';
 import { useCartStore } from '../store/cartStore';
+import { openUpsell } from '../store/upsellStore';
 import { useStoreOpen } from '../hooks/useStoreOpen';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { useAuthStore } from '../store/authStore';
@@ -256,6 +257,7 @@ const HomeScreen = ({ navigation }: any) => {
       price: product.price,
       image: product.image_url,
     } as any);
+    openUpsell(product.id);
     Toast.show({
       type: 'success',
       text1: '✅ ' + t('cart.addedToCart'),

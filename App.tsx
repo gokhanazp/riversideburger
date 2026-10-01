@@ -32,6 +32,7 @@ import { getAppSettings } from './src/services/appSettingsService';
 import { loadCurrency } from './src/services/currencyService';
 import { loadTaxRate } from './src/services/taxService';
 import { navigationRef } from './src/navigation/navigationRef';
+import UpsellSheetHost from './src/components/UpsellSheetHost';
 import { diag, loadDiagnostics, flushDiagnostics } from './src/services/diagnosticsLog';
 import { requestOrdersRefresh } from './src/services/orderRefreshBus';
 import i18n from './src/i18n';
@@ -192,6 +193,8 @@ export default function App() {
         <StatusBar style="dark" />
         {/* Toast bildirimleri - Riverside Burgers teması (Toast notifications - Riverside Burgers theme) */}
         <Toast config={toastConfig} />
+        {/* Sepete eklemeden sonra "Goes well with" paneli — tüm ekranların üstünde */}
+        <UpsellSheetHost />
       </PaperProvider>
     </SafeAreaProvider>
   );

@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, Shadows, BorderRadius } from '../constants/theme';
 import { MenuItem } from '../types';
 import { useCartStore } from '../store/cartStore';
+import { openUpsell } from '../store/upsellStore';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { getProducts, getCategories } from '../services/productService';
 import { Product, Category, Campaign } from '../types/database.types';
@@ -264,6 +265,7 @@ const MenuScreen = ({ navigation, route }: any) => {
                     return;
                   }
                   addItem(menuItem);
+                  openUpsell(menuItem.id);
                   Toast.show({
                     type: 'success',
                     text1: menuItem.name,
