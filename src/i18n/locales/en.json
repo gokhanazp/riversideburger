@@ -189,6 +189,15 @@
     "addedToCartDesc": "{{quantity}}x {{name}} added to your cart"
   },
   "cart": {
+    "whenTitle": "When",
+    "whenAsap": "As soon as possible",
+    "whenLater": "Schedule for later",
+    "pickTime": "Pick a pickup time.",
+    "scheduledNote": "Pickup {{when}} (Toronto time). We start cooking shortly before.",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "slotRequiredTitle": "Pick a pickup time",
+    "slotRequiredDesc": "Choose a day and time, or switch to \"As soon as possible\".",
     "upsellSubtitle": "Add something to go with it?",
     "noThanks": "No thanks",
     "goToCart": "Go to cart",
@@ -440,6 +449,8 @@
     "deleteAccount": "Delete Account"
   },
   "orderHistory": {
+    "statusScheduled": "Scheduled",
+    "pickupAt": "Pickup {{when}}",
     "loading": "Loading orders...",
     "error": "Error",
     "errorMessage": "An error occurred while loading orders",
@@ -747,6 +758,10 @@
       "sumTax": "HST",
       "staleTitle": "Data is not updating",
       "staleDesc": "Cannot reach the server. Please fully close and reopen the app.",
+      "statusScheduled": "Scheduled",
+      "filterScheduled": "Scheduled",
+      "scheduledFor": "Pickup",
+      "startNow": "Start now — send to kitchen",
       "filterUnpaid": "Unpaid"
     },
     "products": {
@@ -1080,6 +1095,19 @@
       "modalMessage": "Are you sure you want to save the changes?",
       "modalConfirm": "Save",
       "modalCancel": "Cancel",
+      "scheduling": {
+        "title": "Scheduled Orders",
+        "description": "Let customers book a pickup time in advance",
+        "enabled": "Accept scheduled orders",
+        "minLead": "Earliest slot",
+        "maxDays": "Book up to",
+        "slot": "Slot interval",
+        "prep": "Send to kitchen before pickup",
+        "closeBuffer": "Last slot before closing",
+        "minutes": "min",
+        "days": "days",
+        "note": "Scheduled orders are paid at checkout and reach the kitchen automatically before the pickup time. Pickup only for now."
+      },
       "workingHours": {
         "title": "Working Hours",
         "description": "Set the hours when the store will be open",
@@ -1373,6 +1401,7 @@
         "points": "Points Used",
         "deliveryFee": "Delivery",
         "tax": "HST",
+        "scheduledPickup": "SCHEDULED PICKUP",
         "orderDateTime": "Order Date & Time",
         "businessNumber": "Business No"
       }
@@ -1489,6 +1518,7 @@
       "upsellOrders": "Orders with an add-on",
       "upsellItems": "Add-on items",
       "upsellRevenue": "Add-on revenue",
+      "st_scheduled": "Scheduled",
       "deliveryEconomics": "Delivery economics",
       "chargedToCustomers": "Charged to customers",
       "uberCost": "Paid to Uber",

@@ -37,6 +37,8 @@ export type RootStackParamList = {
     quoteId?: string | null;
     address?: Address | null;
     deliveryMethod?: 'pickup' | 'delivery';
+    /** İleri tarihli gel-al: dilim anı (UTC ISO). */
+    scheduledFor?: string | null;
   };
   OrderTracking: { orderId: string };
   OrderHistory: undefined;

@@ -45,7 +45,7 @@ export interface CartItem extends MenuItem {
 }
 
 // Sipariş durumu için tip tanımı (Order status type definition)
-export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+export type OrderStatus = 'scheduled' | 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
 
 // Sipariş için tip tanımı (Order type definition)
 export interface Order {

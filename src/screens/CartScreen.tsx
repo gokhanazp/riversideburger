@@ -17,6 +17,8 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, Shadows, BorderRadius } from '../constants/theme';
 import { useCartStore } from '../store/cartStore';
 import { isStoreOpenNow } from '../services/workingHoursService';
+import { getSlotDays } from '../services/schedulingService';
+import { formatScheduled, SlotDay } from '../services/scheduling';
 import { useAuthStore } from '../store/authStore';
 import { CartItem } from '../types';
 import Toast from 'react-native-toast-message';
@@ -69,6 +71,19 @@ const CartScreen = ({ navigation }: any) => {
 
   // Teslimat şekli (Delivery method): 'pickup' = restorandan al, 'delivery' = adrese teslimat
   const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('delivery');
+  // İleri tarihli gel-al (1. aşama yalnızca pickup). Dilimler panel
+  // ayarlarından; boş gelirse bölüm hiç görünmez.
+  const [when, setWhen] = useState<'asap' | 'later'>('asap');
+  const [slotDays, setSlotDays] = useState<SlotDay[]>([]);
+  const [slotDayKey, setSlotDayKey] = useState('');
+  const [slotIso, setSlotIso] = useState('');
+  useEffect(() => {
+    let alive = true;
+    getSlotDays().then((days) => { if (alive) setSlotDays(days); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  const scheduledFor = deliveryMethod === 'pickup' && when === 'later' && slotIso ? slotIso : null;
+  const activeSlotDay = slotDays.find((d) => d.key === slotDayKey) ?? slotDays[0];
 
   // Restorandan teslim alma siparişi için iletişim telefonu.
   // Kayıt ekranında telefon artık zorunlu değil (App Store gerekliliği), bu yüzden
@@ -404,7 +419,12 @@ const CartScreen = ({ navigation }: any) => {
     //
     // Kontrol tam bu anda, taze okunuyor — uygulamayı akşam açık bırakıp gece
     // sipariş vermeye çalışan müşteri, ekrandaki eski duruma göre geçmesin.
-    if (!(await isStoreOpenNow())) {
+    if (deliveryMethod === 'pickup' && when === 'later' && !slotIso) {
+      Toast.show({ type: 'error', text1: t('cart.slotRequiredTitle'), text2: t('cart.slotRequiredDesc'), position: 'top', topOffset: 60 });
+      return;
+    }
+    // İleri tarihli siparişte "şu an kapalı" engel değil; dilim sunucuda doğrulanıyor.
+    if (!scheduledFor && !(await isStoreOpenNow())) {
       Toast.show({
         type: 'error',
         text1: t('cart.closedTitle'),
@@ -468,6 +488,7 @@ const CartScreen = ({ navigation }: any) => {
       quoteId: deliveryMethod === 'pickup' ? null : (deliveryQuote?.quote_id ?? null),
       address: deliveryMethod === 'pickup' ? null : selectedAddress,
       deliveryMethod,
+      scheduledFor,
       // Kazanan indirim siparişe tek campaign_id olarak yazılıyor: kupon
       // kazandıysa kuponun kampanya satırı, yoksa otomatik kampanya.
       campaignId: couponWins ? appliedCoupon!.campaignId : (appliedCampaign?.campaign.id ?? null),
@@ -550,6 +571,64 @@ const CartScreen = ({ navigation }: any) => {
               {t('cart.deliveryMethodPickup')}
             </Text>
           </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Ne zaman: hemen / ileri tarih — yalnızca gel-al ve dilim varsa. */}
+      {isAuthenticated && deliveryMethod === 'pickup' && slotDays.length > 0 && (
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionTitle}>
+            <Ionicons name="calendar-outline" size={16} color={Colors.primary} />
+            <Text style={styles.sectionTitleText}>{t('cart.whenTitle')}</Text>
+          </View>
+          <View style={styles.whenRow}>
+            {(['asap', 'later'] as const).map((opt) => (
+              <TouchableOpacity
+                key={opt}
+                style={[styles.whenOption, when === opt && styles.whenOptionActive]}
+                onPress={() => {
+                  setWhen(opt);
+                  if (opt === 'later' && !slotDayKey && slotDays[0]) setSlotDayKey(slotDays[0].key);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.whenLabel, when === opt && styles.whenLabelActive]}>
+                  {opt === 'asap' ? t('cart.whenAsap') : t('cart.whenLater')}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {when === 'later' && activeSlotDay && (
+            <>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={styles.chipRow}>
+                {slotDays.map((d) => (
+                  <TouchableOpacity
+                    key={d.key}
+                    style={[styles.dayChip, activeSlotDay.key === d.key && styles.dayChipActive]}
+                    onPress={() => { setSlotDayKey(d.key); setSlotIso(''); }}
+                  >
+                    <Text style={[styles.dayChipText, activeSlotDay.key === d.key && styles.dayChipTextActive]}>
+                      {d.offset === 0 ? t('cart.today') : d.offset === 1 ? t('cart.tomorrow') : d.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={styles.chipRow}>
+                {activeSlotDay.slots.map((s) => (
+                  <TouchableOpacity
+                    key={s.iso}
+                    style={[styles.slotChip, slotIso === s.iso && styles.slotChipActive]}
+                    onPress={() => setSlotIso(s.iso)}
+                  >
+                    <Text style={[styles.slotChipText, slotIso === s.iso && styles.slotChipTextActive]}>{s.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <Text style={styles.pickupPhoneHint}>
+                {scheduledFor ? t('cart.scheduledNote', { when: formatScheduled(scheduledFor) }) : t('cart.pickTime')}
+              </Text>
+            </>
+          )}
         </View>
       )}
 
@@ -933,6 +1012,23 @@ const styles = StyleSheet.create({
   qtyBtn: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF', borderRadius: 15, ...Shadows.small },
   qtyText: { marginHorizontal: 14, fontWeight: '700', fontSize: 15 },
   listFooter: { marginTop: 10 },
+  sectionTitle: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  whenRow: { flexDirection: 'row', gap: 8, marginTop: 10, marginBottom: 10 },
+  whenOption: { flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: '#E5E5E5', alignItems: 'center' },
+  whenOptionActive: { borderColor: Colors.primary, backgroundColor: Colors.primary + '0D' },
+  whenLabel: { fontSize: 13, fontWeight: '700', color: '#555' },
+  whenLabelActive: { color: Colors.primary },
+  // flexGrow 0: yatay ScrollView dikeyde sıkışmasın (AdminReports'taki ders).
+  hScroll: { flexGrow: 0, flexShrink: 0, marginBottom: 8 },
+  chipRow: { gap: 8, paddingRight: 4 },
+  dayChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: '#F1F3F5' },
+  dayChipActive: { backgroundColor: '#1A1A1A' },
+  dayChipText: { fontSize: 12, fontWeight: '700', color: '#555' },
+  dayChipTextActive: { color: '#FFF' },
+  slotChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FFF' },
+  slotChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primary },
+  slotChipText: { fontSize: 13, fontWeight: '700', color: '#333' },
+  slotChipTextActive: { color: '#FFF' },
   deliveryMethodRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   deliveryMethodOption: {
     flex: 1,

@@ -18,6 +18,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getRestaurantPickup } from './uber.ts';
+import { validateSlot, slotReasonMessage, DEFAULT_SCHEDULING } from './scheduling.ts';
 import { geocodeAddress } from './geocode.ts';
 import {
   normalizeCouponCode,
@@ -70,6 +71,8 @@ export interface RequestBody {
   notes?: string | null;
   /** Müşterinin elle girdiği kupon kodu. Doğrulama sunucuda yapılır. */
   coupon_code?: string | null;
+  /** İleri tarihli sipariş: dilim anı (UTC ISO). Yalnızca gel-al. */
+  scheduled_for?: string | null;
 }
 
 // Fiyatlama modülünün ürettiği tiplerin aynısı — ikinci bir tanım yazmak,
@@ -321,7 +324,7 @@ export async function buildOrderDraft(
   // ── Teslimat ücreti: mesafe + ayarlardaki kademeler ────────────────────
   const { data: settings } = await admin
     .from('settings')
-    .select('delivery_tier1_max_km, delivery_tier1_fee, delivery_tier2_max_km, delivery_tier2_fee, tax_rate')
+    .select('delivery_tier1_max_km, delivery_tier1_fee, delivery_tier2_max_km, delivery_tier2_fee, tax_rate, working_hours, scheduling_enabled, scheduling_min_lead_minutes, scheduling_max_days, scheduling_slot_minutes, scheduling_close_buffer_minutes')
     .limit(1)
     .maybeSingle();
 
@@ -457,6 +460,27 @@ export async function buildOrderDraft(
 
   if (!(total > 0)) return fail('order total is not payable', 422);
 
+  // ── İleri tarih ────────────────────────────────────────────────────────
+  // Son söz veritabanı tetikleyicisinde (orders_scheduling_guard); burası
+  // müşteriye anlaşılır bir sebep söylemek için. Kurallar scheduling.ts ile
+  // aynı; 2 dk tolerans: dilim seçilip ödemeye geçerken zaman geçiyor.
+  let scheduledFor: string | null = null;
+  if (body.scheduled_for) {
+    if (body.delivery_method !== 'pickup') {
+      return fail('Scheduled orders are pickup only for now.', 422, 'scheduling_pickup_only');
+    }
+    const cfg = {
+      enabled: Boolean(settings?.scheduling_enabled ?? DEFAULT_SCHEDULING.enabled),
+      min_lead_minutes: Number(settings?.scheduling_min_lead_minutes ?? DEFAULT_SCHEDULING.min_lead_minutes),
+      max_days: Number(settings?.scheduling_max_days ?? DEFAULT_SCHEDULING.max_days),
+      slot_minutes: Number(settings?.scheduling_slot_minutes ?? DEFAULT_SCHEDULING.slot_minutes),
+      close_buffer_minutes: Number(settings?.scheduling_close_buffer_minutes ?? DEFAULT_SCHEDULING.close_buffer_minutes),
+    };
+    const verdict = validateSlot(String(body.scheduled_for), settings?.working_hours ?? null, cfg, nowMs);
+    if (!verdict.ok) return fail(slotReasonMessage(verdict.reason), 422, 'invalid_slot', verdict.reason);
+    scheduledFor = new Date(String(body.scheduled_for)).toISOString();
+  }
+
   // ── Sipariş satırı (henüz yazılmıyor) ──────────────────────────────────
   const address = body.address;
   const isDelivery = body.delivery_method === 'delivery';
@@ -482,7 +506,9 @@ export async function buildOrderDraft(
       lines,
       options: [...optionById.values()],
       order: {
-        status: 'pending',
+        // İleri tarihli sipariş 'scheduled' doğar; tetikleyici de buna zorluyor.
+        status: scheduledFor ? 'scheduled' : 'pending',
+        scheduled_for: scheduledFor,
         total_amount: total,
         delivery_address: deliveryAddressText,
         phone,

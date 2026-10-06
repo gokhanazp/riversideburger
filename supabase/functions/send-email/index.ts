@@ -82,7 +82,7 @@ serve(async (req) => {
       const { data: order } = await admin
         .from('orders')
         .select(
-          'id, order_number, public_token, user_id, delivery_method, delivery_address, ' +
+          'id, order_number, public_token, user_id, delivery_method, delivery_address, scheduled_for, ' +
             'total_amount, discount_amount, tax_amount, tip_amount, delivery_fee, points_used, points_earned'
         )
         .eq('id', ref_id)
@@ -124,6 +124,7 @@ serve(async (req) => {
         pointsEarned: Number(order.points_earned) || 0,
         isDelivery: order.delivery_method === 'delivery',
         address: order.delivery_address,
+        scheduledFor: order.scheduled_for ?? null,
         trackUrl: `${SITE_URL}/order/${order.order_number}?t=${order.public_token}`,
         isGuest: user.signup_source === 'guest',
       });

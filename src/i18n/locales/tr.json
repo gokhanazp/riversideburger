@@ -189,6 +189,15 @@
     "addedToCartDesc": "{{quantity}}x {{name}} sepetinize eklendi"
   },
   "cart": {
+    "whenTitle": "Ne zaman",
+    "whenAsap": "En kısa sürede",
+    "whenLater": "İleri tarih",
+    "pickTime": "Teslim alma saatini seç.",
+    "scheduledNote": "Teslim alma {{when}} (Toronto saati). Biraz öncesinde hazırlamaya başlıyoruz.",
+    "today": "Bugün",
+    "tomorrow": "Yarın",
+    "slotRequiredTitle": "Saat seçin",
+    "slotRequiredDesc": "Bir gün ve saat seçin ya da \"En kısa sürede\"ye dönün.",
     "upsellSubtitle": "Yanına bir şey ekleyelim mi?",
     "noThanks": "Hayır, teşekkürler",
     "goToCart": "Sepete git",
@@ -440,6 +449,8 @@
     "deleteAccount": "Hesabı Sil"
   },
   "orderHistory": {
+    "statusScheduled": "İleri tarihli",
+    "pickupAt": "Teslim alma {{when}}",
     "loading": "Siparişler yükleniyor...",
     "error": "Hata",
     "errorMessage": "Siparişler yüklenirken bir hata oluştu",
@@ -747,6 +758,10 @@
       "sumTax": "HST",
       "staleTitle": "Veri güncellenmiyor",
       "staleDesc": "Bağlantı kurulamıyor. Uygulamayı tamamen kapatıp yeniden açın.",
+      "statusScheduled": "İleri tarihli",
+      "filterScheduled": "İleri tarihli",
+      "scheduledFor": "Teslim",
+      "startNow": "Şimdi başlat — mutfağa gönder",
       "filterUnpaid": "Ödenmedi"
     },
     "products": {
@@ -1079,6 +1094,19 @@
       "modalMessage": "Yaptığınız değişiklikleri kaydetmek istediğinize emin misiniz?",
       "modalConfirm": "Kaydet",
       "modalCancel": "İptal",
+      "scheduling": {
+        "title": "İleri Tarihli Sipariş",
+        "description": "Müşteri teslim alma saatini önceden seçebilsin",
+        "enabled": "İleri tarihli sipariş al",
+        "minLead": "En erken dilim",
+        "maxDays": "En fazla ileri",
+        "slot": "Dilim aralığı",
+        "prep": "Teslimden şu kadar önce mutfağa düşsün",
+        "closeBuffer": "Kapanıştan önce son dilim",
+        "minutes": "dk",
+        "days": "gün",
+        "note": "İleri tarihli siparişin ödemesi sipariş anında alınır; teslim saatinden önce otomatik olarak mutfağa düşer. Şimdilik yalnızca gel-al."
+      },
       "workingHours": {
         "title": "Çalışma Saatleri",
         "description": "Mağazanın hangi saatlerde açık olacağını belirleyin",
@@ -1372,6 +1400,7 @@
         "points": "Puan Kullanimi",
         "deliveryFee": "Teslimat",
         "tax": "HST",
+        "scheduledPickup": "ILERI TARIHLI TESLIM",
         "orderDateTime": "Siparis Tarihi Saati",
         "businessNumber": "Isletme No"
       }
@@ -1488,6 +1517,7 @@
       "upsellOrders": "Ekstra eklenen sipariş",
       "upsellItems": "Ekstra kalem",
       "upsellRevenue": "Ekstra ciro",
+      "st_scheduled": "İleri tarihli",
       "deliveryEconomics": "Teslimat ekonomisi",
       "chargedToCustomers": "Müşteriden alınan",
       "uberCost": "Uber'e ödenen",

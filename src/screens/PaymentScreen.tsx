@@ -79,7 +79,9 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     couponDiscount = 0,
     deliveryFeeBase = 0,
     couponItems = null,
+    scheduledFor,
   } = route.params as {
+    scheduledFor?: string | null;
     totalAmount: number;
     currency: string;
     deliveryAddress: string;
@@ -433,6 +435,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       delivery_instructions: deliveryMethod === 'delivery' ? (address?.delivery_instructions ?? null) : null,
       delivery_fee: deliveryFee,
       payment_status: paymentStatus,
+      scheduled_for: scheduledFor ?? null,
       campaign_id: campaignId,
       discount_amount: campaignDiscount,
     });

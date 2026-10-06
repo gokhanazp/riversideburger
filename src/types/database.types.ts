@@ -3,6 +3,7 @@
 export type UserRole = 'customer' | 'admin';
 
 export type OrderStatus = 
+  | 'scheduled'    // İleri tarihli — mutfağa henüz düşmedi
   | 'pending'      // Bekliyor
   | 'confirmed'    // Onaylandı
   | 'preparing'    // Hazırlanıyor
@@ -91,6 +92,9 @@ export interface Order {
   user_id: string;
   order_number: string;
   status: OrderStatus;
+  /** İleri tarihli siparişte teslim anı (UTC ISO); hemen siparişte null. */
+  scheduled_for?: string | null;
+  released_at?: string | null;
   total_amount: number;
   delivery_address: string; // Eski format için (For old format)
   phone: string;

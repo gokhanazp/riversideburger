@@ -16,6 +16,7 @@
 //      açıklamalarıyla $89.90 gibi test fiyatları taşıyor.
 //      JPEG seçildi çünkü PNG aynı kalitede altı kat büyük çıkıyor.
 import { esc, money, SITE_URL, ASSETS, APP_STORE_URL, PLAY_STORE_URL, GOOGLE_REVIEW_URL } from './email.ts';
+import { formatScheduled } from './scheduling.ts';
 
 const BRAND = '#e63946';
 const INK = '#1a1a1a';
@@ -213,6 +214,8 @@ export function orderEmail(params: {
   trackUrl: string;
   /** Misafir hesabı (şifresiz): fişe "hesabını kaydet" kutusu ekleniyor. */
   isGuest?: boolean;
+  /** İleri tarihli sipariş: teslim anı (UTC ISO). */
+  scheduledFor?: string | null;
 }): { subject: string; html: string } {
   const rows = params.lines.map((l) => `
     <tr>
@@ -237,6 +240,16 @@ export function orderEmail(params: {
   const where = params.isDelivery && params.address
     ? `<strong style="color:${INK};">Delivering to</strong><br>${esc(params.address)}`
     : `<strong style="color:${INK};">Pick up from</strong><br>688 Queen Street East, Toronto`;
+  // İleri tarihli sipariş: saat fişin en üstünde, kaçırılmasın.
+  const scheduled = params.scheduledFor
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff5f5;border:1px solid #f6cdd1;border-radius:12px;margin:0 0 14px;">
+         <tr><td style="padding:12px 16px;">
+           <div style="color:${SOFT};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;line-height:16px;">Scheduled pickup</div>
+           <div style="color:${INK};font-size:17px;font-weight:800;line-height:24px;">${esc(formatScheduled(params.scheduledFor))}</div>
+           <div style="color:${SOFT};font-size:13px;line-height:19px;">We'll start cooking shortly before, so it's hot when you arrive.</div>
+         </td></tr>
+       </table>`
+    : '';
 
   // Puanlar 1:1 PARA olarak harcanıyor (points_used doğrudan tutardan
   // düşülüyor), o yüzden kazanılan puan da para olarak yazılıyor. Ham sayıyı
@@ -275,9 +288,10 @@ export function orderEmail(params: {
       <tr><td style="padding:28px 24px 4px;">
         <h1 style="margin:0 0 6px;color:${INK};font-size:24px;font-weight:800;line-height:30px;">Thanks${params.name?.trim() ? `, ${esc(params.name.trim().split(' ')[0])}` : ''}!</h1>
         <p style="margin:0 0 18px;color:${SOFT};font-size:14px;line-height:21px;">
-          Your payment cleared and the kitchen has your order.<br>
+          ${params.scheduledFor ? 'Your payment cleared and your order is booked.' : 'Your payment cleared and the kitchen has your order.'}<br>
           Order <strong style="color:${INK};">#${esc(params.orderNumber)}</strong>
         </p>
+        ${scheduled}
 
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;border-radius:12px;margin:0 0 18px;">
           <tr><td style="padding:14px 16px;color:${SOFT};font-size:14px;line-height:21px;">${where}</td></tr>

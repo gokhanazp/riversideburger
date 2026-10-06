@@ -44,6 +44,7 @@ interface Settings {
   delivery_tier2_max_km: number;
   delivery_tier2_fee: number;
   is_open: boolean;
+  scheduling_enabled?: boolean;
   auto_close_enabled?: boolean;
   working_hours?: WorkingHours;
   updated_at?: string;
@@ -82,6 +83,11 @@ const AdminSettings = ({ navigation }: any) => {
     delivery_tier1_fee: '5.99',
     delivery_tier2_max_km: '8',
     delivery_tier2_fee: '8.99',
+    scheduling_min_lead_minutes: '45',
+    scheduling_max_days: '7',
+    scheduling_slot_minutes: '15',
+    scheduling_prep_minutes: '20',
+    scheduling_close_buffer_minutes: '30',
   });
 
   useLayoutEffect(() => {
@@ -115,6 +121,11 @@ const AdminSettings = ({ navigation }: any) => {
         delivery_tier1_fee: String(data.delivery_tier1_fee ?? 5.99),
         delivery_tier2_max_km: String(data.delivery_tier2_max_km ?? 8),
         delivery_tier2_fee: String(data.delivery_tier2_fee ?? 8.99),
+        scheduling_min_lead_minutes: String(data.scheduling_min_lead_minutes ?? 45),
+        scheduling_max_days: String(data.scheduling_max_days ?? 7),
+        scheduling_slot_minutes: String(data.scheduling_slot_minutes ?? 15),
+        scheduling_prep_minutes: String(data.scheduling_prep_minutes ?? 20),
+        scheduling_close_buffer_minutes: String(data.scheduling_close_buffer_minutes ?? 30),
       };
     } catch (error: any) {
       console.error('Error:', error);
@@ -170,6 +181,12 @@ const AdminSettings = ({ navigation }: any) => {
         delivery_tier2_max_km: tier2MaxKm,
         delivery_tier2_fee: parseFloat(inputRefs.current.delivery_tier2_fee) || 0,
         is_open: settings.is_open,
+        scheduling_enabled: settings.scheduling_enabled ?? true,
+        scheduling_min_lead_minutes: Math.max(0, parseInt(inputRefs.current.scheduling_min_lead_minutes, 10) || 45),
+        scheduling_max_days: Math.max(0, parseInt(inputRefs.current.scheduling_max_days, 10) || 7),
+        scheduling_slot_minutes: Math.max(5, parseInt(inputRefs.current.scheduling_slot_minutes, 10) || 15),
+        scheduling_prep_minutes: Math.max(0, parseInt(inputRefs.current.scheduling_prep_minutes, 10) || 20),
+        scheduling_close_buffer_minutes: Math.max(0, parseInt(inputRefs.current.scheduling_close_buffer_minutes, 10) || 30),
       }).eq('id', settings.id).select().single();
 
       if (error) throw error;
@@ -388,6 +405,43 @@ const AdminSettings = ({ navigation }: any) => {
               <Ionicons name="information-circle-outline" size={16} color="#888" />
               <Text style={styles.tierNoteText}>{t('admin.settings.deliveryTiersNote')}</Text>
             </View>
+        </SettingCard>
+
+        {/* SCHEDULED ORDERS */}
+        <SettingCard delay={550} icon="calendar-outline" title={t('admin.settings.scheduling.title')} description={t('admin.settings.scheduling.description')}>
+           <View style={styles.switchRow}>
+              <Text style={styles.fieldLabel}>{t('admin.settings.scheduling.enabled')}</Text>
+              <Switch
+                value={settings.scheduling_enabled ?? true}
+                onValueChange={(val) => setSettings({ ...settings, scheduling_enabled: val })}
+                trackColor={{ false: '#EEE', true: Colors.primary + '50' }}
+                thumbColor={(settings.scheduling_enabled ?? true) ? Colors.primary : '#AAA'}
+              />
+           </View>
+           <View>
+              <Text style={styles.fieldLabel}>{t('admin.settings.scheduling.minLead')}</Text>
+              <InputRow suffix={t('admin.settings.scheduling.minutes')} defaultValue={inputRefs.current.scheduling_min_lead_minutes} field="scheduling_min_lead_minutes" placeholder="45" />
+           </View>
+           <View>
+              <Text style={styles.fieldLabel}>{t('admin.settings.scheduling.maxDays')}</Text>
+              <InputRow suffix={t('admin.settings.scheduling.days')} defaultValue={inputRefs.current.scheduling_max_days} field="scheduling_max_days" placeholder="7" />
+           </View>
+           <View>
+              <Text style={styles.fieldLabel}>{t('admin.settings.scheduling.slot')}</Text>
+              <InputRow suffix={t('admin.settings.scheduling.minutes')} defaultValue={inputRefs.current.scheduling_slot_minutes} field="scheduling_slot_minutes" placeholder="15" />
+           </View>
+           <View>
+              <Text style={styles.fieldLabel}>{t('admin.settings.scheduling.prep')}</Text>
+              <InputRow suffix={t('admin.settings.scheduling.minutes')} defaultValue={inputRefs.current.scheduling_prep_minutes} field="scheduling_prep_minutes" placeholder="20" />
+           </View>
+           <View>
+              <Text style={styles.fieldLabel}>{t('admin.settings.scheduling.closeBuffer')}</Text>
+              <InputRow suffix={t('admin.settings.scheduling.minutes')} defaultValue={inputRefs.current.scheduling_close_buffer_minutes} field="scheduling_close_buffer_minutes" placeholder="30" />
+           </View>
+           <View style={styles.tierNote}>
+              <Ionicons name="information-circle-outline" size={16} color="#888" />
+              <Text style={styles.tierNoteText}>{t('admin.settings.scheduling.note')}</Text>
+           </View>
         </SettingCard>
 
         {/* WORKING HOURS */}

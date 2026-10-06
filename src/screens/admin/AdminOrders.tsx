@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { formatRestaurantDateTime } from '../../services/restaurantTime';
+import { formatScheduled } from '../../services/scheduling';
 import {
   View,
   Text,
@@ -65,6 +66,7 @@ const ordersSignature = (rows: Order[]) =>
 
 // Sipariş durumu renkleri (Order status colors) - Elite Palette
 const STATUS_COLORS: Record<OrderStatus, string> = {
+  scheduled: '#6F42C1',
   pending: '#FFC107',
   confirmed: '#17A2B8',
   preparing: '#FF6B35',
@@ -85,6 +87,7 @@ const AdminOrders = ({ navigation, route }: any) => {
   }, [navigation]);
 
   const STATUS_NAMES: Record<OrderStatus, string> = {
+    scheduled: t('admin.orders.statusScheduled'),
     pending: t('admin.orders.statusPending'),
     confirmed: t('admin.orders.statusConfirmed'),
     preparing: t('admin.orders.statusPreparing'),
@@ -374,6 +377,7 @@ const AdminOrders = ({ navigation, route }: any) => {
               ${contact?.businessNumber ? `<div>${contact.businessNumber}</div>` : ''}
               <div class="order-number">ORDER #${order.order_number}</div>
               <div>${t('admin.printer.receipt.orderDateTime')}: ${formatRestaurantDateTime(order.created_at, 'en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}</div>
+              ${order.scheduled_for ? `<div style="font-weight:bold;">${t('admin.printer.receipt.scheduledPickup')}: ${formatScheduled(order.scheduled_for)}</div>` : ''}
             </div>
             <div class="section">
               <div class="info-row"><b>Customer:</b> <span>${order.user?.full_name || 'Guest'}</span></div>
@@ -482,7 +486,13 @@ const AdminOrders = ({ navigation, route }: any) => {
       return;
     }
     try {
-      const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+      // İleri tarihli siparişi elle kuyruğa alınca released_at de yazılır;
+      // zamanlayıcı aynı sütuna bakıyor, fiş ve push bu geçişte tetikleniyor.
+      const leavingScheduled = selectedOrder?.status === 'scheduled' && newStatus !== 'scheduled' && newStatus !== 'cancelled';
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus, ...(leavingScheduled ? { released_at: new Date().toISOString() } : {}) })
+        .eq('id', orderId);
       if (error) throw error;
       Toast.show({ type: 'success', text1: t('admin.orders.success'), text2: t('admin.orders.statusUpdated') });
       setShowStatusModal(false);
@@ -549,6 +559,13 @@ const AdminOrders = ({ navigation, route }: any) => {
           </View>
 
           <View style={styles.cardBody}>
+            {/* İleri tarihli: teslim saati en üstte, mutfak bir bakışta görsün. */}
+            {order.scheduled_for && (
+              <View style={styles.scheduledLine}>
+                <Ionicons name="calendar-outline" size={14} color="#6F42C1" />
+                <Text style={styles.scheduledText}>{t('admin.orders.scheduledFor')}: {formatScheduled(order.scheduled_for)}</Text>
+              </View>
+            )}
             <View style={styles.customerLine}>
                 <Ionicons name="person-outline" size={14} color="#666" />
                 <Text style={styles.customerName}>{order.user?.full_name || order.user?.email || t('admin.orders.guest')}</Text>
@@ -631,6 +648,7 @@ const AdminOrders = ({ navigation, route }: any) => {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar} contentContainerStyle={styles.filterBarContent}>
             <FilterItem status="all" label={t('admin.orders.filterAll')} icon="grid-outline" />
+            <FilterItem status="scheduled" label={t('admin.orders.filterScheduled')} icon="calendar-outline" />
             <FilterItem status="pending" label={t('admin.orders.filterPending')} icon="time-outline" />
             <FilterItem status="confirmed" label={t('admin.orders.filterConfirmed')} icon="checkmark-done-outline" />
             <FilterItem status="preparing" label={t('admin.orders.filterPreparing')} icon="restaurant-outline" />
@@ -683,6 +701,12 @@ const AdminOrders = ({ navigation, route }: any) => {
                 </TouchableOpacity>
             </View>
             <ScrollView style={styles.sheetBody}>
+                {selectedOrder?.status === 'scheduled' && (
+                  <TouchableOpacity style={styles.startNowBtn} onPress={() => updateOrderStatus(selectedOrder!.id, 'pending')}>
+                    <Ionicons name="play-circle" size={20} color="#FFF" />
+                    <Text style={styles.startNowText}>{t('admin.orders.startNow')}</Text>
+                  </TouchableOpacity>
+                )}
                 {(Object.keys(STATUS_NAMES) as OrderStatus[]).map((status) => (
                     <TouchableOpacity
                         key={status}
@@ -973,6 +997,10 @@ const styles = StyleSheet.create({
   itQty: { color: Colors.primary, fontWeight: '900', fontSize: 12 },
   itName: { fontSize: 15, fontWeight: '700', color: '#444' },
   itCustom: { fontSize: 11, color: '#888', fontStyle: 'italic', marginTop: 2 },
+  scheduledLine: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F3EEFB', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, marginBottom: 8, alignSelf: 'flex-start' },
+  scheduledText: { fontSize: 12, fontWeight: '800', color: '#6F42C1' },
+  startNowBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#6F42C1', borderRadius: 14, paddingVertical: 12, marginBottom: 10 },
+  startNowText: { color: '#FFF', fontSize: 14, fontWeight: '800' },
   itUpsell: { alignSelf: 'flex-start', backgroundColor: '#FFF4E5', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 3 },
   itUpsellText: { fontSize: 10, fontWeight: '800', color: '#B35C00', textTransform: 'uppercase', letterSpacing: 0.4 },
   itPrice: { fontSize: 15, fontWeight: '800', color: Colors.text },

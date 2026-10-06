@@ -49,6 +49,8 @@ export function useAdminOrderNotifier() {
   const notifiedRef = useRef<Set<string>>(new Set());
   // Bu tarihten sonrasını "yeni sipariş" say (Baseline for what counts as new)
   const lastSeenAtRef = useRef<string | null>(null);
+  // İleri tarihli siparişlerin serbest bırakılma izi (released_at taban çizgisi).
+  const lastReleaseSeenRef = useRef<string | null>(null);
   const catchingUpRef = useRef(false);
   const catchUpStartedAtRef = useRef(0);
 
@@ -256,6 +258,7 @@ export function useAdminOrderNotifier() {
     catchingUpRef.current = true;
     catchUpStartedAtRef.current = Date.now();
     try {
+      await catchUpReleases();
       if (lastSeenAtRef.current === null) {
         const { data } = await supabase
           .from('orders')
@@ -287,7 +290,8 @@ export function useAdminOrderNotifier() {
       // İşaretlemeyi hemen ilerlet: aynı siparişler bir sonraki turda tekrar gelmesin
       lastSeenAtRef.current = rows[rows.length - 1].created_at;
 
-      const fresh = rows.filter((row) => !notifiedRef.current.has(row.id));
+      // 'scheduled' doğan sipariş SESSİZ: mutfağa serbest bırakılınca duyurulur.
+      const fresh = rows.filter((row) => !notifiedRef.current.has(row.id) && row.status !== 'scheduled');
       if (!fresh.length) return true;
 
       diag('notifier', `${reason}: ${fresh.length} kaçan sipariş yakalandı`);
@@ -312,9 +316,53 @@ export function useAdminOrderNotifier() {
     }
   };
 
+  // İleri tarihli siparişin mutfağa düşmesi: scheduled → pending (zamanlayıcı
+  // ya da admin "şimdi başlat"). released_at bu geçişte yazılıyor.
+  const catchUpReleases = async () => {
+    if (lastReleaseSeenRef.current === null) {
+      const { data } = await supabase
+        .from('orders')
+        .select('released_at')
+        .not('released_at', 'is', null)
+        .order('released_at', { ascending: false })
+        .limit(1);
+      lastReleaseSeenRef.current = data?.[0]?.released_at ?? new Date().toISOString();
+      return;
+    }
+    const { data } = await supabase
+      .from('orders')
+      .select('id, status, released_at')
+      .gt('released_at', lastReleaseSeenRef.current)
+      .order('released_at', { ascending: true })
+      .limit(MAX_CATCH_UP);
+    if (!data?.length) return;
+    lastReleaseSeenRef.current = data[data.length - 1].released_at;
+    for (const row of data) {
+      if (notifiedRef.current.has(row.id) || !PRINTABLE_STATUSES.includes(row.status)) continue;
+      notifiedRef.current.add(row.id);
+      await announceOne(row.id);
+      await autoPrint(row.id);
+    }
+  };
+
+  const handleRealtimeUpdate = async (payload: any) => {
+    const row = payload?.new;
+    if (!row?.id || !row.released_at || row.status !== 'pending') return;
+    if (notifiedRef.current.has(row.id)) return;
+    notifiedRef.current.add(row.id);
+    if (!lastReleaseSeenRef.current || row.released_at > lastReleaseSeenRef.current) lastReleaseSeenRef.current = row.released_at;
+    await announceOne(row.id);
+    await autoPrint(row.id);
+  };
+
   const handleRealtimeInsert = async (payload: any) => {
     const orderId = payload?.new?.id as string | undefined;
     if (!orderId) return;
+    // İleri tarihli sipariş: şimdi değil, serbest bırakılınca duyurulur.
+    if (payload?.new?.status === 'scheduled') {
+      diag('notifier', `ileri tarihli sipariş ${orderId} — bildirim serbest bırakılınca`);
+      return;
+    }
 
     // Catch-up ile çakışmasın
     if (notifiedRef.current.has(orderId)) return;
@@ -338,5 +386,13 @@ export function useAdminOrderNotifier() {
     onResync: catchUp,
     // Realtime tamamen ölse bile en fazla 25 saniyede yeni sipariş duyulur
     pollIntervalMs: 25000,
+  });
+
+  useRealtimeTable({
+    channel: 'global-admin-released-orders',
+    table: 'orders',
+    event: 'UPDATE',
+    enabled: isAdmin,
+    onEvent: handleRealtimeUpdate,
   });
 }

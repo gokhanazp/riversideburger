@@ -8,6 +8,7 @@
 
 import { Platform, PermissionsAndroid } from 'react-native';
 import { formatRestaurantDateTime } from './restaurantTime';
+import { formatScheduled } from './scheduling';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Order } from '../types/database.types';
 import { getCurrencyInfo } from './currencyService';
@@ -242,6 +243,11 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
   // Fişteki saat restoranın saati; tablet başka dilimde olsa da Toronto yazar.
   const dateStr = formatRestaurantDateTime(order.created_at, 'en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
   await printer.addText(`${rt('orderDateTime')}: ${dateStr}\n`);
+  if (order.scheduled_for) {
+    await printer.addTextStyle({ em: C.TRUE });
+    await printer.addText(`${rt('scheduledPickup')}: ${formatScheduled(order.scheduled_for)}\n`);
+    await printer.addTextStyle({ em: C.FALSE });
+  }
 
   const methodLabel =
     order.delivery_method === 'pickup' ? rt('pickup') : rt('delivery');

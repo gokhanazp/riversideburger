@@ -35,7 +35,7 @@ const SOURCE_ICON: Record<SourceFilter, keyof typeof Ionicons.glyphMap> = { all:
 const STATUS_SETS: Record<StatusFilter, string[] | null> = {
   all: null,
   delivered: ['delivered'],
-  in_progress: ['pending', 'confirmed', 'preparing', 'ready', 'delivering'],
+  in_progress: ['scheduled', 'pending', 'confirmed', 'preparing', 'ready', 'delivering'],
   cancelled: ['cancelled'],
 };
 const TZ = 'America/Toronto';

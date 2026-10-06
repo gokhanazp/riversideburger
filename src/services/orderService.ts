@@ -34,6 +34,8 @@ interface CreateOrderParams {
     specialInstructions?: string;
   }[];
   points_used?: number;
+  /** İleri tarihli gel-al: teslim anı (UTC ISO). Durum 'scheduled' doğar. */
+  scheduled_for?: string | null;
   /** Sipariş anında tahsil edilen vergi tutarı */
   /** ZORUNLU: eksik bırakılırsa sipariş vergisiz yazılıyor ve kimse fark etmiyor. */
   taxAmount: number;
@@ -65,7 +67,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
       delivery_full_name, delivery_street, delivery_unit, delivery_city,
       delivery_province, delivery_postal_code, delivery_country,
       delivery_lat, delivery_lng, delivery_instructions, delivery_fee,
-      tip_amount = 0, payment_status = 'pending',
+      tip_amount = 0, payment_status = 'pending', scheduled_for = null,
       campaign_id = null, discount_amount = 0, taxAmount,
     } = params;
 
@@ -75,7 +77,8 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
       .insert({
         user_id,
         order_number: generateOrderNumber(),
-        status: 'pending',
+        status: scheduled_for ? 'scheduled' : 'pending',
+        scheduled_for,
         total_amount,
         delivery_address,
         phone,

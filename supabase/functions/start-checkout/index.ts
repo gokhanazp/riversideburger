@@ -91,7 +91,9 @@ serve(async (req) => {
     // Ayar okunamazsa AÇIK kabul ediliyor — uygulamanın ve web'in davranışı da
     // bu. Bir okuma hatası yüzünden bütün siparişleri reddetmek, açık bir
     // restoranı kapatmak demek olurdu.
-    if (!openError && openSettings && !isOpenNow(openSettings as OpenSettings)) {
+    // İleri tarihli sipariş kapalıyken de alınır; dilim zaten doğrulandı.
+    const isScheduled = Boolean((draft.order as { scheduled_for?: string | null }).scheduled_for);
+    if (!isScheduled && !openError && openSettings && !isOpenNow(openSettings as OpenSettings)) {
       return json(
         {
           error: 'We are closed right now, so we cannot take this order.',

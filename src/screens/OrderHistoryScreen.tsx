@@ -1,6 +1,7 @@
 // Order History Screen - Sipariş Geçmişi Ekranı
 import React, { useState, useEffect, useMemo, useLayoutEffect } from 'react';
 import { formatRestaurantDateTime } from '../services/restaurantTime';
+import { formatScheduled } from '../services/scheduling';
 import {
   Linking,
   View,
@@ -28,7 +29,7 @@ import { GOOGLE_REVIEW_URL } from '../constants/links';
 
 type FilterType = 'all' | 'active' | 'completed';
 
-const ACTIVE_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'delivering'];
+const ACTIVE_STATUSES = ['scheduled', 'pending', 'confirmed', 'preparing', 'ready', 'delivering'];
 
 const OrderHistoryScreen = () => {
   const navigation = useNavigation();
@@ -113,6 +114,7 @@ const OrderHistoryScreen = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'scheduled': return '#6F42C1';
       case 'pending': return '#FFC107';
       case 'confirmed': return '#2196F3';
       case 'preparing': return '#FF9800';
@@ -126,6 +128,7 @@ const OrderHistoryScreen = () => {
 
   const getStatusText = (status: string) => {
     const map: Record<string, string> = {
+      scheduled: t('orderHistory.statusScheduled'),
       pending: t('orderHistory.statusPending'),
       confirmed: t('orderHistory.statusConfirmed'),
       preparing: t('orderHistory.statusPreparing'),
@@ -139,6 +142,7 @@ const OrderHistoryScreen = () => {
 
   const getStatusIcon = (status: string): any => {
     switch (status) {
+      case 'scheduled': return 'calendar';
       case 'pending': return 'time';
       case 'confirmed': return 'checkmark-circle';
       case 'preparing': return 'restaurant';
@@ -189,6 +193,9 @@ const OrderHistoryScreen = () => {
               <Text style={styles.orderNumber}>#{item.order_number}</Text>
             </View>
             <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
+            {item.scheduled_for && (
+              <Text style={styles.scheduledFor}>{t('orderHistory.pickupAt', { when: formatScheduled(item.scheduled_for) })}</Text>
+            )}
           </View>
           <View style={[styles.statusPill, { backgroundColor: statusColor + '15' }]}>
             <Ionicons name={getStatusIcon(item.status)} size={13} color={statusColor} />
@@ -430,6 +437,7 @@ const OrderHistoryScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  scheduledFor: { fontSize: 12, fontWeight: '800', color: '#6F42C1', marginTop: 2 },
   container: {
     flex: 1,
     backgroundColor: '#F5F5F7',
