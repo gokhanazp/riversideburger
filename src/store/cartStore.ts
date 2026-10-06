@@ -5,14 +5,16 @@ import { CartItem, MenuItem } from '../types';
 interface CartStore {
   items: CartItem[]; // Sepetteki ürünler (Items in cart)
   addItem: (item: MenuItem, customizations?: Array<{option_id: string; option_name: string; option_name_en?: string | null; option_price: number}>, specialInstructions?: string, meta?: { addedVia?: 'menu' | 'upsell' }) => void; // Sepete ürün ekle (Add item to cart)
-  removeItem: (itemId: string) => void; // Sepetten ürün çıkar (Remove item from cart)
-  updateQuantity: (itemId: string, quantity: number) => void; // Ürün miktarını güncelle (Update item quantity)
+  removeItem: (lineId: string) => void; // Sepet satırını çıkar (Remove a cart line)
+  updateQuantity: (lineId: string, quantity: number) => void; // Satır miktarını güncelle (Update a line's quantity)
   clearCart: () => void; // Sepeti temizle (Clear cart)
   getTotalPrice: () => number; // Toplam fiyatı hesapla (Calculate total price)
   getTotalItems: () => number; // Toplam ürün sayısını hesapla (Calculate total items)
 }
 
 // Zustand store oluşturma (Create Zustand store)
+const newLineId = (productId: string) => `${productId}:${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
 export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
 
@@ -29,6 +31,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
       set({
         items: [...currentItems, {
           ...item,
+          lineId: newLineId(item.id),
           quantity: 1,
           price: item.price + customizationsTotal, // Özelleştirme fiyatlarını ekle (Add customization prices)
           customizations,
@@ -50,28 +53,28 @@ export const useCartStore = create<CartStore>((set, get) => ({
       } else {
         // Yeni ürün ekle (Add new item)
         set({
-          items: [...currentItems, { ...item, quantity: 1, addedVia: meta?.addedVia }],
+          items: [...currentItems, { ...item, lineId: newLineId(item.id), quantity: 1, addedVia: meta?.addedVia }],
         });
       }
     }
   },
 
   // Sepetten ürün çıkarma fonksiyonu (Remove item from cart function)
-  removeItem: (itemId: string) => {
+  removeItem: (lineId: string) => {
     set({
-      items: get().items.filter((item) => item.id !== itemId),
+      items: get().items.filter((item) => item.lineId !== lineId),
     });
   },
 
   // Ürün miktarını güncelleme fonksiyonu (Update item quantity function)
-  updateQuantity: (itemId: string, quantity: number) => {
+  updateQuantity: (lineId: string, quantity: number) => {
     if (quantity <= 0) {
-      // Miktar 0 veya daha azsa, ürünü sepetten çıkar (If quantity is 0 or less, remove item)
-      get().removeItem(itemId);
+      // Miktar 0 veya daha azsa, satırı sepetten çıkar (If quantity is 0 or less, remove the line)
+      get().removeItem(lineId);
     } else {
       set({
         items: get().items.map((item) =>
-          item.id === itemId ? { ...item, quantity } : item
+          item.lineId === lineId ? { ...item, quantity } : item
         ),
       });
     }

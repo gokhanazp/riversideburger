@@ -505,7 +505,7 @@ const CartScreen = ({ navigation }: any) => {
 
   const handleDeleteConfirm = () => {
     if (itemToDelete) {
-      removeItem(itemToDelete.id);
+      removeItem(itemToDelete.id); // id = satır kimliği
       Toast.show({ type: 'success', text1: t('cart.itemDeleted'), position: 'top', topOffset: 60 });
     }
     setShowDeleteModal(false);
@@ -519,17 +519,32 @@ const CartScreen = ({ navigation }: any) => {
         <View style={styles.eliteInfo}>
           <View style={styles.eliteHeaderRow}>
             <Text style={styles.eliteName} numberOfLines={1}>{item.name}</Text>
-            <TouchableOpacity onPress={() => { setItemToDelete({ id: item.id, name: item.name }); setShowDeleteModal(true); }}>
+            <TouchableOpacity onPress={() => { setItemToDelete({ id: item.lineId, name: item.name }); setShowDeleteModal(true); }}>
               <Ionicons name="trash-outline" size={18} color="#999" />
             </TouchableOpacity>
           </View>
+          {/* Seçenekler: "Beef · Avocado +$2.00 · No Bacon". Önceden hiç
+              görünmüyordu; müşteri ne seçtiğini sepette doğrulayamıyordu. */}
+          {(item.customizations?.length ?? 0) > 0 && (
+            <Text style={styles.eliteOptions} numberOfLines={3}>
+              {item.customizations!
+                .map((c) => {
+                  const label = i18n.language === 'en' ? (c.option_name_en || c.option_name) : c.option_name;
+                  return c.option_price > 0 ? `${label} +${formatPrice(c.option_price)}` : label;
+                })
+                .join(' · ')}
+            </Text>
+          )}
+          {!!item.specialInstructions && (
+            <Text style={styles.eliteNote} numberOfLines={2}>“{item.specialInstructions}”</Text>
+          )}
           <Text style={styles.elitePrice}>{formatPrice(item.price * item.quantity)}</Text>
           <View style={styles.eliteQuantityContainer}>
-            <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.id, item.quantity - 1)}>
+            <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.lineId, item.quantity - 1)}>
               <Ionicons name="remove" size={14} color="#000" />
             </TouchableOpacity>
             <Text style={styles.qtyText}>{item.quantity}</Text>
-            <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.id, item.quantity + 1)}>
+            <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.lineId, item.quantity + 1)}>
               <Ionicons name="add" size={14} color="#000" />
             </TouchableOpacity>
           </View>
@@ -914,7 +929,7 @@ const CartScreen = ({ navigation }: any) => {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {items.map(item => <EliteCartItem key={item.id} item={item} />)}
+            {items.map(item => <EliteCartItem key={item.lineId} item={item} />)}
             <UpsellStrip />
             {/* ListFooter BİLEŞEN OLARAK değil, FONKSİYON OLARAK çağrılıyor.
                 Bileşen CartScreen'in içinde tanımlı olduğu için her render'da
@@ -1007,6 +1022,8 @@ const styles = StyleSheet.create({
   eliteInfo: { flex: 1, marginLeft: 14, justifyContent: 'space-between' },
   eliteHeaderRow: { flexDirection: 'row', justifyContent: 'space-between' },
   eliteName: { fontSize: 16, fontWeight: '700', color: '#1A1A1A' },
+  eliteOptions: { fontSize: 12, color: '#6C757D', lineHeight: 16, marginTop: 2 },
+  eliteNote: { fontSize: 12, color: '#6C757D', fontStyle: 'italic', lineHeight: 16, marginTop: 2 },
   elitePrice: { fontSize: 17, fontWeight: '800', color: Colors.primary },
   eliteQuantityContainer: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: '#F5F5F7', borderRadius: 20, padding: 2 },
   qtyBtn: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF', borderRadius: 15, ...Shadows.small },

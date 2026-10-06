@@ -32,6 +32,9 @@ export interface MenuItem {
 
 // Sepet öğesi için tip tanımı (Cart item type definition)
 export interface CartItem extends MenuItem {
+  /** Sepet SATIRI kimliği. Aynı ürün farklı seçeneklerle iki satır olabilir;
+   *  adet/sil işlemleri ürün id'siyle yapılınca iki satır birden değişiyordu. */
+  lineId: string;
   quantity: number;
   customizations?: Array<{
     option_id: string;
