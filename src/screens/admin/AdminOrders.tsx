@@ -541,7 +541,7 @@ const AdminOrders = ({ navigation, route }: any) => {
               <View style={[styles.idCircle, { backgroundColor: statusColor + '15' }]}>
                 <Ionicons name="receipt" size={16} color={statusColor} />
               </View>
-              <Text style={styles.cardOrderNo}>#{order.order_number}</Text>
+              <Text style={styles.cardOrderNo} numberOfLines={1}>#{order.order_number}</Text>
               {/* Siparişin web sitesinden geldiğini restoranın hemen görmesi için.
                   Mobil uygulama siparişlerinde source 'app' (varsayılan) olduğu
                   için rozet çıkmıyor. */}
@@ -786,7 +786,7 @@ const AdminOrders = ({ navigation, route }: any) => {
             <View style={styles.detailsSheet}>
               <View style={styles.detailsHeader}>
                 <View style={styles.detailsHeaderTitle}>
-                    <Text style={styles.detailsNo}>#{selectedOrder.order_number}</Text>
+                    <Text style={styles.detailsNo} numberOfLines={1}>#{selectedOrder.order_number}</Text>
                     {selectedOrder.source === 'web' && (
                       <View style={styles.sourceTag}>
                         <Ionicons name="globe-outline" size={11} color="#0B7285" />
@@ -945,10 +945,10 @@ const styles = StyleSheet.create({
   listContainer: { padding: 20, gap: 16, paddingBottom: 100 },
   orderCard: { backgroundColor: Colors.white, borderRadius: 24, padding: 16, ...Shadows.small },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  orderIdent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  orderIdent: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0, marginRight: 8 },
   idCircle: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  cardOrderNo: { fontSize: 16, fontWeight: '900', color: Colors.text },
-  statusTag: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 6 },
+  cardOrderNo: { fontSize: 16, fontWeight: '900', color: Colors.text, flexShrink: 1 },
+  statusTag: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 6, flexShrink: 0 },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusTagText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
   cardBody: { marginBottom: 16, gap: 8 },
@@ -978,13 +978,13 @@ const styles = StyleSheet.create({
   cancelConfirmText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
   detailsSheet: { backgroundColor: Colors.white, borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '90%' },
   detailsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: '#f1f1f1' },
-  detailsHeaderTitle: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  detailsHeaderTitle: { flex: 1, minWidth: 0, flexShrink: 1, flexWrap: 'wrap', marginRight: 8,  flexDirection: 'row', alignItems: 'center', gap: 12 },
   detailsNo: { fontSize: 22, fontWeight: '900', color: Colors.text },
   sourceTag: { flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 8,
     paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: '#0B728512' },
   sourceTagText: { fontSize: 10, fontWeight: '800', color: '#0B7285', letterSpacing: 0.5 },
   detailsBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
-  sheetCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' },
+  sheetCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
   detailsScroll: { padding: 24 },
   detailsSection: { marginBottom: 32 },
   detailsLabel: { fontSize: 12, fontWeight: '800', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
