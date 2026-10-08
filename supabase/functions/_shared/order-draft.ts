@@ -19,6 +19,7 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getRestaurantPickup } from './uber.ts';
 import { validateSlot, slotReasonMessage, DEFAULT_SCHEDULING } from './scheduling.ts';
+import { sanitizeAttribution, deriveChannel, type Attribution } from './attribution.ts';
 import { geocodeAddress } from './geocode.ts';
 import {
   normalizeCouponCode,
@@ -73,6 +74,8 @@ export interface RequestBody {
   coupon_code?: string | null;
   /** İleri tarihli sipariş: dilim anı (UTC ISO). Yalnızca gel-al. */
   scheduled_for?: string | null;
+  /** İlk sayfada yakalanan pazarlama parametreleri (gclid, utm, referrer…). */
+  attribution?: Partial<Attribution> | null;
 }
 
 // Fiyatlama modülünün ürettiği tiplerin aynısı — ikinci bir tanım yazmak,
@@ -481,6 +484,9 @@ export async function buildOrderDraft(
     scheduledFor = new Date(String(body.scheduled_for)).toISOString();
   }
 
+  // ── Pazarlama kaynağı ─────────────────────────────────────────────────
+  const attribution = sanitizeAttribution(body.attribution);
+
   // ── Sipariş satırı (henüz yazılmıyor) ──────────────────────────────────
   const address = body.address;
   const isDelivery = body.delivery_method === 'delivery';
@@ -509,6 +515,8 @@ export async function buildOrderDraft(
         // İleri tarihli sipariş 'scheduled' doğar; tetikleyici de buna zorluyor.
         status: scheduledFor ? 'scheduled' : 'pending',
         scheduled_for: scheduledFor,
+        attribution: attribution,
+        channel: deriveChannel(attribution),
         total_amount: total,
         delivery_address: deliveryAddressText,
         phone,

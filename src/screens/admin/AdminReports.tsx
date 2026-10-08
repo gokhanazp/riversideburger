@@ -137,7 +137,7 @@ export default function AdminReports() {
       const p = { p_from: range.from.toISOString(), p_to: range.to.toISOString(), p_statuses, p_source };
       const prevFrom = new Date(range.from.getTime() - (range.to.getTime() - range.from.getTime()));
       const prev = { p_from: prevFrom.toISOString(), p_to: range.from.toISOString(), p_statuses, p_source };
-      const [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses, upsell] = await Promise.all([
+      const [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses, upsell, acquisition] = await Promise.all([
         supabase.rpc('report_summary', p),
         supabase.rpc('report_summary', prev),
         supabase.rpc('report_timeseries', { ...p, p_bucket: effBucket }),
@@ -148,11 +148,12 @@ export default function AdminReports() {
         supabase.rpc('report_channels', p),
         supabase.rpc('report_delivery', p),
         supabase.rpc('report_upsell', p),
+        supabase.rpc('report_acquisition', p),
         // Durum dağılımı DURUM filtresinden bağımsız: filtre "iptal" seçiliyken
         // bile dönemin tamamı görünsün. Kanal filtresi ise uygulanıyor.
         supabase.rpc('report_status_breakdown', { p_from: p.p_from, p_to: p.p_to, p_source }),
       ]);
-      const firstErr = [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses, upsell].find((r) => r.error)?.error;
+      const firstErr = [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses, upsell, acquisition].find((r) => r.error)?.error;
       if (firstErr) throw firstErr;
       setData({
         summary: summary.data?.[0] ?? {},
@@ -166,6 +167,7 @@ export default function AdminReports() {
         delivery: delivery.data?.[0] ?? {},
         statuses: statuses.data ?? [],
         upsell: upsell.data?.[0] ?? {},
+        acquisition: acquisition.data ?? [],
       });
     } catch (e: any) {
       const msg = e?.message ?? t('admin.reports.loadError');
@@ -419,6 +421,19 @@ export default function AdminReports() {
                   <View style={styles.rowBetween}><Text style={[styles.rowLabel, { fontWeight: '800', color: Colors.text }]}>{t('admin.reports.netDelivery')}</Text><Text style={[styles.rowVal, { color: n(data.delivery.net_delivery) < 0 ? Colors.primary : '#28A745' }]}>{formatPrice(n(data.delivery.net_delivery))}</Text></View>
                 </View>
               )}
+            </View>
+
+            {/* Pazarlama kaynağı: siparişe yazılan kanal (web); uygulama 'app' */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>{t('admin.reports.acquisition')}</Text>
+              {data.acquisition.length === 0 && <Text style={styles.hint}>{t('admin.reports.noData')}</Text>}
+              {data.acquisition.map((r: any) => (
+                <View key={r.channel} style={styles.rowBetween}>
+                  <Text style={styles.rowLabel}>{t(`admin.reports.ch_${r.channel}`, { defaultValue: r.channel })}</Text>
+                  <Text style={styles.rowVal}>{n(r.orders)} · {formatPrice(n(r.revenue))}</Text>
+                </View>
+              ))}
+              <Text style={styles.hint}>{t('admin.reports.acquisitionHint')}</Text>
             </View>
 
             {/* Ekstra satış ("Goes well with" şeridinden eklenenler) */}
