@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { formatRestaurantDateTime } from '../../services/restaurantTime';
 import { formatScheduled } from '../../services/scheduling';
+import { customizationsForItem } from '../../services/orderLines';
 import {
   View,
   Text,
@@ -388,8 +389,7 @@ const AdminOrders = ({ navigation, route }: any) => {
               ${order.order_items?.map(item => {
                 // Seçilen/çıkarılan malzemeleri ürünün altına yaz — mutfak fişten
                 // hazırlıyor, bu satırlar olmadan yanlış ürün çıkıyor.
-                const customs = (order.order_item_customizations || [])
-                  .filter(c => c.product_id === item.product_id);
+                const customs = customizationsForItem(order.order_item_customizations, item);
                 const customLines = customs.map(c =>
                   `<div style="padding-left:14px; font-weight:bold;">&gt;&gt; ${
                     i18n.language === 'en' ? (c.option_name_en || c.option_name) : c.option_name
@@ -835,7 +835,7 @@ const AdminOrders = ({ navigation, route }: any) => {
                                     {/* Özelleştirmeyi panelin dilinde göster. option_name_en sipariş
                                         anında kaydediliyor; eski siparişlerde boş olabilir, o zaman
                                         Türkçe ada düşülür. */}
-                                    {(selectedOrder as any).order_item_customizations?.filter((c:any)=>c.product_id===it.product_id).map((c:any, i:number) => (
+                                    {customizationsForItem((selectedOrder as any).order_item_customizations, it).map((c:any, i:number) => (
                                         <Text key={i} style={styles.itCustom}>
                                             • {i18n.language === 'en' ? (c.option_name_en || c.option_name) : c.option_name}
                                         </Text>

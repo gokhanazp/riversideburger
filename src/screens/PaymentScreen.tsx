@@ -408,6 +408,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       customizations: item.customizations,
       specialInstructions: item.specialInstructions,
       added_via: item.addedVia ?? 'menu',
+      line_id: item.lineId,
     }));
 
     const order = await createOrder({

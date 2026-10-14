@@ -138,6 +138,8 @@ export interface OrderCustomizationRow {
   option_name_en?: string | null;
   option_price?: number | null;
   special_instructions?: string | null;
+  /** Sepet satırı kimliği; order_items.line_id ile eşleşir (eski siparişlerde null). */
+  line_id?: string | null;
 }
 
 // Kampanya (Campaign / Promotion)
@@ -193,6 +195,8 @@ export interface OrderItem {
   product?: Product;
   /** 'upsell' = sepetteki "Goes well with" şeridinden eklendi */
   added_via?: 'menu' | 'upsell' | null;
+  /** Sepet satırı kimliği; özelleştirmeler buna bağlı (eski siparişlerde null). */
+  line_id?: string | null;
 }
 
 // Settings (Ayarlar)

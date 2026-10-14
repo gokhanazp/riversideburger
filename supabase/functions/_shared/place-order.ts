@@ -177,12 +177,17 @@ export async function placeOrder(
 
   // ── Özelleştirmeler ────────────────────────────────────────────────────
   const optionById = new Map(draft.options.map((o) => [o.id, o]));
-  const customizationRows = draft.lines.flatMap((l) =>
+  // Her satıra kimlik: özelleştirme ve kalem aynı kimliği taşır; admin ve fiş
+  // bununla eşleştirir. Ürün kimliğiyle eşleşince aynı ürünün iki satırı
+  // (1 yükseltilmiş + 2 normal) hepsi yükseltilmiş görünüyordu.
+  const linedLines = draft.lines.map((l) => ({ ...l, line_id: crypto.randomUUID() }));
+  const customizationRows = linedLines.flatMap((l) =>
     l.option_ids
       .map((id) => optionById.get(id))
       .filter((o): o is NonNullable<typeof o> => Boolean(o))
       .map((o) => ({
         order_id: order!.id,
+        line_id: l.line_id,
         product_id: l.product_id,
         product_name: l.product_name,
         option_id: o.id,
@@ -214,8 +219,9 @@ export async function placeOrder(
   // özelleştirmeler zaten yazılmıştır. Güvenli, çünkü
   // order_item_customizations satırları order_items'a bağlı değil.
   const { error: itemsError } = await admin.from('order_items').insert(
-    draft.lines.map((l) => ({
+    linedLines.map((l) => ({
       order_id: order!.id,
+      line_id: l.line_id,
       product_id: l.product_id,
       quantity: l.quantity,
       price: l.unit_price,

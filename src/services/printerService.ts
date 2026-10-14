@@ -9,6 +9,7 @@
 import { Platform, PermissionsAndroid } from 'react-native';
 import { formatRestaurantDateTime } from './restaurantTime';
 import { formatScheduled } from './scheduling';
+import { customizationsForItem } from './orderLines';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Order } from '../types/database.types';
 import { getCurrencyInfo } from './currencyService';
@@ -284,7 +285,7 @@ async function buildReceipt(printer: any, order: Order): Promise<void> {
     // Seçilen/çıkarılan malzemeleri ürünün altına yaz. Mutfak siparişi fişten
     // hazırlıyor; "Domates Çıkar" fişte görünmezse yanlış burger çıkıyor.
     // Kaçırılmaması için koyu (em) basılıyor.
-    const itemCustomizations = customizations.filter((c) => c.product_id === item.product_id);
+    const itemCustomizations = customizationsForItem(customizations, item);
     for (const custom of itemCustomizations) {
       const label =
         i18n.language === 'en'

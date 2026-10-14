@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { newLineId } from './orderLines';
 import { restaurantStartOfToday } from './restaurantTime';
 import { Order, OrderItem, OrderStatus } from '../types/database.types';
 import { usePoints } from './pointsService';
@@ -25,6 +26,8 @@ interface CreateOrderParams {
     subtotal: number;
     /** Raporlama: 'upsell' = sepet şeridinden eklendi. */
     added_via?: 'menu' | 'upsell';
+    /** Sepet satırı kimliği (CartItem.lineId). Yoksa burada üretilir. */
+    line_id?: string;
     customizations?: Array<{
       option_id: string;
       option_name: string;
@@ -112,7 +115,11 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
     if (orderError) throw orderError;
 
     // Özelleştirmeleri kaydet (Save customizations)
-    for (const item of items) {
+    // Her satıra kimlik: özelleştirme satırları ve kalem aynı kimliği taşır,
+    // ekranlar ve fiş bununla eşleştirir (ürün kimliğiyle değil).
+    const linedItems = items.map((item) => ({ ...item, line_id: item.line_id || newLineId(item.product_id) }));
+
+    for (const item of linedItems) {
       if (item.customizations && item.customizations.length > 0) {
         // Sadece gerçek UUID'leri kaydet (dinamik "ingredient-X" ID'lerini filtrele)
         // Only save real UUIDs (filter out dynamic "ingredient-X" IDs)
@@ -126,6 +133,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
         if (validCustomizations.length > 0) {
           const customizationsData = validCustomizations.map(custom => ({
             order_id: orderData.id,
+            line_id: item.line_id,
             product_id: item.product_id,
             product_name: item.product_name,
             option_id: custom.option_id,
@@ -156,6 +164,7 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
         if (dynamicCustomizations.length > 0) {
           const dynamicData = dynamicCustomizations.map(custom => ({
             order_id: orderData.id,
+            line_id: item.line_id,
             product_id: item.product_id,
             product_name: item.product_name,
             option_id: null, // Dinamik seçenekler için option_id null
@@ -193,8 +202,9 @@ export const createOrder = async (params: CreateOrderParams): Promise<Order> => 
     //
     // Bu tersine çevirme güvenli, çünkü order_item_customizations satırları
     // order_items'a bağlı değil — order_id ve product_id taşıyorlar.
-    const orderItems = items.map(item => ({
+    const orderItems = linedItems.map(item => ({
       order_id: orderData.id,
+      line_id: item.line_id,
       product_id: item.product_id,
       quantity: item.quantity,
       price: item.price,

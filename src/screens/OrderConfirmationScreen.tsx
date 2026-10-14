@@ -12,6 +12,7 @@
 // müşteriye ve mutfağa farklı sayı göstermek en kötü sonuç olurdu.
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { customizationsForItem } from '../services/orderLines';
 import {
   View,
   Text,
@@ -169,7 +170,7 @@ const OrderConfirmationScreen = ({ navigation, route }: any) => {
             <Text style={styles.cardTitle}>{t('orderConfirmation.items')}</Text>
           </View>
           {(order.order_items ?? []).map((item: any, idx: number) => {
-            const itemCustoms = customizations.filter((c) => c.product_id === item.product_id);
+            const itemCustoms = customizationsForItem(customizations, item);
             return (
               <View key={idx} style={styles.itemRow}>
                 <View style={styles.qtyBox}>
