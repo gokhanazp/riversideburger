@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { analyticsDiagnostics } from '../../services/analytics';
 import {
   View,
   Text,
@@ -442,6 +443,25 @@ const AdminSettings = ({ navigation }: any) => {
               <Ionicons name="information-circle-outline" size={16} color="#888" />
               <Text style={styles.tierNoteText}>{t('admin.settings.scheduling.note')}</Text>
            </View>
+        </SettingCard>
+
+        {/* ANALYTICS (tanı) */}
+        <SettingCard delay={570} icon="analytics-outline" title={t('admin.settings.analytics.title')} description={t('admin.settings.analytics.description')}>
+          <TouchableOpacity
+            style={styles.tierNote}
+            onPress={async () => {
+              const r = await analyticsDiagnostics();
+              Toast.show({
+                type: r.ok ? 'success' : 'error',
+                text1: r.ok ? t('admin.settings.analytics.ok') : t('admin.settings.analytics.fail'),
+                text2: r.ok ? `ID: ${r.instanceId ?? '-'}` : (r.error ?? ''),
+                visibilityTime: 6000,
+              });
+            }}
+          >
+            <Ionicons name="pulse-outline" size={16} color={Colors.primary} />
+            <Text style={[styles.tierNoteText, { color: Colors.primary, fontWeight: '700' }]}>{t('admin.settings.analytics.test')}</Text>
+          </TouchableOpacity>
         </SettingCard>
 
         {/* WORKING HOURS */}

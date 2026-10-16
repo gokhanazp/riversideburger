@@ -1113,6 +1113,13 @@
         "days": "days",
         "note": "Scheduled orders are paid at checkout and reach the kitchen automatically before the pickup time. Pickup only for now."
       },
+      "analytics": {
+        "title": "Analytics",
+        "description": "Firebase / GA4 status",
+        "test": "Send a test event",
+        "ok": "Analytics is running",
+        "fail": "Analytics not available"
+      },
       "workingHours": {
         "title": "Working Hours",
         "description": "Set the hours when the store will be open",
