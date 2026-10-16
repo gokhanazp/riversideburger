@@ -767,7 +767,7 @@ const CartScreen = ({ navigation }: any) => {
             <TouchableOpacity style={[styles.savingsRow, styles.savingsRowDivider]} onPress={() => setIsPointsExpanded(!isPointsExpanded)} activeOpacity={0.7}>
               <View style={styles.rowIcon}><Ionicons name="star" size={16} color="#E0A800" /></View>
               <Text style={[styles.rowTitle, { flex: 1 }]}>{t('cart.availablePoints')}: {userPoints.toFixed(0)}</Text>
-              <Ionicons name={isPointsExpanded ? 'chevron-up' : 'chevron-down'} size={18} color="#999" />
+              <Ionicons name={isPointsExpanded ? 'chevron-down' : 'chevron-forward'} size={18} color="#999" />
             </TouchableOpacity>
             {isPointsExpanded && (
               userPoints > 0 ? (
