@@ -189,6 +189,11 @@
     "addedToCartDesc": "{{quantity}}x {{name}} sepetinize eklendi"
   },
   "cart": {
+    "yourItems": "Ürünler ({{count}})",
+    "savingsTitle": "İndirim ve puan",
+    "haveCoupon": "Kupon kodun var mı?",
+    "whenAsapShort": "Şimdi",
+    "whenLaterShort": "İleri tarih",
     "whenTitle": "Ne zaman",
     "whenAsap": "En kısa sürede",
     "whenLater": "İleri tarih",

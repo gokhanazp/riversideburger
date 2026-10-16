@@ -45,7 +45,6 @@ const CartScreen = ({ navigation }: any) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
-  const [isAddressExpanded, setIsAddressExpanded] = useState(false);
   const [isPointsExpanded, setIsPointsExpanded] = useState(false);
 
   const [userPoints, setUserPoints] = useState<number>(0);
@@ -74,6 +73,7 @@ const CartScreen = ({ navigation }: any) => {
   // İleri tarihli gel-al (1. aşama yalnızca pickup). Dilimler panel
   // ayarlarından; boş gelirse bölüm hiç görünmez.
   const [when, setWhen] = useState<'asap' | 'later'>('asap');
+  const [isCouponExpanded, setIsCouponExpanded] = useState(false);
   const [slotDays, setSlotDays] = useState<SlotDay[]>([]);
   const [slotDayKey, setSlotDayKey] = useState('');
   const [slotIso, setSlotIso] = useState('');
@@ -553,115 +553,130 @@ const CartScreen = ({ navigation }: any) => {
     </View>
   );
 
-  const ListFooter = () => (
-    <View style={styles.listFooter}>
-      {/* Teslimat Şekli (Delivery Method) */}
-      {isAuthenticated && (
-        <View style={styles.deliveryMethodRow}>
+  // ── ÜSTTE: nasıl ve nereye/ne zaman ─────────────────────────────────────
+  // Teslimat seçimi, adres/telefon ve ileri tarih tek kartta ve EN ÜSTTE.
+  // Eskiden bunlar ürün listesinin altında, puan ve kuponla iç içe duruyordu;
+  // müşteri "nereye gidiyor" sorusunu en son görüyordu.
+  const TopFulfilment = () => (
+    <View style={styles.topCard}>
+      <View style={[styles.deliveryMethodRow, { marginBottom: 4 }]}>
+        <TouchableOpacity
+          style={[styles.deliveryMethodOption, deliveryMethod === 'delivery' && styles.deliveryMethodOptionActive]}
+          onPress={() => setDeliveryMethod('delivery')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="bicycle" size={20} color={deliveryMethod === 'delivery' ? '#FFF' : Colors.primary} />
+          <Text style={[styles.deliveryMethodLabel, deliveryMethod === 'delivery' && styles.deliveryMethodLabelActive]}>
+            {t('cart.deliveryMethodDelivery')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.deliveryMethodOption, deliveryMethod === 'pickup' && styles.deliveryMethodOptionActive]}
+          onPress={() => setDeliveryMethod('pickup')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="storefront" size={20} color={deliveryMethod === 'pickup' ? '#FFF' : Colors.primary} />
+          <Text style={[styles.deliveryMethodLabel, deliveryMethod === 'pickup' && styles.deliveryMethodLabelActive]}>
+            {t('cart.deliveryMethodPickup')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Teslimat: adres tek satır, dokununca seçim penceresi */}
+      {deliveryMethod === 'delivery' && (
+        <>
           <TouchableOpacity
-            style={[styles.deliveryMethodOption, deliveryMethod === 'delivery' && styles.deliveryMethodOptionActive]}
-            onPress={() => setDeliveryMethod('delivery')}
+            style={styles.rowItem}
+            onPress={() => (selectedAddress ? setShowAddressModal(true) : navigation.navigate('AddressList'))}
             activeOpacity={0.7}
           >
-            <Ionicons
-              name="bicycle"
-              size={20}
-              color={deliveryMethod === 'delivery' ? '#FFF' : Colors.primary}
-            />
-            <Text style={[styles.deliveryMethodLabel, deliveryMethod === 'delivery' && styles.deliveryMethodLabelActive]}>
-              {t('cart.deliveryMethodDelivery')}
-            </Text>
+            <View style={styles.rowIcon}><Ionicons name="location" size={16} color={Colors.primary} /></View>
+            <View style={{ flex: 1 }}>
+              {selectedAddress ? (
+                <>
+                  <Text style={styles.rowTitle} numberOfLines={1}>{selectedAddress.title}</Text>
+                  <Text style={styles.rowSub} numberOfLines={1}>
+                    {selectedAddress.street_name} {selectedAddress.street_number}
+                    {selectedAddress.unit_number ? `, No: ${selectedAddress.unit_number}` : ''} · {selectedAddress.city}
+                  </Text>
+                </>
+              ) : (
+                <Text style={[styles.rowTitle, { color: Colors.primary }]}>{t('cart.addAddress')}</Text>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#999" />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.deliveryMethodOption, deliveryMethod === 'pickup' && styles.deliveryMethodOptionActive]}
-            onPress={() => setDeliveryMethod('pickup')}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="storefront"
-              size={20}
-              color={deliveryMethod === 'pickup' ? '#FFF' : Colors.primary}
-            />
-            <Text style={[styles.deliveryMethodLabel, deliveryMethod === 'pickup' && styles.deliveryMethodLabelActive]}>
-              {t('cart.deliveryMethodPickup')}
-            </Text>
-          </TouchableOpacity>
-        </View>
+          {quoteError && (
+            <View style={styles.quoteInline}>
+              <Ionicons name="alert-circle" size={16} color="#D32F2F" />
+              <Text style={styles.quoteErrorText}>{quoteError}</Text>
+            </View>
+          )}
+        </>
       )}
 
-      {/* Ne zaman: hemen / ileri tarih — yalnızca gel-al ve dilim varsa. */}
-      {isAuthenticated && deliveryMethod === 'pickup' && slotDays.length > 0 && (
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionTitle}>
-            <Ionicons name="calendar-outline" size={16} color={Colors.primary} />
-            <Text style={styles.sectionTitleText}>{t('cart.whenTitle')}</Text>
-          </View>
-          <View style={styles.whenRow}>
-            {(['asap', 'later'] as const).map((opt) => (
-              <TouchableOpacity
-                key={opt}
-                style={[styles.whenOption, when === opt && styles.whenOptionActive]}
-                onPress={() => {
-                  setWhen(opt);
-                  if (opt === 'later' && !slotDayKey && slotDays[0]) setSlotDayKey(slotDays[0].key);
-                }}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.whenLabel, when === opt && styles.whenLabelActive]}>
-                  {opt === 'asap' ? t('cart.whenAsap') : t('cart.whenLater')}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {when === 'later' && activeSlotDay && (
+      {/* Gel-al: ne zaman (varsa) + telefon */}
+      {deliveryMethod === 'pickup' && (
+        <>
+          {slotDays.length > 0 && (
             <>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={styles.chipRow}>
-                {slotDays.map((d) => (
-                  <TouchableOpacity
-                    key={d.key}
-                    style={[styles.dayChip, activeSlotDay.key === d.key && styles.dayChipActive]}
-                    onPress={() => { setSlotDayKey(d.key); setSlotIso(''); }}
-                  >
-                    <Text style={[styles.dayChipText, activeSlotDay.key === d.key && styles.dayChipTextActive]}>
-                      {d.offset === 0 ? t('cart.today') : d.offset === 1 ? t('cart.tomorrow') : d.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={styles.chipRow}>
-                {activeSlotDay.slots.map((s) => (
-                  <TouchableOpacity
-                    key={s.iso}
-                    style={[styles.slotChip, slotIso === s.iso && styles.slotChipActive]}
-                    onPress={() => setSlotIso(s.iso)}
-                  >
-                    <Text style={[styles.slotChipText, slotIso === s.iso && styles.slotChipTextActive]}>{s.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-              <Text style={styles.pickupPhoneHint}>
-                {scheduledFor ? t('cart.scheduledNote', { when: formatScheduled(scheduledFor) }) : t('cart.pickTime')}
-              </Text>
+              <View style={styles.rowItem}>
+                <View style={styles.rowIcon}><Ionicons name="time-outline" size={16} color={Colors.primary} /></View>
+                <Text style={[styles.rowTitle, { flex: 1 }]}>{t('cart.whenTitle')}</Text>
+                <View style={styles.whenMini}>
+                  {(['asap', 'later'] as const).map((opt) => (
+                    <TouchableOpacity
+                      key={opt}
+                      style={[styles.whenMiniChip, when === opt && styles.whenMiniChipActive]}
+                      onPress={() => {
+                        setWhen(opt);
+                        if (opt === 'later' && !slotDayKey && slotDays[0]) setSlotDayKey(slotDays[0].key);
+                      }}
+                    >
+                      <Text style={[styles.whenMiniText, when === opt && styles.whenMiniTextActive]}>
+                        {opt === 'asap' ? t('cart.whenAsapShort') : t('cart.whenLaterShort')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              {when === 'later' && activeSlotDay && (
+                <View style={styles.slotArea}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={styles.chipRow}>
+                    {slotDays.map((d) => (
+                      <TouchableOpacity
+                        key={d.key}
+                        style={[styles.dayChip, activeSlotDay.key === d.key && styles.dayChipActive]}
+                        onPress={() => { setSlotDayKey(d.key); setSlotIso(''); }}
+                      >
+                        <Text style={[styles.dayChipText, activeSlotDay.key === d.key && styles.dayChipTextActive]}>
+                          {d.offset === 0 ? t('cart.today') : d.offset === 1 ? t('cart.tomorrow') : d.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={styles.chipRow}>
+                    {activeSlotDay.slots.map((sl) => (
+                      <TouchableOpacity
+                        key={sl.iso}
+                        style={[styles.slotChip, slotIso === sl.iso && styles.slotChipActive]}
+                        onPress={() => setSlotIso(sl.iso)}
+                      >
+                        <Text style={[styles.slotChipText, slotIso === sl.iso && styles.slotChipTextActive]}>{sl.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                  <Text style={styles.pickupPhoneHint}>
+                    {scheduledFor ? t('cart.scheduledNote', { when: formatScheduled(scheduledFor) }) : t('cart.pickTime')}
+                  </Text>
+                </View>
+              )}
             </>
           )}
-        </View>
-      )}
-
-      {/* Telefon Bölümü — sadece restorandan teslim alma seçilince.
-          Teslimatta numara adresten geliyor; pickup'ta profil boş olabileceği için
-          (kayıtta telefon opsiyonel) burada isteniyor. */}
-      {isAuthenticated && deliveryMethod === 'pickup' && (
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.headerTitleRow}>
-              <Ionicons name="call" size={20} color={Colors.primary} />
-              <Text style={styles.sectionTitleText}>{t('cart.pickupPhoneTitle')}</Text>
-            </View>
-          </View>
-          <View style={styles.pickupPhoneBody}>
-            <Text style={styles.pickupPhoneHint}>{t('cart.pickupPhoneHint')}</Text>
+          <View style={styles.rowItem}>
+            <View style={styles.rowIcon}><Ionicons name="call" size={16} color={Colors.primary} /></View>
             <TextInput
-              style={styles.pickupPhoneInput}
+              style={styles.rowInput}
               value={pickupPhone}
               onChangeText={setPickupPhone}
               placeholder={t('cart.pickupPhonePlaceholder')}
@@ -670,115 +685,14 @@ const CartScreen = ({ navigation }: any) => {
               autoComplete="tel"
             />
           </View>
-        </View>
+        </>
       )}
+    </View>
+  );
 
-      {/* Adres Bölümü (Address Section) — sadece teslimat seçilince */}
-      {isAuthenticated && deliveryMethod === 'delivery' && (
-        <View style={styles.sectionContainer}>
-          <TouchableOpacity 
-            style={styles.sectionHeader} 
-            onPress={() => setIsAddressExpanded(!isAddressExpanded)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.headerTitleRow}>
-              <Ionicons name="location" size={20} color={Colors.primary} />
-              <Text style={styles.sectionTitleText}>{t('checkout.deliveryAddress')}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              {!isAddressExpanded && selectedAddress && (
-                <Text style={styles.headerSubtitle} numberOfLines={1}>{selectedAddress.title}</Text>
-              )}
-              <Ionicons name={isAddressExpanded ? "chevron-up" : "chevron-down"} size={18} color="#999" />
-            </View>
-          </TouchableOpacity>
-          
-          {isAddressExpanded && (
-            <View style={styles.expandedContent}>
-              {selectedAddress ? (
-                <TouchableOpacity 
-                  style={styles.addressCard} 
-                  onPress={() => {
-                    console.log('Opening address modal...');
-                    setShowAddressModal(true);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.addressCardInfo}>
-                    <Text style={styles.addressTitleText}>{selectedAddress.title}</Text>
-                    <Text style={styles.addressDetailText}>
-                      {selectedAddress.street_name} {selectedAddress.street_number}
-                      {selectedAddress.unit_number ? `, No: ${selectedAddress.unit_number}` : ''}
-                    </Text>
-                    <Text style={styles.addressDetailText}>{selectedAddress.city} / {selectedAddress.province}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity 
-                  style={styles.addAddressBtnInline} 
-                  onPress={() => navigation.navigate('AddressList')}
-                >
-                  <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
-                  <Text style={styles.addAddressTextInline}>{t('cart.addAddress')}</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* Teslimat alanı dışı / ücret alınamadı uyarısı */}
-      {isAuthenticated && deliveryMethod === 'delivery' && quoteError && (
-        <View style={styles.quoteErrorBanner}>
-          <Ionicons name="alert-circle" size={18} color="#D32F2F" />
-          <Text style={styles.quoteErrorText}>{quoteError}</Text>
-        </View>
-      )}
-
-      {/* Puan Bölümü (Points Section) */}
-      {isAuthenticated && (
-        <View style={styles.sectionContainer}>
-          <TouchableOpacity 
-            style={styles.sectionHeader} 
-            onPress={() => setIsPointsExpanded(!isPointsExpanded)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.headerTitleRow}>
-              <Ionicons name="star" size={20} color="#FFD700" />
-              <Text style={styles.sectionTitleText}>{t('cart.availablePoints')}: {userPoints.toFixed(0)}</Text>
-            </View>
-            <Ionicons name={isPointsExpanded ? "chevron-up" : "chevron-down"} size={18} color="#999" />
-          </TouchableOpacity>
-          
-          {isPointsExpanded && (
-            <View style={styles.expandedContent}>
-              {userPoints > 0 ? (
-                <View style={styles.pointsInputRow}>
-                  <TextInput
-                    ref={pointsInputRef}
-                    style={styles.pointsInput}
-                    defaultValue=""
-                    keyboardType="numeric"
-                    placeholder={t('cart.enterPoints')}
-                    onChangeText={(text) => { pointsTextRef.current = text; }}
-                    onSubmitEditing={handleApplyPoints}
-                    returnKeyType="done"
-                  />
-                  <TouchableOpacity style={styles.applyBtn} onPress={handleApplyPoints}>
-                    <Text style={styles.applyBtnText}>{t('cart.apply')}</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={styles.noPointsContainer}>
-                  <Text style={styles.noPointsText}>{t('loyalty.noPoints')} 🎁</Text>
-                </View>
-              )}
-            </View>
-          )}
-        </View>
-      )}
-
+  // ── ALTTA: teşvik, indirim/puan, döküm ───────────────────────────────────
+  const ListFooter = () => (
+    <View style={styles.listFooter}>
       {/* Kampanya teşviki — eşiğe az kaldı (Cart nudge) */}
       {campaignNudge && (
         <View style={styles.nudgeBanner}>
@@ -797,31 +711,27 @@ const CartScreen = ({ navigation }: any) => {
         </View>
       )}
 
-      {/* Kupon kodu (Coupon code) */}
-      <View style={styles.couponBox}>
+      {/* İndirim ve puan tek kartta; satırlar dokununca açılır. Eskiden kupon
+          kutusu, puan kartı ve teşvik üç ayrı blok olarak sayfayı uzatıyordu. */}
+      <View style={styles.sectionContainer}>
+        <View style={styles.sectionTitle}>
+          <Ionicons name="pricetag-outline" size={16} color={Colors.primary} />
+          <Text style={styles.sectionTitleText}>{t('cart.savingsTitle')}</Text>
+        </View>
+
         {appliedCoupon ? (
-          <View style={styles.couponAppliedRow}>
-            <Ionicons name="pricetag" size={18} color={Colors.primary} />
-            <View style={styles.couponAppliedText}>
+          <View style={styles.savingsRow}>
+            <View style={styles.rowIcon}><Ionicons name="pricetag" size={16} color={Colors.primary} /></View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.couponAppliedCode}>{appliedCoupon.code}</Text>
-              {!couponWins && (
-                // Kupon geçerli ama otomatik kampanya daha avantajlı. Sessizce
-                // yok saymak, müşterinin "kuponum uygulanmadı" diye şikâyet
-                // etmesi demek — sebebini yazıyoruz.
-                <Text style={styles.couponHint}>{t('coupon.error.campaign_better')}</Text>
-              )}
+              {!couponWins && <Text style={styles.couponHint}>{t('coupon.error.campaign_better')}</Text>}
             </View>
             <TouchableOpacity onPress={removeCoupon} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Text style={styles.couponRemove}>{t('coupon.remove')}</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <>
-            <View style={styles.couponTitleRow}>
-              <Ionicons name="pricetag-outline" size={16} color={Colors.primary} />
-              <Text style={styles.couponTitle}>{t('coupon.title')}</Text>
-            </View>
-            <View style={styles.couponInputRow}>
+        ) : isCouponExpanded ? (
+          <View style={styles.savingsRow}>
             <TextInput
               style={styles.couponInput}
               value={couponInput}
@@ -831,6 +741,7 @@ const CartScreen = ({ navigation }: any) => {
               autoCapitalize="characters"
               autoCorrect={false}
               returnKeyType="done"
+              autoFocus
               onSubmitEditing={() => applyCoupon(couponInput)}
               editable={!couponChecking}
             />
@@ -839,51 +750,76 @@ const CartScreen = ({ navigation }: any) => {
               onPress={() => applyCoupon(couponInput)}
               disabled={!couponInput.trim() || couponChecking}
             >
-              <Text style={styles.couponApplyText}>
-                {couponChecking ? t('coupon.checking') : t('coupon.apply')}
-              </Text>
+              <Text style={styles.couponApplyText}>{couponChecking ? t('coupon.checking') : t('coupon.apply')}</Text>
             </TouchableOpacity>
-            </View>
-          </>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.savingsRow} onPress={() => setIsCouponExpanded(true)} activeOpacity={0.7}>
+            <View style={styles.rowIcon}><Ionicons name="ticket-outline" size={16} color={Colors.primary} /></View>
+            <Text style={[styles.rowTitle, { flex: 1 }]}>{t('cart.haveCoupon')}</Text>
+            <Ionicons name="chevron-forward" size={18} color="#999" />
+          </TouchableOpacity>
         )}
         {couponError && <Text style={styles.couponError}>{couponError}</Text>}
+
+        {isAuthenticated && (
+          <>
+            <TouchableOpacity style={[styles.savingsRow, styles.savingsRowDivider]} onPress={() => setIsPointsExpanded(!isPointsExpanded)} activeOpacity={0.7}>
+              <View style={styles.rowIcon}><Ionicons name="star" size={16} color="#E0A800" /></View>
+              <Text style={[styles.rowTitle, { flex: 1 }]}>{t('cart.availablePoints')}: {userPoints.toFixed(0)}</Text>
+              <Ionicons name={isPointsExpanded ? 'chevron-up' : 'chevron-down'} size={18} color="#999" />
+            </TouchableOpacity>
+            {isPointsExpanded && (
+              userPoints > 0 ? (
+                <View style={[styles.pointsInputRow, { marginTop: 4 }]}>
+                  <TextInput
+                    ref={pointsInputRef}
+                    style={styles.pointsInput}
+                    defaultValue=""
+                    keyboardType="numeric"
+                    placeholder={t('cart.enterPoints')}
+                    onChangeText={(text) => { pointsTextRef.current = text; }}
+                    onSubmitEditing={handleApplyPoints}
+                    returnKeyType="done"
+                  />
+                  <TouchableOpacity style={styles.applyBtn} onPress={handleApplyPoints}>
+                    <Text style={styles.applyBtnText}>{t('cart.apply')}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.noPointsContainer}>
+                  <Text style={styles.noPointsText}>{t('loyalty.noPoints')} 🎁</Text>
+                </View>
+              )
+            )}
+          </>
+        )}
       </View>
 
-      {/* Özet Bölümü (Summary Section) */}
+      {/* Döküm: alt alta satırlar. Yatay ızgaradaki 10 px etiketler okunmuyordu. */}
       <View style={styles.summaryGrid}>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>{t('cart.subtotal')}</Text>
           <Text style={styles.summaryValue}>{formatPrice(getTotalPrice())}</Text>
         </View>
         {!couponWins && appliedCampaign && campaignDiscount > 0 && (
-          <>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={[styles.summaryLabel, { color: Colors.primary }]} numberOfLines={1}>
-                🎉 {getCampaignName(appliedCampaign.campaign, i18n.language)}
-              </Text>
-              <Text style={[styles.summaryValue, { color: '#28A745' }]}>
-                -{formatPrice(campaignDiscount)}
-              </Text>
-            </View>
-          </>
+          <View style={styles.summaryItem}>
+            <Text style={[styles.summaryLabel, { color: Colors.primary }]} numberOfLines={1}>
+              🎉 {getCampaignName(appliedCampaign.campaign, i18n.language)}
+            </Text>
+            <Text style={[styles.summaryValue, { color: '#28A745' }]}>-{formatPrice(campaignDiscount)}</Text>
+          </View>
         )}
         {couponWins && (
-          <>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={[styles.summaryLabel, { color: Colors.primary }]} numberOfLines={1}>
-                🎟️ {appliedCoupon!.code}
-              </Text>
-              <Text style={[styles.summaryValue, { color: '#28A745' }]}>
-                {appliedCoupon!.waivesDelivery && appliedCoupon!.discount === 0
-                  ? t('coupon.freeDelivery')
-                  : `-${formatPrice(appliedCoupon!.discount)}`}
-              </Text>
-            </View>
-          </>
+          <View style={styles.summaryItem}>
+            <Text style={[styles.summaryLabel, { color: Colors.primary }]} numberOfLines={1}>🎟️ {appliedCoupon!.code}</Text>
+            <Text style={[styles.summaryValue, { color: '#28A745' }]}>
+              {appliedCoupon!.waivesDelivery && appliedCoupon!.discount === 0
+                ? t('coupon.freeDelivery')
+                : `-${formatPrice(appliedCoupon!.discount)}`}
+            </Text>
+          </View>
         )}
-        <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>{t('cart.deliveryFee')}</Text>
           <Text style={styles.summaryValue}>
@@ -898,9 +834,6 @@ const CartScreen = ({ navigation }: any) => {
                     : t('cart.free')}
           </Text>
         </View>
-
-        {/* Vergi — müşteri toplamın neden arttığını sepette görsün */}
-        <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>{t('cart.tax', { rate: getTaxRate() })}</Text>
           <Text style={styles.summaryValue}>{formatPrice(taxAmount)}</Text>
@@ -929,6 +862,8 @@ const CartScreen = ({ navigation }: any) => {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
+            {isAuthenticated && TopFulfilment()}
+            <Text style={styles.groupTitle}>{t('cart.yourItems', { count: items.reduce((n, i) => n + i.quantity, 0) })}</Text>
             {items.map(item => <EliteCartItem key={item.lineId} item={item} />)}
             <UpsellStrip />
             {/* ListFooter BİLEŞEN OLARAK değil, FONKSİYON OLARAK çağrılıyor.
@@ -1144,21 +1079,28 @@ const styles = StyleSheet.create({
   couponHint: { fontSize: 11, fontWeight: '500', color: '#888', marginTop: 2 },
   couponRemove: { fontSize: 13, fontWeight: '700', color: '#C0392B' },
   couponError: { fontSize: 12, fontWeight: '600', color: '#C0392B', marginTop: 8 },
-  summaryGrid: {
-    flexDirection: 'row',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 20,
-    alignItems: 'center', 
-    ...Shadows.small,
-    borderWidth: 1,
-    borderColor: '#F0F0F0'
-  },
-  summaryItem: { flex: 1, alignItems: 'center' },
-  summaryDivider: { width: 1, height: 24, backgroundColor: '#EDEEF2' },
-  summaryLabel: { fontSize: 10, color: '#888', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  summaryGrid: { backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 6, marginBottom: 20, ...Shadows.small, borderWidth: 1, borderColor: '#F0F0F0' },
+  summaryItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, gap: 12 },
+  summaryDivider: { height: 1, backgroundColor: '#F1F1F1' },
+  summaryLabel: { flex: 1, fontSize: 13, color: '#666' },
   summaryValue: { fontSize: 15, fontWeight: '800', color: '#1A1A1A' },
+  // ---- Üst kart ve satırlar ----
+  topCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 12, marginBottom: 14, ...Shadows.small, borderWidth: 1, borderColor: '#F0F0F0' },
+  rowItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 4, borderTopWidth: 1, borderTopColor: '#F3F3F3', marginTop: 6 },
+  rowIcon: { width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.primary + '12', alignItems: 'center', justifyContent: 'center' },
+  rowTitle: { fontSize: 14, fontWeight: '700', color: '#1A1A1A' },
+  rowSub: { fontSize: 12, color: '#777', marginTop: 1 },
+  rowInput: { flex: 1, fontSize: 15, color: '#1A1A1A', paddingVertical: 6 },
+  whenMini: { flexDirection: 'row', backgroundColor: '#F1F3F5', borderRadius: 10, padding: 3, gap: 2 },
+  whenMiniChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  whenMiniChipActive: { backgroundColor: '#FFF', ...Shadows.small },
+  whenMiniText: { fontSize: 12, fontWeight: '700', color: '#777' },
+  whenMiniTextActive: { color: Colors.primary },
+  slotArea: { paddingTop: 8, paddingHorizontal: 4 },
+  quoteInline: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FDECEA', borderRadius: 12, padding: 10, marginTop: 6 },
+  groupTitle: { fontSize: 12, fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginLeft: 4 },
+  savingsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
+  savingsRowDivider: { borderTopWidth: 1, borderTopColor: '#F3F3F3' },
   stickyFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFF', paddingHorizontal: 24, paddingTop: 20, borderTopLeftRadius: 36, borderTopRightRadius: 36, ...Shadows.large },
   stickyRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   totalLabel: { fontSize: 11, color: '#999', fontWeight: '700', textTransform: 'uppercase', marginBottom: 2 },

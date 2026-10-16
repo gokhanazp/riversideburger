@@ -189,6 +189,11 @@
     "addedToCartDesc": "{{quantity}}x {{name}} added to your cart"
   },
   "cart": {
+    "yourItems": "Your items ({{count}})",
+    "savingsTitle": "Discounts & points",
+    "haveCoupon": "Have a coupon code?",
+    "whenAsapShort": "Now",
+    "whenLaterShort": "Later",
     "whenTitle": "When",
     "whenAsap": "As soon as possible",
     "whenLater": "Schedule for later",
