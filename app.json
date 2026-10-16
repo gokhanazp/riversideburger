@@ -23,11 +23,10 @@
       "bundleIdentifier": "com.riverside-burgers.app",
       "infoPlist": {
         "UIBackgroundModes": [
-          "remote-notification",
           "remote-notification"
         ],
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "Bu uygulama kamera erişimi kullanmamaktadır, ancak bağımlılıklardan biri bu izni gerektirmektedir.",
+        "NSCameraUsageDescription": "Riverside Burgers does not use the camera. A third-party library references the API, so Apple requires this notice.",
         "NSBluetoothAlwaysUsageDescription": "Riverside Burgers connects to the restaurant's Bluetooth receipt printer to print order tickets. Used by staff only.",
         "NSBluetoothPeripheralUsageDescription": "Riverside Burgers connects to the restaurant's Bluetooth receipt printer to print order tickets. Used by staff only."
       },
