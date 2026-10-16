@@ -27,7 +27,9 @@
           "remote-notification"
         ],
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "Bu uygulama kamera erişimi kullanmamaktadır, ancak bağımlılıklardan biri bu izni gerektirmektedir."
+        "NSCameraUsageDescription": "Bu uygulama kamera erişimi kullanmamaktadır, ancak bağımlılıklardan biri bu izni gerektirmektedir.",
+        "NSBluetoothAlwaysUsageDescription": "Riverside Burgers connects to the restaurant's Bluetooth receipt printer to print order tickets. Used by staff only.",
+        "NSBluetoothPeripheralUsageDescription": "Riverside Burgers connects to the restaurant's Bluetooth receipt printer to print order tickets. Used by staff only."
       },
       "config": {
         "usesNonExemptEncryption": false
