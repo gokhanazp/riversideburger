@@ -3,12 +3,12 @@
     "name": "Riverside Burgers",
     "slug": "riverside-burgers",
     "scheme": "riversideburgers",
-    "version": "2.0.8",
+    "version": "2.0.9",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "runtimeVersion": "2.0.7",
+    "runtimeVersion": "2.0.9",
     "updates": {
       "url": "https://u.expo.dev/8fe95f1d-8d84-4ccf-8b75-cdd48aceb0fd",
       "fallbackToCacheTimeout": 0
@@ -31,7 +31,8 @@
       },
       "config": {
         "usesNonExemptEncryption": false
-      }
+      },
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.riverside_burgers.app",
@@ -80,6 +81,16 @@
         {
           "merchantIdentifier": "merchant.com.riversideburgers",
           "enableGooglePay": true
+        }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/analytics",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
         }
       ]
     ],

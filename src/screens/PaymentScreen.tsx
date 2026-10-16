@@ -21,6 +21,7 @@ import Constants from 'expo-constants';
 import { Colors, Shadows } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 import { createPaymentIntent, confirmPayment, attachOrderToPayment } from '../services/stripeService';
+import { logPurchase } from '../services/analytics';
 import { createOrder } from '../services/orderService';
 import { getTaxRate } from '../services/taxService';
 import { createUberDelivery } from '../services/uberDeliveryService';
@@ -451,6 +452,16 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       }
     }
 
+    // GA4 purchase — web ile aynı parametreler; transaction_id sipariş numarası.
+    logPurchase({
+      orderNumber: order.order_number,
+      value: Number(order.total_amount) || 0,
+      tax: Number(taxAmount) || 0,
+      shipping: Number(deliveryFee) || 0,
+      items: items.map((it) => ({ item_id: it.id, item_name: it.name, price: it.price, quantity: it.quantity })),
+      method: deliveryMethod === 'pickup' ? 'pickup' : 'delivery',
+      scheduled: Boolean(scheduledFor),
+    });
     clearCart();
 
     // Uber dispatch sadece delivery + Kanada adresi + quote varsa

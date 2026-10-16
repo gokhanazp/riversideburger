@@ -18,6 +18,7 @@ import { Colors, Spacing, Shadows, BorderRadius } from '../constants/theme';
 import { useCartStore } from '../store/cartStore';
 import { isStoreOpenNow } from '../services/workingHoursService';
 import { getSlotDays } from '../services/schedulingService';
+import { logBeginCheckout } from '../services/analytics';
 import { formatScheduled, SlotDay } from '../services/scheduling';
 import { useAuthStore } from '../store/authStore';
 import { CartItem } from '../types';
@@ -474,6 +475,7 @@ const CartScreen = ({ navigation }: any) => {
         ? `${selectedAddress.street_number} ${selectedAddress.street_name}, ${selectedAddress.city}`
         : t('cart.addressNotSpecified');
 
+    logBeginCheckout(getFinalPrice(), items.map((it) => ({ item_id: it.id, item_name: it.name, price: it.price, quantity: it.quantity })));
     navigation.navigate('Payment', {
       // Vergi HARİÇ tutar: PaymentScreen bahşişi bunun üzerinden hesaplıyor
       totalAmount: getPreTaxTotal(),

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState , useRef } from 'react';
 import { View, Text, TouchableOpacity, Platform, StyleSheet, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
@@ -80,6 +80,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // Navigation ref - ayrı dosyada (döngüsel import'u önlemek için); geriye dönük uyum için re-export
 export { navigationRef } from './navigationRef';
 import { navigationRef } from './navigationRef';
+import { logScreen } from '../services/analytics';
 
 // Global admin sipariş bildirimcisi (her ekranda ses + toast)
 import BrandLockup from '../components/BrandLockup';
@@ -319,6 +320,7 @@ const activeRouteName = (state: any): string | undefined => {
 
 // Root stack navigator (Root stack navigator)
 const AppNavigator = () => {
+  const lastTrackedRouteRef = useRef<string | null>(null);
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
 
@@ -368,6 +370,12 @@ const AppNavigator = () => {
           NAV_STATE_KEY,
           JSON.stringify({ state, savedAt: Date.now() })
         ).catch(() => {});
+        // GA4 screen_view: yalnızca ekran gerçekten değişince.
+        const route = navigationRef.getCurrentRoute()?.name;
+        if (route && route !== lastTrackedRouteRef.current) {
+          lastTrackedRouteRef.current = route;
+          logScreen(route);
+        }
       }}
     >
       <Stack.Navigator

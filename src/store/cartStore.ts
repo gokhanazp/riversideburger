@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { logAddToCart } from '../services/analytics';
 import { CartItem, MenuItem } from '../types';
 
 // Sepet store'u için interface tanımı (Cart store interface definition)
@@ -21,6 +22,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   // Sepete ürün ekleme fonksiyonu (Add item to cart function)
   addItem: (item: MenuItem, customizations?: Array<{option_id: string; option_name: string; option_name_en?: string | null; option_price: number}>, specialInstructions?: string, meta?: { addedVia?: 'menu' | 'upsell' }) => {
     const currentItems = get().items;
+    logAddToCart({ item_id: item.id, item_name: item.name, price: Number(item.price) || 0, quantity: 1 });
 
     // Özelleştirmeli ürünler her zaman yeni item olarak eklenir
     // (Items with customizations are always added as new items)

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { User } from '../types/database.types';
 import { signIn, signUp, signOut, getCurrentUser, onAuthStateChange } from '../services/authService';
+import { setAnalyticsUser, logAuth } from '../services/analytics';
 
 // Auth Store State (Auth Store Durumu)
 interface AuthState {
@@ -30,6 +31,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   // Giriş yap (Login)
   login: async (email: string, password: string) => {
     const { user } = await signIn(email, password);
+    logAuth('login');
     set({
       user,
       isAuthenticated: true,
@@ -78,6 +80,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       // Auth değişikliklerini dinle (Listen to auth changes)
       onAuthStateChange((user) => {
+        setAnalyticsUser(user?.id ?? null, (user as any)?.role ?? null);
         set({
           user,
           isAuthenticated: !!user
@@ -95,6 +98,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   // Kullanıcıyı manuel olarak ayarla (Set user manually)
   setUser: (user: User | null) => {
+    setAnalyticsUser(user?.id ?? null, user?.role ?? null);
     set({
       user,
       isAuthenticated: !!user

@@ -229,3 +229,16 @@ unchanged, keep the runtime string as is so one OTA line reaches every
 installed build. Bump the runtime string only when native code changes
 (Expo SDK upgrade, new native module, config plugin change) — and ship a
 store build at the same time.
+
+## Firebase Analytics (2.0.9+)
+
+Native modules `@react-native-firebase/app` + `analytics`, so this ships only with a
+store build (runtime `2.0.9`). Files: `google-services.json` (Android) and
+`GoogleService-Info.plist` (iOS, repo root) come from the Firebase console project
+`riverside-burgers`, whose Google Analytics must be linked to the GA4 property
+`552408814` (same property as the website) so app and web share one report.
+Events mirror the web: `screen_view`, `add_to_cart`, `begin_checkout`, `purchase`
+(`transaction_id` = order number), `login`; user id = Supabase user id.
+iOS needs `expo-build-properties` → `ios.useFrameworks: 'static'`.
+Hotfixes for the live 2.0.7 app must branch from `ui-ux-revamp` (runtime 2.0.7),
+not from here.
