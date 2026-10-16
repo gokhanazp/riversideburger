@@ -83,7 +83,14 @@
           "enableGooglePay": true
         }
       ],
-      "@react-native-firebase/app",
+      [
+        "@react-native-firebase/app",
+        {
+          "ios": {
+            "disableSPM": true
+          }
+        }
+      ],
       "@react-native-firebase/analytics",
       [
         "expo-build-properties",
