@@ -137,7 +137,10 @@ export default function AdminReports() {
       const p = { p_from: range.from.toISOString(), p_to: range.to.toISOString(), p_statuses, p_source };
       const prevFrom = new Date(range.from.getTime() - (range.to.getTime() - range.from.getTime()));
       const prev = { p_from: prevFrom.toISOString(), p_to: range.from.toISOString(), p_statuses, p_source };
-      const [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses, upsell, acquisition] = await Promise.all([
+      // DİKKAT: bu sıra aşağıdaki rpc çağrılarının sırasıyla birebir aynı olmalı.
+      // Daha önce statuses/upsell/acquisition kaymıştı: durum kartı upsell
+      // satırını, "nereden geliyor" kartı durumları gösteriyordu (st_undefined).
+      const [summary, prevSummary, series, products, options, customers, hours, channels, delivery, upsell, acquisition, statuses] = await Promise.all([
         supabase.rpc('report_summary', p),
         supabase.rpc('report_summary', prev),
         supabase.rpc('report_timeseries', { ...p, p_bucket: effBucket }),
@@ -153,7 +156,7 @@ export default function AdminReports() {
         // bile dönemin tamamı görünsün. Kanal filtresi ise uygulanıyor.
         supabase.rpc('report_status_breakdown', { p_from: p.p_from, p_to: p.p_to, p_source }),
       ]);
-      const firstErr = [summary, prevSummary, series, products, options, customers, hours, channels, delivery, statuses, upsell, acquisition].find((r) => r.error)?.error;
+      const firstErr = [summary, prevSummary, series, products, options, customers, hours, channels, delivery, upsell, acquisition, statuses].find((r) => r.error)?.error;
       if (firstErr) throw firstErr;
       setData({
         summary: summary.data?.[0] ?? {},
