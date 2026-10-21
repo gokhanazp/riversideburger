@@ -18,7 +18,7 @@ import { Colors, Spacing, Shadows, BorderRadius } from '../constants/theme';
 import { useCartStore } from '../store/cartStore';
 import { isStoreOpenNow } from '../services/workingHoursService';
 import { getSlotDays } from '../services/schedulingService';
-import { logBeginCheckout } from '../services/analytics';
+import { logBeginCheckout, logViewCart } from '../services/analytics';
 import { formatScheduled, SlotDay } from '../services/scheduling';
 import { useAuthStore } from '../store/authStore';
 import { CartItem } from '../types';
@@ -116,6 +116,18 @@ const CartScreen = ({ navigation }: any) => {
         loadUserAddress();
       }
     }, [isAuthenticated, user])
+  );
+
+  // GA4 view_cart: sekme dolu sepetle odağa gelince (boş sepet olay üretmez).
+  useFocusEffect(
+    useCallback(() => {
+      const current = useCartStore.getState().items;
+      if (current.length === 0) return;
+      logViewCart(
+        current.reduce((sum, it) => sum + it.price * it.quantity, 0),
+        current.map((it) => ({ item_id: it.id, item_name: it.name, price: it.price, quantity: it.quantity }))
+      );
+    }, [])
   );
 
   const loadUserPoints = async () => {
@@ -475,7 +487,11 @@ const CartScreen = ({ navigation }: any) => {
         ? `${selectedAddress.street_number} ${selectedAddress.street_name}, ${selectedAddress.city}`
         : t('cart.addressNotSpecified');
 
-    logBeginCheckout(getFinalPrice(), items.map((it) => ({ item_id: it.id, item_name: it.name, price: it.price, quantity: it.quantity })));
+    logBeginCheckout(
+      getFinalPrice(),
+      items.map((it) => ({ item_id: it.id, item_name: it.name, price: it.price, quantity: it.quantity })),
+      { method: deliveryMethod === 'pickup' ? 'pickup' : 'delivery', scheduled: Boolean(scheduledFor), coupon: couponWins ? appliedCoupon!.code : null }
+    );
     navigation.navigate('Payment', {
       // Vergi HARİÇ tutar: PaymentScreen bahşişi bunun üzerinden hesaplıyor
       totalAmount: getPreTaxTotal(),

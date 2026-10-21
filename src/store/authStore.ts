@@ -22,6 +22,10 @@ interface AuthState {
   setUser: (user: User | null) => void;
 }
 
+// GA4 kullanıcı özellikleri: rol, hesabın açıldığı kanal, puan kademesi.
+const traitsOf = (user: User | null | undefined) =>
+  user ? { role: user.role ?? null, signupSource: user.signup_source ?? 'app', points: user.points ?? 0 } : {};
+
 // Auth Store oluştur (Create Auth Store)
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
@@ -41,6 +45,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   // Kayıt ol (Register)
   register: async (email: string, password: string, fullName: string, phone: string) => {
     const { user, requiresEmailConfirmation } = await signUp(email, password, fullName, phone);
+    logAuth('sign_up');
     // Email onayı bekliyorsa session yok → henüz authenticated sayma
     set({
       user,
@@ -63,6 +68,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       set({ isLoading: true });
       const user = await getCurrentUser();
+      setAnalyticsUser(user?.id ?? null, traitsOf(user));
 
       if (user) {
         set({
@@ -80,7 +86,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       // Auth değişikliklerini dinle (Listen to auth changes)
       onAuthStateChange((user) => {
-        setAnalyticsUser(user?.id ?? null, (user as any)?.role ?? null);
+        setAnalyticsUser(user?.id ?? null, traitsOf(user));
         set({
           user,
           isAuthenticated: !!user
@@ -98,7 +104,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   // Kullanıcıyı manuel olarak ayarla (Set user manually)
   setUser: (user: User | null) => {
-    setAnalyticsUser(user?.id ?? null, user?.role ?? null);
+    setAnalyticsUser(user?.id ?? null, traitsOf(user));
     set({
       user,
       isAuthenticated: !!user

@@ -29,6 +29,7 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { MenuItem } from '../types';
 import { openUpsell } from '../store/upsellStore';
+import { logViewItem } from '../services/analytics';
 import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { customizationService } from '../services/customizationService';
@@ -58,6 +59,11 @@ const ProductDetailScreen = ({ route, navigation }: any) => {
   useEffect(() => {
     getActiveCampaigns().then(setCampaigns).catch(() => setCampaigns([]));
   }, []);
+
+  // GA4 view_item: ürün detayı her açılışta bir kez.
+  useEffect(() => {
+    logViewItem({ item_id: item.id, item_name: item.name, price: Number(item.price) || 0, quantity: 1 });
+  }, [item.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const promo = getProductPromo(
     { id: item.id, category_id: (item as any).category_id, price: item.price },

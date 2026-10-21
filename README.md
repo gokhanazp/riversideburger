@@ -237,8 +237,18 @@ store build (runtime `2.0.9`). Files: `google-services.json` (Android) and
 `GoogleService-Info.plist` (iOS, repo root) come from the Firebase console project
 `riverside-burgers`, whose Google Analytics must be linked to the GA4 property
 `552408814` (same property as the website) so app and web share one report.
-Events mirror the web: `screen_view`, `add_to_cart`, `begin_checkout`, `purchase`
-(`transaction_id` = order number), `login`; user id = Supabase user id.
+Events mirror the web: `screen_view`, `view_item`, `add_to_cart` (param `added_via`:
+`menu` | `upsell`), `remove_from_cart`, `view_cart`, `begin_checkout`,
+`add_payment_info` (param `payment_type`: `card` | `apple_pay` | `google_pay` | `demo`),
+`purchase` (`transaction_id` = order number, params `delivery_method`, `scheduled`,
+`coupon`, `points_used`), `spend_virtual_currency` (points redeemed, CAD),
+`upsell_shown` (the "Goes well with" sheet actually appeared), `login`, `sign_up`.
+User id = Supabase user id; user properties `role`, `signup_source`, `points_tier`
+(`none` | `under_5` | `5_to_20` | `over_20`, CAD balance). GA4 only shows custom
+params/properties once they are registered: Admin → Custom definitions → event-scoped
+dimensions `added_via`, `delivery_method`, `scheduled`, `payment_type`,
+`suggestion_count`; user-scoped `role`, `signup_source`, `points_tier`. Admin users
+also produce events — filter them out with `role = admin` in explorations/audiences.
 iOS needs `expo-build-properties` → `ios.useFrameworks: 'static'`.
 Hotfixes for the live 2.0.7 app must branch from `ui-ux-revamp` (runtime 2.0.7),
 not from here.

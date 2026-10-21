@@ -21,7 +21,7 @@ import Constants from 'expo-constants';
 import { Colors, Shadows } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
 import { createPaymentIntent, confirmPayment, attachOrderToPayment } from '../services/stripeService';
-import { logPurchase } from '../services/analytics';
+import { logPurchase, logAddPaymentInfo, AnalyticsItem } from '../services/analytics';
 import { createOrder } from '../services/orderService';
 import { getTaxRate } from '../services/taxService';
 import { createUberDelivery } from '../services/uberDeliveryService';
@@ -105,6 +105,9 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     /** Ürün/kategori hedefli kuponun sunucuda denetlenebilmesi için sepet. */
     couponItems?: { product_id: string; quantity: number }[] | null;
   };
+
+  // GA4 ürün listesi — add_payment_info ve purchase aynı kalemleri gönderiyor.
+  const analyticsItems = (): AnalyticsItem[] => items.map((it) => ({ item_id: it.id, item_name: it.name, price: it.price, quantity: it.quantity }));
 
   // State
   const [isLoading, setIsLoading] = useState(false);
@@ -301,6 +304,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
     try {
       setIsLoading(true);
+      logAddPaymentInfo(totalAmount, analyticsItems(), 'card');
       const { error } = await stripeConfirmPayment(clientSecret, { paymentMethodType: 'Card' });
 
       // error yoksa Stripe ödemeyi kabul etti (Succeeded/Processing) → para alındı.
@@ -347,6 +351,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
     try {
       setIsLoading(true);
+      logAddPaymentInfo(totalAmount, analyticsItems(), Platform.OS === 'ios' ? 'apple_pay' : 'google_pay');
       const { error } = await confirmPlatformPayPayment(clientSecret, {
         applePay: {
           cartItems: buildWalletCartItems(),
@@ -386,6 +391,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
     try {
       setIsLoading(true);
+      logAddPaymentInfo(totalAmount, analyticsItems(), 'demo');
       await new Promise(resolve => setTimeout(resolve, 2000));
       // Demo mode gerçek ödeme almaz → 'pending' olarak işaretlenir (fişte belli olur).
       await createOrderAndNavigate('pending');
@@ -458,9 +464,11 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       value: Number(order.total_amount) || 0,
       tax: Number(taxAmount) || 0,
       shipping: Number(deliveryFee) || 0,
-      items: items.map((it) => ({ item_id: it.id, item_name: it.name, price: it.price, quantity: it.quantity })),
+      items: analyticsItems(),
       method: deliveryMethod === 'pickup' ? 'pickup' : 'delivery',
       scheduled: Boolean(scheduledFor),
+      coupon: couponCode,
+      pointsUsed: Number(pointsUsed) || 0,
     });
     clearCart();
 

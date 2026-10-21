@@ -4,6 +4,7 @@ import { useUpsellStore } from '../store/upsellStore';
 import { useCartStore } from '../store/cartStore';
 import { navigationRef } from '../navigation/navigationRef';
 import { getUpsellSuggestions, UpsellSuggestion } from '../services/upsellService';
+import { logUpsellShown } from '../services/analytics';
 
 // Kök seviyede tek panel. open(productId) gelince önerileri çeker; boşsa
 // hiç açılmaz (müşteri bir şey fark etmez), doluysa alttan panel.
@@ -30,6 +31,7 @@ export default function UpsellSheetHost() {
         }
         setSuggestions(rows);
         setVisible(true);
+        logUpsellShown(productId, rows.length);
       })
       .catch((e) => {
         console.warn('[upsell] öneriler alınamadı', e?.message ?? e);

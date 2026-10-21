@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { logAddToCart } from '../services/analytics';
+import { logAddToCart, logRemoveFromCart } from '../services/analytics';
 import { CartItem, MenuItem } from '../types';
 
 // Sepet store'u için interface tanımı (Cart store interface definition)
@@ -22,7 +22,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   // Sepete ürün ekleme fonksiyonu (Add item to cart function)
   addItem: (item: MenuItem, customizations?: Array<{option_id: string; option_name: string; option_name_en?: string | null; option_price: number}>, specialInstructions?: string, meta?: { addedVia?: 'menu' | 'upsell' }) => {
     const currentItems = get().items;
-    logAddToCart({ item_id: item.id, item_name: item.name, price: Number(item.price) || 0, quantity: 1 });
+    logAddToCart({ item_id: item.id, item_name: item.name, price: Number(item.price) || 0, quantity: 1 }, meta?.addedVia ?? 'menu');
 
     // Özelleştirmeli ürünler her zaman yeni item olarak eklenir
     // (Items with customizations are always added as new items)
@@ -63,6 +63,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
   // Sepetten ürün çıkarma fonksiyonu (Remove item from cart function)
   removeItem: (lineId: string) => {
+    const line = get().items.find((item) => item.lineId === lineId);
+    if (line) logRemoveFromCart({ item_id: line.id, item_name: line.name, price: Number(line.price) || 0, quantity: line.quantity });
     set({
       items: get().items.filter((item) => item.lineId !== lineId),
     });
@@ -74,6 +76,10 @@ export const useCartStore = create<CartStore>((set, get) => ({
       // Miktar 0 veya daha azsa, satırı sepetten çıkar (If quantity is 0 or less, remove the line)
       get().removeItem(lineId);
     } else {
+      const line = get().items.find((item) => item.lineId === lineId);
+      if (line && quantity < line.quantity) {
+        logRemoveFromCart({ item_id: line.id, item_name: line.name, price: Number(line.price) || 0, quantity: line.quantity - quantity });
+      }
       set({
         items: get().items.map((item) =>
           item.lineId === lineId ? { ...item, quantity } : item

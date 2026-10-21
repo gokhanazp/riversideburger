@@ -1,5 +1,10 @@
 // Firebase Analytics (GA4). Web sitesindeki olay adlarıyla aynı:
-// screen_view, add_to_cart, begin_checkout, purchase, login.
+// screen_view, view_item, add_to_cart, remove_from_cart, view_cart,
+// begin_checkout, add_payment_info, purchase, login, sign_up.
+//
+// Özel parametreler (added_via, delivery_method, scheduled, payment_type)
+// ve kullanıcı özellikleri (role, signup_source, points_tier) GA4 raporlarında
+// ancak "özel boyut" olarak tanımlanınca görünür — README'de liste var.
 //
 // @react-native-firebase v22+ yalnızca MODÜLER API sunuyor (getAnalytics +
 // logEvent(instance, …)); eski `analytics()` varsayılan dışa aktarımı yok.
@@ -57,17 +62,70 @@ export function logScreen(name: string) {
   safe((m, a) => m.logScreenView(a, { screen_name: name, screen_class: name }));
 }
 
-export function logAddToCart(item: AnalyticsItem) {
-  safe((m, a) => m.logEvent(a, 'add_to_cart', { currency: 'CAD', value: money(item.price * item.quantity), items: [item] }));
+/** Ürün detayı açıldı. */
+export function logViewItem(item: AnalyticsItem) {
+  safe((m, a) => m.logEvent(a, 'view_item', { currency: 'CAD', value: money(item.price * item.quantity), items: [item] }));
 }
 
-export function logBeginCheckout(value: number, items: AnalyticsItem[]) {
-  safe((m, a) => m.logEvent(a, 'begin_checkout', { currency: 'CAD', value: money(value), items }));
-}
-
-export function logPurchase(input: { orderNumber: string; value: number; tax: number; shipping: number; items: AnalyticsItem[]; method: 'pickup' | 'delivery'; scheduled: boolean }) {
+/** added_via: menü/ürün detayından mı, "Goes well with" panelinden mi eklendi. */
+export function logAddToCart(item: AnalyticsItem, addedVia: 'menu' | 'upsell' = 'menu') {
   safe((m, a) =>
-    m.logEvent(a, 'purchase', {
+    m.logEvent(a, 'add_to_cart', { currency: 'CAD', value: money(item.price * item.quantity), items: [item], added_via: addedVia })
+  );
+}
+
+/** Satır silindi ya da miktarı azaldı; quantity = çıkarılan adet. */
+export function logRemoveFromCart(item: AnalyticsItem) {
+  safe((m, a) => m.logEvent(a, 'remove_from_cart', { currency: 'CAD', value: money(item.price * item.quantity), items: [item] }));
+}
+
+/** Sepet sekmesi dolu sepetle odağa geldi. */
+export function logViewCart(value: number, items: AnalyticsItem[]) {
+  safe((m, a) => m.logEvent(a, 'view_cart', { currency: 'CAD', value: money(value), items }));
+}
+
+export interface CheckoutContext {
+  method: 'pickup' | 'delivery';
+  scheduled: boolean;
+  coupon?: string | null;
+}
+
+export function logBeginCheckout(value: number, items: AnalyticsItem[], ctx?: CheckoutContext) {
+  safe((m, a) =>
+    m.logEvent(a, 'begin_checkout', {
+      currency: 'CAD',
+      value: money(value),
+      items,
+      ...(ctx
+        ? { delivery_method: ctx.method, scheduled: ctx.scheduled ? 'yes' : 'no', ...(ctx.coupon ? { coupon: ctx.coupon } : {}) }
+        : {}),
+    })
+  );
+}
+
+/** Müşteri ödemeyi onayladı (kart / Apple Pay / Google Pay), Stripe'a gitmeden hemen önce. */
+export function logAddPaymentInfo(value: number, items: AnalyticsItem[], paymentType: 'card' | 'apple_pay' | 'google_pay' | 'demo') {
+  safe((m, a) => m.logEvent(a, 'add_payment_info', { currency: 'CAD', value: money(value), items, payment_type: paymentType }));
+}
+
+/** "Goes well with" paneli gerçekten göründü (öneri boşsa panel açılmıyor, olay da gitmiyor). */
+export function logUpsellShown(triggerProductId: string, suggestionCount: number) {
+  safe((m, a) => m.logEvent(a, 'upsell_shown', { item_id: triggerProductId, suggestion_count: suggestionCount }));
+}
+
+export function logPurchase(input: {
+  orderNumber: string;
+  value: number;
+  tax: number;
+  shipping: number;
+  items: AnalyticsItem[];
+  method: 'pickup' | 'delivery';
+  scheduled: boolean;
+  coupon?: string | null;
+  pointsUsed?: number;
+}) {
+  safe(async (m, a) => {
+    await m.logEvent(a, 'purchase', {
       transaction_id: input.orderNumber,
       currency: 'CAD',
       value: money(input.value),
@@ -76,18 +134,46 @@ export function logPurchase(input: { orderNumber: string; value: number; tax: nu
       items: input.items,
       delivery_method: input.method,
       scheduled: input.scheduled ? 'yes' : 'no',
-    })
-  );
+      ...(input.coupon ? { coupon: input.coupon } : {}),
+      points_used: money(input.pointsUsed ?? 0),
+    });
+    // GA4'ün önerilen olayı: puan harcandı. Puanlar CAD cinsinden tutuluyor.
+    if ((input.pointsUsed ?? 0) > 0) {
+      await m.logEvent(a, 'spend_virtual_currency', {
+        value: money(input.pointsUsed ?? 0),
+        virtual_currency_name: 'points',
+        item_name: 'order_discount',
+      });
+    }
+  });
 }
 
 export function logAuth(kind: 'login' | 'sign_up') {
   safe((m, a) => m.logEvent(a, kind, { method: 'password' }));
 }
 
-export function setAnalyticsUser(userId: string | null, role?: string | null) {
+/** Puan bakiyesi kademesi (CAD): kitle tanımlarında "puanı olup harcamayanlar" için. */
+export function pointsTier(points: number | null | undefined): 'none' | 'under_5' | '5_to_20' | 'over_20' {
+  const p = Number(points) || 0;
+  if (p <= 0) return 'none';
+  if (p < 5) return 'under_5';
+  if (p <= 20) return '5_to_20';
+  return 'over_20';
+}
+
+export interface AnalyticsUserTraits {
+  role?: string | null;
+  signupSource?: string | null;
+  points?: number | null;
+}
+
+/** Kullanıcı kimliği + özellikleri. Çıkışta hepsi null'a çekilir. */
+export function setAnalyticsUser(userId: string | null, traits: AnalyticsUserTraits = {}) {
   safe(async (m, a) => {
     await m.setUserId(a, userId);
-    await m.setUserProperty(a, 'role', role ?? null);
+    await m.setUserProperty(a, 'role', userId ? traits.role ?? null : null);
+    await m.setUserProperty(a, 'signup_source', userId ? traits.signupSource ?? 'app' : null);
+    await m.setUserProperty(a, 'points_tier', userId ? pointsTier(traits.points) : null);
   });
 }
 
