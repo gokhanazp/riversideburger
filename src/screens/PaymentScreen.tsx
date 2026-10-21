@@ -263,7 +263,8 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
   //   sunucu 'succeeded' → 'paid';  aksi halde (processing / doğrulanamadı) → 'pending'.
   // Apple/Google Pay çoğu zaman önce 'processing' döner ve saniyeler içinde 'succeeded'a
   // geçer; bu yüzden kısa aralıklarla birkaç kez yeniden sorarız.
-  const finalizePayment = async (intentId: string) => {
+  type PayMethod = 'card' | 'apple_pay' | 'google_pay';
+  const finalizePayment = async (intentId: string, method: PayMethod) => {
     let verifiedStatus: string | null = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
@@ -282,7 +283,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
     // 'paid' YALNIZCA sunucu-doğrulamalı 'succeeded' ile. Diğer tüm durumlarda 'pending',
     // ama sipariş HER HALÜKÂRDA oluşturulur — para alındı, siparişi kaybetmeyiz.
     const orderPaymentStatus: 'paid' | 'pending' = verifiedStatus === 'succeeded' ? 'paid' : 'pending';
-    await createOrderAndNavigate(orderPaymentStatus, intentId);
+    await createOrderAndNavigate(orderPaymentStatus, intentId, method);
   };
 
   const handlePayment = async () => {
@@ -306,7 +307,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       // Sipariş oluşturmayı finalizePayment'e bırak; o asla siparişi düşürmez.
       if (error) throw new Error(error.message);
 
-      await finalizePayment(paymentIntentId);
+      await finalizePayment(paymentIntentId, 'card');
     } catch (error: any) {
       console.error('Payment error:', error);
       Toast.show({ type: 'error', text1: t('payment.failed'), text2: error.message || t('payment.tryAgain'), visibilityTime: 4000, topOffset: 60 });
@@ -368,7 +369,7 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
       // error yoksa Apple/Google Pay ödemeyi kabul etti (Succeeded/Processing) → para alındı.
       // Sipariş MUTLAKA oluşturulmalı — bu yüzden status kontrolüyle erken çıkış YOK.
-      await finalizePayment(paymentIntentId);
+      await finalizePayment(paymentIntentId, Platform.OS === 'ios' ? 'apple_pay' : 'google_pay');
     } catch (error: any) {
       console.error('Platform Pay error:', error);
       Toast.show({ type: 'error', text1: t('payment.failed'), text2: error.message || t('payment.tryAgain'), visibilityTime: 4000, topOffset: 60 });
@@ -397,7 +398,8 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
 
   const createOrderAndNavigate = async (
     paymentStatus: 'paid' | 'pending' = 'paid',
-    intentId?: string | null
+    intentId?: string | null,
+    paymentMethod: PayMethod | null = null
   ) => {
     const orderItems = items.map((item) => ({
       product_id: item.id,
@@ -436,6 +438,10 @@ export default function PaymentScreen({ navigation, route }: PaymentScreenProps)
       delivery_instructions: deliveryMethod === 'delivery' ? (address?.delivery_instructions ?? null) : null,
       delivery_fee: deliveryFee,
       payment_status: paymentStatus,
+      // Ödeme yöntemi burada, sipariş doğarken yazılıyor. confirm-payment
+      // fonksiyonu sipariş henüz yokken çalıştığı için oradaki güncelleme
+      // boşa gidiyordu; raporda "Kayıt yok" bundandı.
+      payment_method: paymentMethod,
       scheduled_for: scheduledFor ?? null,
       campaign_id: campaignId,
       discount_amount: campaignDiscount,
