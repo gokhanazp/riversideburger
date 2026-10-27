@@ -15,7 +15,7 @@ import { Platform } from 'react-native';
 
 type Mod = {
   getAnalytics: () => unknown;
-  logEvent: (a: unknown, name: string, params?: Record<string, unknown>) => Promise<void>;
+  logEvent: (a: unknown, name: string, params?: Record<string, unknown>) => void;
   logScreenView: (a: unknown, p: { screen_name: string; screen_class?: string }) => Promise<void>;
   setUserId: (a: unknown, id: string | null) => Promise<void>;
   setUserProperty: (a: unknown, name: string, value: string | null) => Promise<void>;
@@ -43,10 +43,19 @@ function get(): { mod: Mod; a: unknown } | null {
   return loaded;
 }
 
-const safe = (fn: (m: Mod, a: unknown) => Promise<unknown>) => {
+// Modüler logEvent Promise DÖNDÜRMÜYOR (`void analytics.logEvent(...)`), yani
+// undefined. Eskiden burada doğrudan `.catch` çağrılıyordu: 2.0.9'da ürün
+// detayı, sepet ve giriş "Cannot read property 'catch' of undefined" ile
+// uygulamayı çökertti. Analitik hiçbir koşulda uygulamayı düşürmemeli.
+const warn = (e: unknown) => console.warn('[analytics]', e instanceof Error ? e.message : e);
+const safe = (fn: (m: Mod, a: unknown) => unknown) => {
   const l = get();
   if (!l) return;
-  fn(l.mod, l.a).catch((e) => console.warn('[analytics]', e instanceof Error ? e.message : e));
+  try {
+    Promise.resolve(fn(l.mod, l.a)).catch(warn);
+  } catch (e) {
+    warn(e);
+  }
 };
 
 export interface AnalyticsItem {
